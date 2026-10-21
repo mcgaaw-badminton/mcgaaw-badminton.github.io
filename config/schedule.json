@@ -1,0 +1,21 @@
+{
+  "_note": "Single source for the schedule. side = team id (\"1\"..\"6\") when known, else a label such as \"Thắng T1\" (names left blank on the sheet). When a result is known, replace the label with the team id and rebuild.",
+  "rules": {
+    "weekday": "Thứ 4",
+    "max_matches_per_day": 2,
+    "one_match_per_team_per_day": true,
+    "busy_note": "Nếu 1 trong 2 đội có việc bận, hai đội tự sắp xếp ngày khác để có kết quả trong tuần đó, trước thứ 4 kế tiếp."
+  },
+  "matches": [
+    {"code": "T1",  "round": "Vòng 1",   "day": 1, "date": "04/11/2026", "a": "1",        "b": "2"},
+    {"code": "T2",  "round": "Vòng 1",   "day": 1, "date": "04/11/2026", "a": "3",        "b": "4"},
+    {"code": "T3",  "round": "Vòng 1",   "day": 2, "date": "11/11/2026", "a": "5",        "b": "6"},
+    {"code": "T4",  "round": "Bán kết",  "day": 2, "date": "11/11/2026", "a": "Thắng T1", "b": "Thắng T2"},
+    {"code": "T5",  "round": "Thua V1",  "day": 3, "date": "18/11/2026", "a": "Thua T1",  "b": "Thua T2"},
+    {"code": "T6",  "round": "CK thắng", "day": 3, "date": "18/11/2026", "a": "Thắng T4", "b": "Thắng T3"},
+    {"code": "T7",  "round": "Thua V2",  "day": 4, "date": "25/11/2026", "a": "Thua T3",  "b": "Thắng T5"},
+    {"code": "T8",  "round": "Thua V3",  "day": 5, "date": "02/12/2026", "a": "Thua T4",  "b": "Thắng T7"},
+    {"code": "T9",  "round": "CK thua",  "day": 6, "date": "09/12/2026", "a": "Thua T6",  "b": "Thắng T8"},
+    {"code": "T10", "round": "CK tổng",  "day": 7, "date": "16/12/2026", "a": "Thắng T6", "b": "Thắng T9"}
+  ]
+}

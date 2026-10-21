@@ -1,0 +1,12 @@
+{
+  "_note": "Members in seed order 1..5 (seed = row order in the roster sheet). Edit names here only.",
+  "teams": {
+    "1": ["Nguyễn Viết Tri", "Nguyễn Duy Hiệu", "Nguyễn Thanh Thiên Minh", "Nguyễn Thanh Tiễn", "Nguyễn Thị Hồng Vấn"],
+    "2": ["Đoàn Anh Kiệt", "Trần Võ Toàn Phát", "Lữ Thị Trang", "Nguyễn Ngọc Bảo Kha", "Nguyễn Thị Diệp Sương"],
+    "3": ["Nguyễn Chí Toàn", "Nguyễn Đức Nhuận", "Huỳnh Hữu Tín", "Trần Thiện Sáng", "Tô Vy Quân"],
+    "4": ["Phạm Công Quân", "Phạm Quốc Nhật", "Nguyễn Văn Anh Tiến", "Nguyễn Văn Hùng", "Đỗ Sơn Tây"],
+    "5": ["Trương Lam", "Nguyễn Thái Thịnh", "Lê Đình Nhật Khang", "Lê Hữu Thái", "Huỳnh Thị Hồng Chi"],
+    "6": ["Lê Nguyễn Trung Vĩnh", "Huỳnh Lê Anh Vũ", "Huỳnh Võ Minh Tân", "Lê Quốc Tuấn", "Nguyễn Thị Như Thùy"]
+  },
+  "pairs": [[1, 2], [1, 3], [2, 4], [3, 5], [4, 5]]
+}

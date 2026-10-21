@@ -1,0 +1,181 @@
+<a class="skip" href="#lich">Bỏ qua, xem lịch thi đấu</a>
+<div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+<svg class="sym" width="0" height="0" aria-hidden="true" focusable="false"><defs>
+  <symbol id="sym-shuttle" viewBox="0 0 200 260" overflow="visible">{{SHUTTLE}}</symbol>
+  <symbol id="sym-racket" viewBox="0 0 220 560" overflow="visible">{{RACKET}}</symbol>
+</defs></svg>
+<div class="fly" id="fly" aria-hidden="true" hidden>
+  <svg class="ghost" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+  <svg class="ghost" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+  <svg class="ghost" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+  <svg class="ghost" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+  <svg class="ghost" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+  <svg class="fly-shuttle" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+</div>
+
+<header class="topnav">
+  <div class="wrap">
+    <div class="nav-shell glass">
+      <a class="brand" href="#home" aria-label="MCGAAW Badminton Cup, về đầu trang">
+        <img src="{{LOGO}}" alt="" width="36" height="36">
+        <span class="brand-text"><b>MCGAAW</b><span>Badminton Cup 2026</span></span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Mục chính">
+        <a href="#lich">Lịch</a>
+        <a href="#so-do">Sơ đồ</a>
+        <a href="#doi">Đội</a>
+        <a href="#the-le">Thể lệ</a>
+        <a href="#thu-vien">Ảnh</a>
+        <a href="#tai-lieu">Tài liệu</a>
+      </nav>
+      <time class="clock" id="clock" aria-label="Giờ Việt Nam"></time>
+      <button class="island" id="island" type="button" aria-label="Trận kế tiếp">
+        <span class="pulse" aria-hidden="true"></span>
+        <span class="island-short" id="islandShort"></span>
+        <span class="island-long" id="islandLong"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar glass" aria-label="Điều hướng nhanh">
+  <a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Tổng quan</a>
+  <a href="#lich"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Lịch</a>
+  <a href="#so-do"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h5v4H4zM4 15h5v4H4zM15 10h5v4h-5zM9 7h3v10H9M12 12h3"/></svg>Sơ đồ</a>
+  <a href="#doi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M18 14c2 .6 3 2.3 3 5"/></svg>Đội</a>
+  <a href="#thu-vien"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>Ảnh</a>
+</nav>
+
+<main>
+  <section id="home" class="wrap hero-wrap">
+    <div class="hero" aria-roledescription="carousel" aria-label="Tin nổi bật">
+      <div class="slides" id="slides" aria-live="polite"></div>
+      <div class="hero-racket" id="heroRacket" aria-hidden="true">
+        <svg class="rk" viewBox="0 0 220 560"><use href="#sym-racket"/></svg>
+        <span class="rk-spot" id="rkSpot"></span>
+        <svg class="rk-shuttle" id="rkShuttle" viewBox="0 0 200 260"><use href="#sym-shuttle"/></svg>
+      </div>
+      <div class="hero-ctrl">
+        <div class="dots" id="dots" role="tablist" aria-label="Chọn slide"></div>
+        <div class="hero-btns glass-dark">
+          <button class="icon-btn" id="prevSlide" type="button" aria-label="Slide trước"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="icon-btn" id="playSlide" type="button" aria-label="Tạm dừng tự chạy"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" d="M9 6v12M15 6v12"/></svg></button>
+          <button class="icon-btn" id="nextSlide" type="button" aria-label="Slide tiếp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+    </div>
+  </section>
+
+  <section class="wrap bento" aria-label="Tổng quan giải">
+    <article class="w w-next glass tilt rv" id="wNext"></article>
+    <article class="w w-prog glass tilt rv" id="wProg"></article>
+    <article class="w w-days glass tilt rv" id="wDays"></article>
+    <article class="w w-stat glass tilt rv" id="wStat"></article>
+  </section>
+
+  <section id="lich" class="section">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">Mỗi thứ 4 · tối đa 2 trận/ngày</p>
+        <h2>Lịch thi đấu</h2>
+      </div>
+      <div class="seg-scroll rv"><div class="seg" id="daySeg" role="tablist" aria-label="Chọn ngày thi đấu"><span class="seg-thumb" id="segThumb" aria-hidden="true"></span></div></div>
+      <div class="day-panel" id="dayPanel" role="tabpanel" aria-live="polite"></div>
+      <p class="hint glass rv" id="busyNote"></p>
+    </div>
+  </section>
+
+  <section id="so-do" class="section">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p>
+        <h2>Sơ đồ thi đấu</h2>
+      </div>
+      <div class="bracket-scroll glass rv"><div class="bracket" id="bracket"></div></div>
+    </div>
+  </section>
+
+  <section id="doi" class="section">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">6 đội · 5 VĐV mỗi đội</p>
+        <h2>Các đội</h2>
+        <div class="seed-legend" id="seedLegend" aria-label="Chú thích seed"></div>
+      </div>
+      <div class="teams" id="teams"></div>
+    </div>
+  </section>
+
+  <section id="the-le" class="section">
+    <div class="wrap">
+      <div class="sec-head rv"><p class="eyebrow">Áp dụng cho cả 10 trận</p><h2>Thể lệ</h2></div>
+      <div class="rules">
+        <article class="rule glass tilt rv">
+          <span class="rule-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="M10.5 10.5l3 3"/></svg></span>
+          <h3>5 cặp đánh đôi</h3>
+          <div class="chips" id="pairChips"></div>
+          <p>Ghép theo số thứ tự VĐV. Mỗi VĐV ra sân đúng 2 cặp.</p>
+        </article>
+        <article class="rule glass tilt rv">
+          <span class="rule-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0zM5 5H3v2a3 3 0 0 0 4 3M19 5h2v2a3 3 0 0 1-4 3M12 13v4M8 20h8"/></svg></span>
+          <h3>Đội thắng trận</h3>
+          <ol class="steps"><li><b>Tổng điểm</b> 5 cặp cao hơn</li><li>Hòa tổng điểm: <b>thắng nhiều cặp hơn</b></li></ol>
+        </article>
+        <article class="rule glass tilt rv">
+          <span class="rule-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>
+          <h3>Chung kết T10</h3>
+          <p>Đội thắng nhánh thắng gặp đội thắng nhánh thua. Thắng T10 là vô địch, không tái đấu.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="thu-vien" class="section">
+    <div class="wrap">
+      <div class="sec-head row rv">
+        <div><p class="eyebrow">Khoảnh khắc</p><h2>Thư viện ảnh</h2></div>
+        <div class="seg small" id="albumFilters" role="tablist" aria-label="Chọn album"></div>
+      </div>
+      <div class="gallery" id="gallery"></div>
+      <div class="empty glass rv" id="galleryEmpty" hidden>
+        <div class="empty-art" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p><b>Ảnh sẽ lên sau mỗi ngày thi đấu</b></p>
+        <p class="muted">Khai mạc thứ 4, 04/11/2026.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="tai-lieu" class="section">
+    <div class="wrap">
+      <div class="sec-head rv"><p class="eyebrow">Poster · phiếu thi đấu</p><h2>Tài liệu</h2></div>
+      <ul class="docs" id="docs"></ul>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand"><img src="{{LOGO}}" alt="" width="32" height="32"><span><b>MCGAAW</b> Badminton Cup 2026</span></div>
+    <p class="foot-tag">SMASH · DROP · CLEAR</p>
+    <p class="muted" id="updated"></p>
+    <p class="muted ver" id="ver"></p>
+    <p class="muted credit">Biểu tượng động: Noto Animated Emoji (Google, CC BY 4.0) · Lottie (MIT)</p>
+  </div>
+</footer>
+
+<div class="toast glass" id="toast" role="status" hidden>
+  <span class="pulse" aria-hidden="true"></span>
+  <span><b>Đã có cập nhật mới</b><small id="toastMsg">Kết quả hoặc giao diện vừa thay đổi.</small></span>
+  <button type="button" class="toast-btn" id="toastBtn">Tải lại</button>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh" hidden>
+  <figure class="lb-fig">
+    <img id="lbImg" alt="">
+    <figcaption class="glass-dark"><span id="lbCap"></span><span class="lb-count" id="lbCount"></span></figcaption>
+  </figure>
+  <button class="icon-btn glass-dark lb-close" id="lbClose" type="button" aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <button class="icon-btn glass-dark lb-prev" id="lbPrev" type="button" aria-label="Ảnh trước"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="icon-btn glass-dark lb-next" id="lbNext" type="button" aria-label="Ảnh tiếp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+</div>
