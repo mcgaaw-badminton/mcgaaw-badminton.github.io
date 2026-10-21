@@ -1,5 +1,6 @@
 {
-  "_note": "Members in main-seed order 1..5 (row order in the roster sheet). sub_seeds[team][i] = sub seed of member i: rank 1..6 among the six players who share that main seed (1 = strongest). Used for the player heat table; not shown on the site. Edit names here only.",
+  "_note": "Members in main-seed order 1..5 (row order in the roster sheet). sub_seeds[team][i] = sub seed of member i: rank 1..6 among the six players who share that main seed (1 = strongest). Used for the player heat table; not shown on the site. past_champions: players who won last season; they get a gold \"Champion\" cup label on the site (names must match the rosters). Edit names here only.",
+  "past_champions": ["Nguyễn Chí Toàn"],
   "teams": {
     "1": [
       "Nguyễn Viết Tri",

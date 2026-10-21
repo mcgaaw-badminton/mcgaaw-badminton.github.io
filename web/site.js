@@ -52,9 +52,15 @@
   var HEART = '<svg class="fh" viewBox="0 0 24 24" aria-label="Nữ" role="img"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
   function isFemale(n) { return /(^|\s)Thị(\s|$)/.test(String(n).normalize('NFC')); }
   function seedTag(i) { return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + '</span>'; }
-  /* name chip: tappable in the schedule (pick + highlight), plain glass chip elsewhere */
-  function pn(n, cls) { return '<button type="button" class="pn' + (cls ? ' ' + cls : '') + '" data-p="' + esc(n) + '">' + esc(n) + (isFemale(n) ? HEART : '') + '</button>'; }
-  function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '">' + esc(n) + (isFemale(n) ? HEART : '') + '</span>'; }
+  /* last season's champions: gold cup label (config/teams.json past_champions) */
+  var CHAMPS = S.champions || [];
+  var CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v3a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 12v4M8.5 20h7M10 16h4l.5 4h-5z"/></svg>';
+  function isChamp(n) { return CHAMPS.indexOf(n) >= 0; }
+  function champTag() { return '<span class="champ" title="Vô địch mùa trước">' + CUP + 'Champion</span>'; }
+  function marks(n) { return (isFemale(n) ? HEART : '') + (isChamp(n) ? '<span class="cup-i" title="Vô địch mùa trước">' + CUP + '</span>' : ''); }
+  /* name chip: tappable in the schedule (pick + highlight), plain glass chip elsewhere (hover shows heat) */
+  function pn(n, cls) { return '<button type="button" class="pn' + (cls ? ' ' + cls : '') + '" data-p="' + esc(n) + '">' + esc(n) + marks(n) + '</button>'; }
+  function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '" data-h="' + esc(n) + '" tabindex="0">' + esc(n) + marks(n) + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
   /* ---------- show/hide blocks (member lists) ---------- */
@@ -322,7 +328,7 @@
       '<span class="tn">' + esc(t.name) + '<small>' + t.members.length + ' VĐV' + (fem ? ' · ' + fem + ' nữ' : '') + '</small></span>' +
       '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHIP + '</button></h3>' +
       '<div class="collapse" id="roster-' + t.id + '"><div class="collapse-in"><ol>' +
-      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n, 'nm') + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
+      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n, 'nm') + '<span class="tags">' + (isChamp(n) ? champTag() : '') + (isFemale(n) ? femTag() : '') + '</span></li>'; }).join('') + '</ol></div></div></article>';
   }).join('');
   function syncTeamsAll() {
     var t = document.querySelectorAll('.team-toggle'), open = [].filter.call(t, function (b) { return b.getAttribute('aria-expanded') === 'true'; }).length;
@@ -333,7 +339,7 @@
     t.forEach(function (b) { setOpen(b, !allOpen); });
     syncTeamsAll();
   });
-  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
+  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>' + (CHAMPS.length ? '<span>' + champTag() + 'Vô địch mùa trước</span>' : '') + '<span>Rê chuột (hoặc chạm) vào tên để xem nhiệt độ</span>';
 
   /* ---------- pick a player in the schedule: highlight their pairs + show their heat from the standings ---------- */
   var hlCss = document.createElement('style'); document.head.appendChild(hlCss);
@@ -354,7 +360,7 @@
       '#lich .pair:has(' + q + '){background:var(--brand-soft)}' +
       '#lich .match:has(' + q + ') .vs-toggle{box-shadow:0 0 0 2px var(--brand)}';
     var t = allNames[selP], codes = S.matches.filter(function (m) { return m.a.team === t.id || m.b.team === t.id; }).map(function (m) { return m.code; });
-    $('pFocusName').textContent = selP;
+    $('pFocusName').innerHTML = esc(selP) + (isChamp(selP) ? ' ' + champTag() : '');
     $('pFocusMeta').textContent = t.name + ' · seed ' + (t.members.indexOf(selP) + 1) + (codes.length ? ' · ' + codes.join(', ') : '');
     var st = pStats[selP];
     if (st) {
@@ -373,6 +379,33 @@
     selectPlayer(b.dataset.p === selP ? null : b.dataset.p);
   });
   $('pFocusClear').addEventListener('click', function () { selectPlayer(null); });
+
+  /* hover (or tap) a name outside the schedule: small glass tip with the player's heat */
+  var tip = $('heatTip'), tipFor = null, tipTimer;
+  function showTip(el) {
+    var n = el.dataset.h, st = pStats[n]; if (!st) return;
+    tipFor = el;
+    var tr = st.played ? (st.trend > 0 ? '<small class="trend up">▲ +' + st.trend + '</small>' : st.trend < 0 ? '<small class="trend down">▼ ' + st.trend + '</small>' : '') : '';
+    tip.innerHTML = '<span class="pf-deg"><b>' + st.heat.toFixed(1) + '°</b>' + tr + '</span><span class="thermo" aria-hidden="true"><i style="width:' + Math.max(4, Math.min(100, (st.heat - 20) / 25 * 100)).toFixed(0) + '%"></i></span>' +
+      '<small>Hạng ' + st.hrank + '/' + heatRank.length + (st.played ? ' · ' + st.won + 'T ' + st.lost + 'B' : ' · theo seed') + '</small>';
+    tip.hidden = false;
+    var r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)), y = r.top - h - 8;
+    if (y < 70) y = r.bottom + 8;
+    tip.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  }
+  function hideTip() { tip.hidden = true; tipFor = null; }
+  document.addEventListener('pointerover', function (e) {
+    if (e.pointerType !== 'mouse') return;  // touch: the tap below shows it
+    var el = e.target.closest && e.target.closest('.pn[data-h]'); if (el) showTip(el); else if (tipFor) hideTip();
+  });
+  document.addEventListener('focusin', function (e) { var el = e.target.closest && e.target.closest('.pn[data-h]'); if (el) showTip(el); });
+  document.addEventListener('focusout', function (e) { if (tipFor && e.target === tipFor) hideTip(); });
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest && e.target.closest('.pn[data-h]'); if (!el) return;
+    clearTimeout(tipTimer); showTip(el); tipTimer = setTimeout(hideTip, 3000);
+  });
+  window.addEventListener('scroll', function () { if (tipFor) { var r = tipFor.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) hideTip(); else showTip(tipFor); } }, { passive: true });
   try { var keep = localStorage.getItem('gcl-player'); if (keep) selectPlayer(keep); } catch (e) {}
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
 
@@ -468,7 +501,7 @@
           sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
         }
         return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
-          '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
+          '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span></li>';
       }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
       note.textContent = state.metric === 'heat'

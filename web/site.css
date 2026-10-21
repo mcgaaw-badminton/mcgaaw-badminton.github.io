@@ -542,3 +542,24 @@ a.doc:hover .go { transform: translateX(4px); color: var(--brand-text) }
 .pf-heat .thermo i { background-size: 72px 100% }
 .pf-x { display: inline-grid; place-items: center; width: 32px; height: 32px; min-height: 32px; padding: 0 }
 .pf-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round }
+
+/* last season's champion */
+.cup { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0 }
+.champ { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; font-style: normal; color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); white-space: nowrap }
+.cup-i { display: inline-grid; place-items: center; margin-left: 6px; width: 20px; height: 20px; border-radius: 50%; color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); flex-shrink: 0 }
+.cup-i .cup { width: 12px; height: 12px }
+.team li .tags { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end }
+.who .champ { padding: 1px 8px 1px 6px; font-size: 11px }
+.pf-txt b .champ { vertical-align: 1px; padding: 1px 8px 1px 6px; font-size: 11px }
+
+/* heat tip on names outside the schedule */
+.heat-tip { position: fixed; z-index: 90; left: 0; top: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 12px; border-radius: 14px; pointer-events: none; box-shadow: var(--shadow) }
+.heat-tip small { font-size: 12px; color: var(--muted); white-space: nowrap }
+.heat-tip .thermo { width: 72px; height: 5px }
+.heat-tip .thermo i { background-size: 72px 100% }
+.pn.plain:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
+@media (hover: hover) and (pointer: fine) { .pn.plain:hover { border-color: var(--brand) } }
+
+/* notes and captions in italic */
+.pick-hint, .hint, .seed-legend, .g-item .cap, .lb-fig figcaption, .board-empty, .pairs.tbd { font-style: italic }
+.hint::before, .seed-legend .seed-tag, .seed-legend .fem, .seed-legend .champ { font-style: normal }

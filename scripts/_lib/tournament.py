@@ -74,6 +74,10 @@ def validate_teams(teams_cfg):
     for i, (x, y) in enumerate(teams_cfg["pairs"], 1):
         if not (1 <= x <= n_seed and 1 <= y <= n_seed) or x == y:
             errors.append(f"pairs[{i}] = {[x, y]}: seed không hợp lệ")
+    names = {n for m in teams.values() for n in m}
+    for n in teams_cfg.get("past_champions", []):
+        if n not in names:
+            errors.append(f"past_champions: \"{n}\" không có trong danh sách đội")
     subs = teams_cfg.get("sub_seeds")
     if subs is not None:
         for t in teams:

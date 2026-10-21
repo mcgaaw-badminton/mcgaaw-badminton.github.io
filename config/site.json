@@ -1,6 +1,6 @@
 {
   "_note": "Website settings. Slides: each entry may name an \"image\" file inside slides/ (leave out for the court-line background). Images in slides/ that no entry names are added as photo-only slides. match_time like \"18:00\" turns on the full countdown; leave empty while unknown. placements: final position of the team that loses each elimination match (the winner of the last one is 1st).",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "title": "MCGAAW Badminton Cup 2026",
   "match_time": "",
   "venue": "",

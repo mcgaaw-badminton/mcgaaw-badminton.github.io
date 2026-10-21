@@ -127,6 +127,7 @@ def main():
     n_photos = 0
     for key, title, d in groups:
         caps = read_json(d / "captions.json") if (d / "captions.json").exists() else {}
+        title = caps.get("_title", title)  # optional album title with Vietnamese marks
         items = []
         for f in images_in(d):
             rel = f"{key}/{f.stem}.jpg"
@@ -153,7 +154,7 @@ def main():
     data = {
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
                  "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "firstDate": dates[0][:5], "lastDate": dates[-1]},
-        "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "matches": matches,
+        "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
     }
