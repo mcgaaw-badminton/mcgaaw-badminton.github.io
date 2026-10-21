@@ -5,11 +5,12 @@ Mỗi lần có commit lên nhánh `main`, GitHub Actions tự build và đăng 
 
 ## Cập nhật kết quả trận (làm được ngay trên GitHub, kể cả điện thoại)
 1. Mở `config/schedule.json` → bấm biểu tượng bút (Edit).
-2. Ở trận vừa đấu, thêm dòng `"result"` sau `"b": ...`, ví dụ trận T1:
+2. Ở trận vừa đấu, thêm `"result"` sau `"b": ...`. Cách nên dùng — nhập điểm **từng cặp** theo thứ tự cặp 1–2, 1–3, 2–4, 3–5, 4–5 (đội trái trước):
    ```json
-   {"code": "T1", "round": "Vòng 1", "day": 1, "date": "04/11/2026", "a": "1", "b": "2", "result": {"a": 105, "b": 98, "pa": 3, "pb": 2}},
+   {"code": "T1", "round": "Vòng 1", "day": 1, "date": "04/11/2026", "a": "1", "b": "2", "result": {"pairs": [[21, 15], [18, 21], [21, 19], [21, 12], [17, 21]]}},
    ```
-   `a`/`b` = tổng điểm 5 cặp của đội bên trái / phải · `pa`/`pb` = số cặp thắng.
+   Tổng điểm và số cặp thắng tự tính; bảng xếp hạng VĐV (nhiệt độ, cặp thắng, điểm ghi, hiệu số) cũng lấy từ đây.
+   Nếu chỉ có tổng: `"result": {"a": 105, "b": 98, "pa": 3, "pb": 2}` — trận vẫn tính cho đội, nhưng không có chỉ số VĐV.
 3. Commit changes → chờ tab Actions báo xanh → F5 website. Nếu Actions báo đỏ, mở log: dòng `[ERROR]` chỉ đúng ô nhập sai (điểm không phải số, pa + pb ≠ 5, nhập kết quả khi chưa biết đủ 2 đội…); website giữ nguyên bản cũ cho tới khi sửa xong. Đội thắng/thua tự điền vào các trận sau, sơ đồ, trạng thái đội và tiến độ giải tự đổi.
 
 ## Phát hành giao diện mới

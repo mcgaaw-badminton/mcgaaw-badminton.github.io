@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import paths  # noqa: E402
-from _lib.tournament import validate, resolve_matches, result_without_teams  # noqa: E402
+from _lib.tournament import validate, resolve_matches, result_without_teams, stats  # noqa: E402
 
 try:
     from PIL import Image, ImageOps
@@ -155,11 +155,12 @@ def main():
                  "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
+        "stats": stats(teams_cfg, matches, site.get("placements", {})),
     }
     data["meta"]["build"] = {"id": build_id, "version": site.get("version", "1.0.0"), "commit": commit,
                              "builtAt": BUILT.isoformat(timespec="seconds"),
                              "dataHash": hashlib.sha1(json.dumps([matches, teams], ensure_ascii=False).encode()).hexdigest()[:8]}
-    print(f"[SITE] {len(matches)} matches · {len(slides)} slides · {n_photos} photos in {len(gallery)} albums · {len(docs)} documents"
+    print(f"[SITE] {len(matches)} matches ({data['stats']['played']} played) · {len(slides)} slides · {n_photos} photos in {len(gallery)} albums · {len(docs)} documents"
           + ("" if Image else " · Pillow not installed: photos copied without resizing"))
     if dry:
         print(f"[DRY-RUN] would write {out}")

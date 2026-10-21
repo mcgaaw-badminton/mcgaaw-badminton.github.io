@@ -1,12 +1,113 @@
 {
-  "_note": "Members in seed order 1..5 (seed = row order in the roster sheet). Edit names here only.",
+  "_note": "Members in main-seed order 1..5 (row order in the roster sheet). sub_seeds[team][i] = sub seed of member i: rank 1..6 among the six players who share that main seed (1 = strongest). Used for the player heat table; not shown on the site. Edit names here only.",
   "teams": {
-    "1": ["Nguyễn Viết Tri", "Nguyễn Duy Hiệu", "Nguyễn Thanh Thiên Minh", "Nguyễn Thanh Tiễn", "Nguyễn Thị Hồng Vấn"],
-    "2": ["Đoàn Anh Kiệt", "Trần Võ Toàn Phát", "Lữ Thị Trang", "Nguyễn Ngọc Bảo Kha", "Nguyễn Thị Diệp Sương"],
-    "3": ["Nguyễn Chí Toàn", "Nguyễn Đức Nhuận", "Huỳnh Hữu Tín", "Trần Thiện Sáng", "Tô Vy Quân"],
-    "4": ["Phạm Công Quân", "Phạm Quốc Nhật", "Nguyễn Văn Anh Tiến", "Nguyễn Văn Hùng", "Đỗ Sơn Tây"],
-    "5": ["Trương Lam", "Nguyễn Thái Thịnh", "Lê Đình Nhật Khang", "Lê Hữu Thái", "Huỳnh Thị Hồng Chi"],
-    "6": ["Lê Nguyễn Trung Vĩnh", "Huỳnh Lê Anh Vũ", "Huỳnh Võ Minh Tân", "Lê Quốc Tuấn", "Nguyễn Thị Như Thùy"]
+    "1": [
+      "Nguyễn Viết Tri",
+      "Nguyễn Duy Hiệu",
+      "Nguyễn Thanh Thiên Minh",
+      "Nguyễn Thanh Tiễn",
+      "Nguyễn Thị Hồng Vấn"
+    ],
+    "2": [
+      "Đoàn Anh Kiệt",
+      "Trần Võ Toàn Phát",
+      "Lữ Thị Trang",
+      "Nguyễn Ngọc Bảo Kha",
+      "Nguyễn Thị Diệp Sương"
+    ],
+    "3": [
+      "Nguyễn Chí Toàn",
+      "Nguyễn Đức Nhuận",
+      "Huỳnh Hữu Tín",
+      "Trần Thiện Sáng",
+      "Tô Vy Quân"
+    ],
+    "4": [
+      "Phạm Công Quân",
+      "Phạm Quốc Nhật",
+      "Nguyễn Văn Anh Tiến",
+      "Nguyễn Văn Hùng",
+      "Đỗ Sơn Tây"
+    ],
+    "5": [
+      "Trương Lam",
+      "Nguyễn Thái Thịnh",
+      "Lê Đình Nhật Khang",
+      "Lê Hữu Thái",
+      "Huỳnh Thị Hồng Chi"
+    ],
+    "6": [
+      "Lê Nguyễn Trung Vĩnh",
+      "Huỳnh Lê Anh Vũ",
+      "Huỳnh Võ Minh Tân",
+      "Lê Quốc Tuấn",
+      "Nguyễn Thị Như Thùy"
+    ]
   },
-  "pairs": [[1, 2], [1, 3], [2, 4], [3, 5], [4, 5]]
+  "pairs": [
+    [
+      1,
+      2
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      4,
+      5
+    ]
+  ],
+  "sub_seeds": {
+    "1": [
+      5,
+      2,
+      4,
+      3,
+      2
+    ],
+    "2": [
+      2,
+      5,
+      1,
+      6,
+      6
+    ],
+    "3": [
+      3,
+      4,
+      3,
+      4,
+      3
+    ],
+    "4": [
+      4,
+      3,
+      6,
+      1,
+      4
+    ],
+    "5": [
+      6,
+      1,
+      2,
+      5,
+      5
+    ],
+    "6": [
+      1,
+      6,
+      5,
+      2,
+      1
+    ]
+  }
 }

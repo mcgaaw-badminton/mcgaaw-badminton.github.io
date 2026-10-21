@@ -117,7 +117,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   .nav { display: none }
   .theme-btn { margin-left: auto }
   .tabbar { display: flex; position: fixed; z-index: 60; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); border-radius: 26px; padding: 6px; justify-content: space-around }
-  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-height: 48px; border-radius: 18px; font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: none; transition: color .25s, background .25s }
+  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-height: 48px; border-radius: 18px; font-size: 10.5px; font-weight: 600; white-space: nowrap; color: var(--muted); text-decoration: none; transition: color .25s, background .25s }
   .tabbar a svg { width: 22px; height: 22px }
   .tabbar a.on { color: var(--brand-text); background: var(--brand-soft) }
   body { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)) }
@@ -311,6 +311,74 @@ h3 { font-size: 18px; font-weight: 800 }
 .b-team.win { color: var(--brand-text) }
 .b-team b { font-variant-numeric: tabular-nums }
 .b-foot { padding: 6px 12px 8px; font-size: 12px; color: var(--muted) }
+
+
+/* standings / stats board */
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
+.board { border-radius: var(--r-l); padding: 8px 8px 12px; overflow: hidden }
+.board-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 10px 12px }
+.chipset { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { border: 0; cursor: pointer; padding: 8px 14px; min-height: 38px; border-radius: 12px; font-size: 14px; font-weight: 700; color: var(--muted); background: transparent; transition: background .25s, color .25s }
+.chip:hover { color: var(--ink) }
+.chip[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-text) }
+.filters-r { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto }
+.sel { appearance: none; -webkit-appearance: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--glass-strong) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2359617F' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px; border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px 34px 8px 12px; min-height: 38px; cursor: pointer }
+.tgl { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; min-height: 38px; padding: 0 4px }
+.tgl input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0 }
+.board-body { padding: 0 6px }
+.tbl-scroll { overflow-x: auto }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums }
+.tbl th { text-align: right; font-size: 12px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap }
+.tbl td { text-align: right; padding: 12px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap }
+.tbl tr:last-child td { border-bottom: 0 }
+.tbl th.l, .tbl td.l { text-align: left }
+.tbl td.pos { width: 34px; font-weight: 800; color: var(--muted); text-align: left }
+.tbl tr.top td.pos { color: var(--gold-text) }
+.tbl td.tm { font-weight: 800; font-size: 15px }
+.tbl td.strong { font-weight: 800 }
+.pos-n { color: var(--ok) } .neg-n { color: var(--lose-text) }
+.form { display: inline-flex; gap: 4px; justify-content: flex-end }
+.form i { width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center; font-style: normal; font-size: 10px; font-weight: 800; color: #FFFFFF; background: var(--muted) }
+.form i.fw { background: var(--ok) } .form i.fl { background: var(--lose) }
+.form .none { color: var(--muted); font-size: 12px }
+@media (max-width: 640px) { .tbl .opt { display: none } }
+.hl-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin-bottom: 10px }
+.hl { border-radius: var(--r-m); padding: 12px 14px; background: var(--glass-strong); border: 1px solid var(--hair) }
+.hl small { display: block; font-size: 12px; font-weight: 700; color: var(--muted) }
+.hl b { display: block; font-size: 22px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums }
+.hl span { font-size: 13px; color: var(--muted) }
+.mrow { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px solid var(--hair) }
+.mrow:last-child { border-bottom: 0 }
+.mrow .when { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px }
+.mrow .when .tag { align-self: flex-start; padding: 3px 9px; font-size: 11px }
+.mrow .vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; font-weight: 700; min-width: 0 }
+.mrow .vs span:last-child { text-align: right }
+.mrow .vs .won { color: var(--ink); font-weight: 800 }
+.mrow .vs .lo { color: var(--muted); font-weight: 600 }
+.mrow .sc { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap }
+.mrow .sc small { display: block; font-size: 11px; font-weight: 600; color: var(--muted) }
+.mrow .meta { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap }
+@media (max-width: 560px) { .mrow { grid-template-columns: minmax(0, 1fr) } .mrow .when { flex-direction: row; align-items: center } .mrow .meta { text-align: left } }
+.plist { list-style: none; margin: 0; padding: 0 }
+.prow { display: grid; grid-template-columns: 28px 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid var(--hair) }
+.prow:last-child { border-bottom: 0 }
+.prow .rk { font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums }
+.prow.top .rk { color: var(--gold-text) }
+.av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; letter-spacing: .02em; color: var(--seed-ink); background: var(--seed-bg); box-shadow: inset 0 0 0 1.5px var(--av-ring, transparent) }
+.prow.top .av { --av-ring: var(--gold) }
+.who { min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.who b { font-size: 15px; font-weight: 700; overflow-wrap: anywhere }
+.who small { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted) }
+.who .seed-tag { width: 20px; height: 20px; border-radius: 6px; font-size: 10px }
+.who .fem { padding: 1px 8px 1px 6px; font-size: 11px }
+.val { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 92px }
+.val b { font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums }
+.val small { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums }
+.thermo { width: 92px; height: 6px; border-radius: 99px; background: var(--hair); overflow: hidden }
+.thermo i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--brand), var(--gold), var(--lose)); background-size: 92px 100%; transition: width .8s var(--ease) }
+.trend.up { color: var(--ok) } .trend.down { color: var(--lose-text) }
+.more { display: block; margin: 10px auto 0; border: 1px solid var(--glass-border); background: var(--glass-strong); color: var(--brand-text); font-weight: 700; font-size: 14px; border-radius: 999px; padding: 10px 18px; min-height: 42px; cursor: pointer }
+.board-empty { padding: 26px 10px; text-align: center; color: var(--muted); font-size: 14px }
 
 /* teams */
 .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px }

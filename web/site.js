@@ -72,7 +72,7 @@
         navLinks.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id); });
       });
     }, { rootMargin: '-40% 0px -55% 0px' });
-    ['home', 'lich', 'so-do', 'doi', 'the-le', 'thu-vien', 'tai-lieu'].forEach(function (id) { var el = $(id); if (el) io.observe(el); });
+    ['home', 'lich', 'so-do', 'bxh', 'doi', 'the-le', 'thu-vien', 'tai-lieu'].forEach(function (id) { var el = $(id); if (el) io.observe(el); });
   }
 
   /* ---------- island ---------- */
@@ -288,6 +288,137 @@
   }).join('');
   $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
+
+  /* ---------- standings & stats (BXH): team table, matches, players; recalculated by the build after every result ---------- */
+  (function () {
+    var ST = S.stats || { teams: [], players: [], highlights: {}, played: 0 };
+    var bar = $('bxhBar'), body = $('bxhBody'), note = $('bxhNote');
+    var state = { tab: 'team', teamFilter: 'all', matchFilter: 'all', matchTeam: '', metric: 'heat', pTeam: '', pSeed: '', pFem: false, showAll: false };
+    var STATUS = { champ: ['Vô địch', 'champ'], runner: ['Á quân', 'win'], win: ['Nhánh thắng', 'win'], lose: ['Nhánh thua', 'lose'], out: ['Đã dừng', 'out'] };
+    var METRICS = [
+      ['heat', 'Nhiệt độ', function (p) { return p.heat; }, function (p) { return p.heat.toFixed(1) + '°'; }],
+      ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
+      ['pf', 'Điểm ghi', function (p) { return p.pf; }, function (p) { return p.pf; }],
+      ['diff', 'Hiệu số', function (p) { return p.diff; }, function (p) { return (p.diff > 0 ? '+' : '') + p.diff; }],
+      ['rate', 'Tỉ lệ thắng', function (p) { return p.rate == null ? -1 : p.rate; }, function (p) { return p.rate == null ? '–' : p.rate + '%'; }]
+    ];
+    function sign(n) { return (n > 0 ? '+' : '') + n; }
+    function dcls(n) { return n > 0 ? 'pos-n' : n < 0 ? 'neg-n' : ''; }
+    function initials(name) { var w = name.trim().split(/\s+/); return (w.length > 2 ? w[w.length - 2][0] : '') + w[w.length - 1][0]; }
+    function chips(name, items, cur) {
+      return '<div class="chipset" role="group" aria-label="' + name + '">' + items.map(function (it) {
+        return '<button type="button" class="chip" data-v="' + it[0] + '" aria-pressed="' + (it[0] === cur) + '">' + esc(it[1]) + '</button>';
+      }).join('') + '</div>';
+    }
+    function teamOpts(cur) {
+      return '<option value="">Tất cả đội</option>' + S.teams.map(function (t) { return '<option value="' + t.id + '"' + (t.id === cur ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('');
+    }
+
+    function renderTeam() {
+      bar.innerHTML = chips('Lọc đội', [['all', 'Tất cả'], ['win', 'Nhánh thắng'], ['lose', 'Nhánh thua'], ['out', 'Đã dừng']], state.teamFilter);
+      var rows = ST.teams.filter(function (r) {
+        if (state.teamFilter === 'all') return true;
+        if (state.teamFilter === 'out') return r.status === 'out' || r.status === 'runner';
+        if (state.teamFilter === 'win') return r.status === 'win' || r.status === 'champ';
+        return r.status === state.teamFilter;
+      });
+      if (!rows.length) { body.innerHTML = '<p class="board-empty">Không có đội nào ở nhóm này.</p>'; return; }
+      body.innerHTML = '<div class="tbl-scroll"><table class="tbl"><caption class="sr">Bảng xếp hạng đội</caption><thead><tr><th class="l">#</th><th class="l">Đội</th><th>Trận</th><th>Thắng</th><th>Thua</th><th class="opt">Cặp</th><th class="opt">Điểm</th><th>Hiệu số</th><th class="opt">Phong độ</th><th>Trạng thái</th></tr></thead><tbody>' +
+        rows.map(function (r) {
+          var st = STATUS[r.status], hd = r.pf - r.pa;
+          var form = r.form.length ? r.form.map(function (f) { return '<i class="' + (f.win ? 'fw' : 'fl') + '" title="' + f.code + '">' + (f.win ? 'T' : 'B') + '</i>'; }).join('') : '<span class="none">–</span>';
+          return '<tr class="' + (r.pos === 1 && ST.played ? 'top' : '') + '"><td class="pos">' + r.pos + '</td><td class="l tm">' + esc(teamById[r.team].name) + '</td><td>' + r.played + '</td><td class="strong">' + r.w + '</td><td>' + r.l + '</td>' +
+            '<td class="opt">' + r.pw + '–' + r.pl + '</td><td class="opt">' + r.pf + '–' + r.pa + '</td><td class="strong ' + dcls(hd) + '">' + sign(hd) + '</td><td class="opt"><span class="form">' + form + '</span></td><td><span class="badge ' + st[1] + '">' + st[0] + '</span></td></tr>';
+        }).join('') + '</tbody></table></div>';
+      note.textContent = 'Xếp theo: vô địch / á quân, rồi số trận thắng, ít trận thua, hiệu số cặp, hiệu số điểm. Đội bị loại xếp theo vòng bị loại.';
+    }
+
+    function renderMatch() {
+      bar.innerHTML = chips('Lọc trận', [['all', 'Tất cả'], ['done', 'Đã đấu'], ['win', 'Nhánh thắng'], ['lose', 'Nhánh thua'], ['final', 'Chung kết']], state.matchFilter) +
+        '<div class="filters-r"><label class="sr" for="bxhMatchTeam">Lọc theo đội</label><select class="sel" id="bxhMatchTeam">' + teamOpts(state.matchTeam) + '</select></div>';
+      var h = ST.highlights || {}, hl = '';
+      if (h.biggest) {
+        var lp = h.longestPair;
+        hl = '<div class="hl-row"><div class="hl"><small>Cách biệt lớn nhất</small><b>' + h.biggest.margin + ' điểm</b><span>' + h.biggest.code + ' · ' + esc(sideName(byCode[h.biggest.code].a)) + ' – ' + esc(sideName(byCode[h.biggest.code].b)) + '</span></div>' +
+          '<div class="hl"><small>Trận sít sao nhất</small><b>' + h.closest.margin + ' điểm</b><span>' + h.closest.code + ' · ' + esc(sideName(byCode[h.closest.code].a)) + ' – ' + esc(sideName(byCode[h.closest.code].b)) + '</span></div>' +
+          (lp ? '<div class="hl"><small>Cặp nhiều điểm nhất</small><b>' + lp.score[0] + '–' + lp.score[1] + '</b><span>' + lp.code + ' · cặp ' + S.pairs[lp.pair].join('–') + '</span></div>' : '') + '</div>';
+      }
+      var rows = S.matches.filter(function (m) {
+        if (state.matchFilter === 'done' && !m.result) return false;
+        if (['win', 'lose', 'final'].indexOf(state.matchFilter) >= 0 && m.branch !== state.matchFilter) return false;
+        if (state.matchTeam && m.a.team !== state.matchTeam && m.b.team !== state.matchTeam) return false;
+        return true;
+      });
+      body.innerHTML = hl + (rows.length ? rows.map(function (m) {
+        var r = m.result, cls = function (k) { return m.winner ? (m.winner === k ? 'won' : 'lo') : ''; };
+        var sc = r ? r.a + ' : ' + r.b + '<small>cặp ' + r.pa + '–' + r.pb + '</small>' : '<small>' + (status(m) === 'wait' ? 'Chờ kết quả' : 'Chưa đấu') + '</small>';
+        var meta = r ? 'Cách biệt ' + Math.abs(r.a - r.b) + (r.pairs ? '' : ' · chưa có điểm từng cặp') : esc(m.round);
+        return '<div class="mrow"><div class="when"><span class="' + tagCls(m) + '">' + m.code + '</span><span>' + m.date.slice(0, 5) + '</span></div>' +
+          '<div class="vs"><span class="' + cls('a') + '">' + esc(sideName(m.a)) + '</span><span class="sc">' + sc + '</span><span class="' + cls('b') + '">' + esc(sideName(m.b)) + '</span></div><div class="meta">' + meta + '</div></div>';
+      }).join('') : '<p class="board-empty">Không có trận nào khớp bộ lọc.</p>');
+      note.textContent = ST.played ? 'Đã đấu ' + ST.played + '/' + S.matches.length + ' trận.' : 'Chưa có trận nào kết thúc. Kết quả và các chỉ số sẽ hiện sau trận đầu tiên (04/11).';
+    }
+
+    function renderPlayer() {
+      var seedOpts = '<option value="">Mọi seed</option>' + [1, 2, 3, 4, 5].map(function (s) { return '<option value="' + s + '"' + (String(s) === state.pSeed ? ' selected' : '') + '>Seed ' + s + '</option>'; }).join('');
+      bar.innerHTML = chips('Chỉ số', METRICS.map(function (m) { return [m[0], m[1]]; }), state.metric) +
+        '<div class="filters-r"><label class="sr" for="bxhPTeam">Lọc theo đội</label><select class="sel" id="bxhPTeam">' + teamOpts(state.pTeam) + '</select>' +
+        '<label class="sr" for="bxhPSeed">Lọc theo seed</label><select class="sel" id="bxhPSeed">' + seedOpts + '</select>' +
+        '<label class="tgl"><input type="checkbox" id="bxhPFem"' + (state.pFem ? ' checked' : '') + '>Chỉ VĐV nữ</label></div>';
+      var M = METRICS.filter(function (m) { return m[0] === state.metric; })[0];
+      var list = ST.players.filter(function (p) {
+        return (!state.pTeam || p.team === state.pTeam) && (!state.pSeed || String(p.seed) === state.pSeed) && (!state.pFem || p.female);
+      }).sort(function (x, y) { return M[2](y) - M[2](x) || y.heat - x.heat || x.seed - y.seed; });
+      if (!list.length) { body.innerHTML = '<p class="board-empty">Không có VĐV nào khớp bộ lọc.</p>'; return; }
+      var shown = state.showAll ? list : list.slice(0, 10);
+      body.innerHTML = '<ol class="plist">' + shown.map(function (p, i) {
+        var main = M[3](p), sub = '';
+        if (state.metric === 'heat') {
+          var w = Math.max(4, Math.min(100, (p.heat - 20) / 25 * 100));
+          sub = '<span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span>' +
+            (p.played ? '<small class="trend ' + (p.trend > 0 ? 'up' : p.trend < 0 ? 'down' : '') + '">' + (p.trend > 0 ? '▲ +' + p.trend : p.trend < 0 ? '▼ ' + p.trend : 'giữ nguyên') + '</small>' : '<small>theo seed</small>');
+        } else {
+          sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
+        }
+        return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
+          '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
+          '<span class="val"><b>' + main + '</b>' + sub + '</span></li>';
+      }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
+      note.textContent = state.metric === 'heat'
+        ? 'Nhiệt độ 20°–45°: lúc đầu tính theo seed; sau mỗi trận, tỉ lệ thắng cặp và hiệu số điểm của chính VĐV dần thay thế điểm khởi đầu. Mũi tên so với trước trận gần nhất.'
+        : 'Chỉ số tính từ điểm từng cặp đã nhập. ' + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
+    }
+
+    function render() {
+      ({ team: renderTeam, match: renderMatch, player: renderPlayer })[state.tab]();
+    }
+    var tabs = $('bxhTabs').querySelectorAll('button');
+    $('bxhTabs').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      state.tab = b.dataset.tab; state.showAll = false;
+      tabs.forEach(function (x) { x.setAttribute('aria-selected', x === b); });
+      render();
+    });
+    bar.addEventListener('click', function (e) {
+      var c = e.target.closest('.chip'); if (!c) return;
+      if (state.tab === 'team') state.teamFilter = c.dataset.v;
+      else if (state.tab === 'match') state.matchFilter = c.dataset.v;
+      else { state.metric = c.dataset.v; state.showAll = false; }
+      render();
+    });
+    bar.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.id === 'bxhMatchTeam') state.matchTeam = t.value;
+      if (t.id === 'bxhPTeam') state.pTeam = t.value;
+      if (t.id === 'bxhPSeed') state.pSeed = t.value;
+      if (t.id === 'bxhPFem') state.pFem = t.checked;
+      state.showAll = false;
+      render();
+    });
+    body.addEventListener('click', function (e) { if (e.target.id === 'bxhMore') { state.showAll = !state.showAll; render(); } });
+    $('bxhEyebrow').textContent = ST.played ? 'Sau ' + ST.played + ' trận · tự cập nhật' : 'Tự cập nhật sau mỗi trận';
+    render();
+  })();
 
   /* ---------- gallery + lightbox ---------- */
   var albums = S.gallery.filter(function (a) { return a.items.length; }), all = [];
