@@ -95,9 +95,13 @@
 
   <section id="so-do" class="section">
     <div class="wrap">
-      <div class="sec-head rv">
-        <p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p>
-        <h2>Sơ đồ thi đấu</h2>
+      <div class="sec-head row rv">
+        <div><p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p><h2>Sơ đồ thi đấu</h2></div>
+        <div class="seg small" id="laneSeg" role="group" aria-label="Chọn nhánh">
+          <button type="button" data-lane="win" aria-pressed="false">Nhánh thắng</button>
+          <button type="button" data-lane="lose" aria-pressed="false">Nhánh thua</button>
+          <button type="button" data-lane="all" aria-pressed="false">Cả hai</button>
+        </div>
       </div>
       <div class="bracket-scroll glass rv"><div class="bracket" id="bracket"></div></div>
     </div>
@@ -123,10 +127,13 @@
 
   <section id="doi" class="section">
     <div class="wrap">
-      <div class="sec-head rv">
-        <p class="eyebrow">6 đội · 5 VĐV mỗi đội</p>
-        <h2>Các đội</h2>
-        <div class="seed-legend" id="seedLegend" aria-label="Chú thích seed"></div>
+      <div class="sec-head row rv">
+        <div>
+          <p class="eyebrow">6 đội · 5 VĐV mỗi đội · chọn đội để xem thành viên</p>
+          <h2>Các đội</h2>
+          <div class="seed-legend" id="seedLegend" aria-label="Chú thích seed"></div>
+        </div>
+        <button type="button" class="link-btn" id="teamsAll">Mở tất cả</button>
       </div>
       <div class="teams" id="teams"></div>
     </div>

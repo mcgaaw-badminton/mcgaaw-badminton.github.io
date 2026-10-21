@@ -54,6 +54,25 @@
   function seedTag(i) { return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
+  /* ---------- show/hide blocks (member lists) ---------- */
+  var CHEVD = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  function collapsible(id, label, inner) {
+    return '<button type="button" class="xbtn" aria-expanded="false" aria-controls="' + id + '" data-label="' + esc(label) + '"><span>' + esc(label) + '</span>' + CHEVD + '</button>' +
+      '<div class="collapse" id="' + id + '"><div class="collapse-in">' + inner + '</div></div>';
+  }
+  function setOpen(btn, open) {
+    var box = document.getElementById(btn.getAttribute('aria-controls')); if (!box) return;
+    btn.setAttribute('aria-expanded', String(open));
+    box.classList.toggle('open', open);
+    var lab = btn.querySelector('span');
+    if (lab && btn.dataset.label) lab.textContent = open ? btn.dataset.label.replace(/^Xem/, 'Ẩn') : btn.dataset.label;
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.xbtn, .team-toggle'); if (!btn) return;
+    setOpen(btn, btn.getAttribute('aria-expanded') !== 'true');
+    if (btn.classList.contains('team-toggle')) syncTeamsAll();
+  });
+
   /* ---------- glass spotlight ---------- */
   document.addEventListener('pointermove', function (e) {
     var el = e.target.closest && e.target.closest('.tilt');
@@ -247,7 +266,7 @@
     var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb : esc(m.round);
     return '<article class="match glass" style="--i:' + i + '"><div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>' +
       '<div class="vs-card"><div class="vs-side"><b>' + esc(sideName(m.a)) + '</b></div><div class="vs-mid">' + mid + '<span>' + sub + '</span></div><div class="vs-side"><b>' + esc(sideName(m.b)) + '</b></div></div>' +
-      pairsHtml(m) + '</article>';
+      (m.a.team || m.b.team ? collapsible('pairs-' + m.code, 'Xem 5 cặp đánh đôi', pairsHtml(m)) : pairsHtml(m)) + '</article>';
   }
   function pickDay(i) {
     if (i === curDay) return;
@@ -275,17 +294,41 @@
     return '<div class="b-card' + (m.branch === 'final' ? ' final' : '') + '"><div class="b-head"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span>' + esc(m.date.slice(0, 5)) + '</span></div>' +
       team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
   }
-  $('bracket').innerHTML = '<div class="b-lane">Nhánh thắng</div>' +
-    S.bracket.win.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + COLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') +
-    '<div class="b-lane lose">Nhánh thua</div>' +
-    S.bracket.lose.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + LCOLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('');
+  $('bracket').innerHTML = '<div class="b-lane lane-win">Nhánh thắng</div>' +
+    S.bracket.win.map(function (c, i) { return '<div class="b-col lane-win"><span class="b-colhead">' + COLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') +
+    '<div class="b-lane lose lane-lose">Nhánh thua</div>' +
+    S.bracket.lose.map(function (c, i) { return '<div class="b-col lane-lose"><span class="b-colhead">' + LCOLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('');
+
+
+  var laneBtns = $('laneSeg').querySelectorAll('button');
+  function showLane(l) {
+    laneBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.lane === l)); });
+    $('bracket').querySelectorAll('.lane-win').forEach(function (el) { el.hidden = l === 'lose'; });
+    $('bracket').querySelectorAll('.lane-lose').forEach(function (el) { el.hidden = l === 'win'; });
+    $('bracket').classList.toggle('one-lane', l !== 'all');
+  }
+  $('laneSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showLane(b.dataset.lane); });
+  showLane(window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? 'win' : 'all');
 
   /* ---------- teams: seed tags + female label ---------- */
   $('teams').innerHTML = S.teams.map(function (t) {
     var st = teamState(t.id);
-    return '<article class="team glass tilt rv"><div class="team-head"><h3>' + esc(t.name) + '</h3><span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span></div><ol>' +
-      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span class="nm">' + esc(n) + '</span>' + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></article>';
+    var fem = t.members.filter(isFemale).length;
+    return '<article class="team glass tilt rv"><h3 class="team-h"><button type="button" class="team-toggle" aria-expanded="false" aria-controls="roster-' + t.id + '">' +
+      '<span class="tn">' + esc(t.name) + '<small>' + t.members.length + ' VĐV' + (fem ? ' · ' + fem + ' nữ' : '') + '</small></span>' +
+      '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHEVD + '</button></h3>' +
+      '<div class="collapse" id="roster-' + t.id + '"><div class="collapse-in"><ol>' +
+      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span class="nm">' + esc(n) + '</span>' + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
   }).join('');
+  function syncTeamsAll() {
+    var t = document.querySelectorAll('.team-toggle'), open = [].filter.call(t, function (b) { return b.getAttribute('aria-expanded') === 'true'; }).length;
+    $('teamsAll').textContent = open === t.length ? 'Thu gọn tất cả' : 'Mở tất cả';
+  }
+  $('teamsAll').addEventListener('click', function () {
+    var t = document.querySelectorAll('.team-toggle'), allOpen = [].every.call(t, function (b) { return b.getAttribute('aria-expanded') === 'true'; });
+    t.forEach(function (b) { setOpen(b, !allOpen); });
+    syncTeamsAll();
+  });
   $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
 
