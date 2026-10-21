@@ -49,12 +49,10 @@
   }
 
   /* ---------- player tags (defined before any renderer uses them) ---------- */
-  var FX = S.seedFx || {};
-  var FALLBACK = { fire: '🔥', zap: '⚡', sparkles: '✨', star: '🌟', rocket: '🚀', heart: '💖' };
-  function isFemale(n) { return /(^|\s)Thị(\s|$)/.test(String(n).normalize('NFC')); }
-  function seedTag(i) { var k = FX[i]; return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + (k ? '<canvas data-anim="' + k + '" width="44" height="44" aria-hidden="true"></canvas>' : '') + '</span>'; }
-  function femTag() { return '<span class="fem">' + (FX.female ? '<canvas data-anim="' + FX.female + '" width="36" height="36" aria-hidden="true"></canvas>' : '') + 'Nữ</span>'; }
   var HEART = '<svg class="fh" viewBox="0 0 24 24" aria-label="Nữ" role="img"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+  function isFemale(n) { return /(^|\s)Thị(\s|$)/.test(String(n).normalize('NFC')); }
+  function seedTag(i) { return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + '</span>'; }
+  function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
   /* ---------- glass spotlight ---------- */
   document.addEventListener('pointermove', function (e) {
@@ -130,11 +128,6 @@
   dotsEl.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) go(+b.dataset.i); });
   hero.addEventListener('mouseenter', function () { hover = true; restart(); });
   hero.addEventListener('mouseleave', function () { hover = false; restart(); });
-  hero.addEventListener('pointermove', function (e) {
-    if (reduce || e.pointerType !== 'mouse') return;
-    var r = hero.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-    var rk = $('heroRacket'); rk.style.setProperty('--px', (x * -18) + 'px'); rk.style.setProperty('--py', (y * -12) + 'px');
-  });
   hero.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') go(cur - 1); if (e.key === 'ArrowRight') go(cur + 1); });
   swipe(hero, function () { go(cur + 1); }, function () { go(cur - 1); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) clearTimeout(timer); else restart(); });
@@ -293,8 +286,7 @@
     return '<article class="team glass tilt rv"><div class="team-head"><h3>' + esc(t.name) + '</h3><span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span></div><ol>' +
       t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span class="nm">' + esc(n) + '</span>' + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></article>';
   }).join('');
-  var NAMES = ['', 'Seed 1', 'Seed 2', 'Seed 3', 'Seed 4', 'Seed 5'];
-  $('seedLegend').innerHTML = [1, 2, 3, 4, 5].map(function (i) { return '<span>' + seedTag(i) + NAMES[i] + '</span>'; }).join('') + '<span>' + femTag() + 'VĐV nữ</span>';
+  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
 
   /* ---------- gallery + lightbox ---------- */
@@ -368,49 +360,6 @@
       if (el.getBoundingClientRect().top > window.innerHeight) { el.classList.add('pre'); rv.observe(el); }
     });
   }
-  /* ---------- animated emoji on tags: one Lottie player per emoji, copied into every tag canvas ---------- */
-  (function () {
-    var targets = {};
-    document.querySelectorAll('canvas[data-anim]').forEach(function (c) { (targets[c.dataset.anim] = targets[c.dataset.anim] || []).push(c); });
-    var keys = Object.keys(targets);
-    if (!keys.length) return;
-    function drawEmoji(c, ch) { var x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.font = Math.round(c.width * .78) + 'px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, c.width / 2, c.height * .55); }
-    if (!window.lottie || !S.anim) { keys.forEach(function (k) { targets[k].forEach(function (c) { drawEmoji(c, FALLBACK[k] || ''); }); }); return; }
-    var host = document.createElement('div');
-    host.setAttribute('aria-hidden', 'true');
-    host.style.cssText = 'position:fixed;left:-9999px;top:0;width:96px;height:96px;overflow:hidden;pointer-events:none';
-    document.body.appendChild(host);
-    var players = keys.filter(function (k) { return S.anim[k]; }).map(function (k) {
-      var box = document.createElement('div'); box.style.cssText = 'width:96px;height:96px'; host.appendChild(box);
-      var a = window.lottie.loadAnimation({ container: box, renderer: 'canvas', loop: true, autoplay: false, animationData: S.anim[k], rendererSettings: { clearCanvas: true } });
-      return { key: k, anim: a, box: box };
-    });
-    function copy() {
-      players.forEach(function (p) {
-        var src = p.box.querySelector('canvas'); if (!src) return;
-        targets[p.key].forEach(function (c) { if (!c.isConnected) return; var x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.drawImage(src, 0, 0, c.width, c.height); });
-      });
-    }
-    var visible = false, raf = 0;
-    function loop() { copy(); raf = visible ? requestAnimationFrame(loop) : 0; }
-    function setVisible(v) {
-      visible = v && !reduce;
-      players.forEach(function (p) { if (visible) p.anim.play(); else p.anim.pause(); });
-      if (visible && !raf) raf = requestAnimationFrame(loop);
-    }
-    players.forEach(function (p) {
-      p.anim.addEventListener('DOMLoaded', function () { p.anim.goToAndStop(Math.round(p.anim.totalFrames * .4), true); requestAnimationFrame(copy); });
-    });
-    if ('IntersectionObserver' in window) {
-      var seen = new Set();
-      var io2 = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
-        setVisible(seen.size > 0);
-      });
-      ['#doi'].forEach(function (sel) { var el = document.querySelector(sel); if (el) io2.observe(el); });
-    } else setVisible(true);
-  })();
-
   /* ---------- flying shuttle: follows scroll on desktop; off on phones and with reduced motion ---------- */
   (function () {
     var fly = $('fly'), rkShuttle = $('rkShuttle'), racket = $('heroRacket'), spot = $('rkSpot');
@@ -536,6 +485,27 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
     if ('ResizeObserver' in window) new ResizeObserver(relayout).observe(document.body);
     sync();
+  })();
+  /* ---------- light / dark: follows the system until the viewer picks one ---------- */
+  (function () {
+    var root = document.documentElement, btn = $('themeBtn');
+    var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : !!(mq && mq.matches); }
+    function paint() {
+      var d = isDark();
+      root.classList.toggle('is-dark', d);
+      btn.setAttribute('aria-label', d ? 'Chuyển sang nền sáng' : 'Chuyển sang nền tối');
+      btn.setAttribute('aria-pressed', String(d));
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('gcl-theme', next); } catch (e) { /* storage off: choice lasts this visit */ }
+      paint();
+    });
+    if (mq && mq.addEventListener) mq.addEventListener('change', paint);
+    if (window.MutationObserver) new MutationObserver(paint).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    paint();
   })();
   /* ---------- live clock (Vietnam time) + release check ---------- */
   (function () {

@@ -155,8 +155,6 @@ def main():
                  "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
-        "seedFx": site.get("seed_fx", {}),
-        "anim": {p.stem: read_json(p) for p in sorted((paths.ASSETS / "lottie").glob("*.json"))},
     }
     data["meta"]["build"] = {"id": build_id, "version": site.get("version", "1.0.0"), "commit": commit,
                              "builtAt": BUILT.isoformat(timespec="seconds"),
@@ -186,8 +184,6 @@ def main():
                          f"src:url(fonts/{fn}) format('woff2');unicode-range:{rng}}}")
     (out / "assets" / "fonts.css").write_text("\n".join(faces) + "\n", encoding="utf-8")
     shutil.copy2(paths.LOGO, out / "assets" / "logo.png")
-    (out / "assets" / "vendor").mkdir(parents=True, exist_ok=True)
-    shutil.copy2(paths.ASSETS / "vendor" / "lottie_light_canvas.min.js", out / "assets" / "vendor" / "lottie_light_canvas.min.js")
     (out / "assets" / "site.css").write_text(css, encoding="utf-8")
     (out / "assets" / "site.js").write_text(js, encoding="utf-8")
     (out / "data.js").write_text(data_js, encoding="utf-8")
@@ -201,7 +197,7 @@ def main():
             '<link rel="icon" href="assets/logo.png">\n<link rel="stylesheet" href="assets/fonts.css">\n'
             f'<link rel="stylesheet" href="assets/site.css?v={v}">\n</head>\n<body>\n'
             + body.replace("{{LOGO}}", "assets/logo.png")
-            + '\n<script src="assets/vendor/lottie_light_canvas.min.js"></script>\n<script src="data.js?v=' + v + '"></script>\n<script src="assets/site.js?v=' + v + '"></script>\n</body>\n</html>\n')
+            + '\n<script src="data.js?v=' + v + '"></script>\n<script src="assets/site.js?v=' + v + '"></script>\n</body>\n</html>\n')
     (out / "index.html").write_text(page, encoding="utf-8")
 
     if a.preview:
@@ -211,7 +207,6 @@ def main():
         prev = (f'<title>{site["title"]}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
                 f'<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="{GOOGLE_FONTS}">\n'
                 f"<style>\n{css}</style>\n" + body.replace("{{LOGO}}", logo)
-                + '\n<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie_light_canvas.min.js"></script>'
                 + "\n<script>window.SITE = " + json.dumps(pdata, ensure_ascii=False) + ";</script>\n<script>\n" + js + "</script>\n")
         paths.SITE_PREVIEW.write_text(prev, encoding="utf-8")
         print(f"[PREVIEW] {paths.SITE_PREVIEW}")

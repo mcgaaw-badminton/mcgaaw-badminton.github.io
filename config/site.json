@@ -1,6 +1,6 @@
 {
   "_note": "Website settings. Slides: each entry may name an \"image\" file inside slides/ (leave out for the court-line background). Images in slides/ that no entry names are added as photo-only slides. match_time like \"18:00\" turns on the full countdown; leave empty while unknown.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "MCGAAW Badminton Cup 2026",
   "match_time": "",
   "venue": "",
@@ -83,13 +83,5 @@
     "final": [
       "T10"
     ]
-  },
-  "seed_fx": {
-    "1": "fire",
-    "2": "zap",
-    "3": "sparkles",
-    "4": "star",
-    "5": "rocket",
-    "female": "heart"
   }
 }
