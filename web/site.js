@@ -52,6 +52,7 @@
   var HEART = '<svg class="fh" viewBox="0 0 24 24" aria-label="Nữ" role="img"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
   function isFemale(n) { return /(^|\s)Thị(\s|$)/.test(String(n).normalize('NFC')); }
   function seedTag(i) { return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + '</span>'; }
+  function pn(n, cls) { return '<button type="button" class="pn' + (cls ? ' ' + cls : '') + '" data-p="' + esc(n) + '">' + esc(n) + (isFemale(n) ? HEART : '') + '</button>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
   /* ---------- show/hide blocks (member lists) ---------- */
@@ -251,9 +252,9 @@
   function pairsHtml(m) {
     var A = m.a.team ? teamById[m.a.team].members : null, B = m.b.team ? teamById[m.b.team].members : null;
     if (!A && !B) return '<div class="pairs tbd">Tên VĐV hiện khi đã có kết quả ' + esc([m.a.label, m.b.label].join(', ').replace(/Thắng |Thua /g, '')) + '</div>';
-    var n = function (L, i) { return L ? esc(L[i - 1]) + (isFemale(L[i - 1]) ? HEART : '') : '—'; };
+    var side = function (L, p, r) { return '<span class="pside' + (r ? ' r' : '') + '">' + (L ? pn(L[p[0] - 1]) + pn(L[p[1] - 1]) : '<span class="pn tbd">Chưa xác định</span>') + '</span>'; };
     return '<div class="pairs">' + S.pairs.map(function (p, i) {
-      return '<div class="pair"><span class="no" title="Cặp ' + (i + 1) + '">' + p[0] + '–' + p[1] + '</span><span>' + n(A, p[0]) + '<br>' + n(A, p[1]) + '</span><span>' + n(B, p[0]) + '<br>' + n(B, p[1]) + '</span></div>';
+      return '<div class="pair"><span class="no" title="Cặp ' + (i + 1) + '">' + p[0] + '–' + p[1] + '</span>' + side(A, p) + side(B, p, true) + '</div>';
     }).join('') + '</div>';
   }
   function matchCard(m, i) {
@@ -297,7 +298,7 @@
     if (!(m.a.team || m.b.team)) return '<div class="' + cls + '">' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
     var roster = function (k) {
       var s = m[k]; if (!s.team) return '<div class="b-roster tbd"><b>' + esc(sideName(s)) + '</b><span>Chưa xác định</span></div>';
-      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span>' + esc(n) + (isFemale(n) ? HEART : '') + '</span></li>'; }).join('') + '</ol></div>';
+      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pn(n) + '</li>'; }).join('') + '</ol></div>';
     };
     return '<div class="' + cls + '"><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
       '<span class="b-foot"><span>' + foot.join(' · ') + '</span>' + CHIP + '</span></button>' + box('bk-' + m.code, roster('a') + roster('b')) + '</div>';
@@ -319,7 +320,7 @@
       '<span class="tn">' + esc(t.name) + '<small>' + t.members.length + ' VĐV' + (fem ? ' · ' + fem + ' nữ' : '') + '</small></span>' +
       '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHIP + '</button></h3>' +
       '<div class="collapse" id="roster-' + t.id + '"><div class="collapse-in"><ol>' +
-      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span class="nm">' + esc(n) + '</span>' + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
+      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pn(n, 'nm') + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
   }).join('');
   function syncTeamsAll() {
     var t = document.querySelectorAll('.team-toggle'), open = [].filter.call(t, function (b) { return b.getAttribute('aria-expanded') === 'true'; }).length;
@@ -330,7 +331,36 @@
     t.forEach(function (b) { setOpen(b, !allOpen); });
     syncTeamsAll();
   });
-  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
+  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span><span><span class="pn demo">Tên VĐV</span>Chạm vào tên để tô sáng người đó ở mọi bảng</span>';
+
+  /* ---------- pick a player: highlight every place they appear (schedule, bracket, teams, standings) ---------- */
+  var hlCss = document.createElement('style'); document.head.appendChild(hlCss);
+  var allNames = {}; S.teams.forEach(function (t) { t.members.forEach(function (n) { allNames[n] = t; }); });
+  var selP = null;
+  function cssStr(v) { return '"' + String(v).replace(/["\\]/g, '\\$&') + '"'; }
+  function selectPlayer(n) {
+    selP = n && allNames[n] ? n : null;
+    try { selP ? localStorage.setItem('gcl-player', selP) : localStorage.removeItem('gcl-player'); } catch (e) {}
+    var bar = $('pFocus');
+    if (!selP) { hlCss.textContent = ''; bar.hidden = true; return; }
+    var q = '[data-p=' + cssStr(selP) + ']';
+    hlCss.textContent =
+      '.pn' + q + '{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);box-shadow:0 0 0 3px var(--brand-soft),0 4px 12px rgba(12,20,48,.18)}' +
+      '.pn' + q + ' .fh{color:currentColor}' +
+      '.pn.bare' + q + '{background:transparent;color:var(--brand-text);box-shadow:none}' +
+      '.pair:has(' + q + '),.team li:has(' + q + '),.b-roster li:has(' + q + '),.prow:has(' + q + '){background:var(--brand-soft)}' +
+      '.match:has(' + q + ') .vs-toggle,.b-card:has(' + q + '),.team:has(' + q + '){box-shadow:0 0 0 2px var(--brand),var(--shadow)}';
+    var t = allNames[selP], codes = S.matches.filter(function (m) { return m.a.team === t.id || m.b.team === t.id; }).map(function (m) { return m.code; });
+    $('pFocusName').textContent = selP;
+    $('pFocusMeta').textContent = t.name + ' · seed ' + (t.members.indexOf(selP) + 1) + (codes.length ? ' · trận ' + codes.join(', ') : '');
+    bar.hidden = false;
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button.pn'); if (!b) return;
+    selectPlayer(b.dataset.p === selP ? null : b.dataset.p);
+  });
+  $('pFocusClear').addEventListener('click', function () { selectPlayer(null); });
+  try { var keep = localStorage.getItem('gcl-player'); if (keep) selectPlayer(keep); } catch (e) {}
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
 
   /* ---------- standings & stats (BXH): team table, matches, players; recalculated by the build after every result ---------- */
@@ -425,7 +455,7 @@
           sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
         }
         return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
-          '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
+          '<span class="who">' + pn(p.name, 'bare') + '<small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span></li>';
       }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
       note.textContent = state.metric === 'heat'
