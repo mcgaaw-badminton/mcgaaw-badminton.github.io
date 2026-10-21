@@ -56,19 +56,17 @@
 
   /* ---------- show/hide blocks (member lists) ---------- */
   var CHEVD = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
-  function collapsible(id, label, inner) {
-    return '<button type="button" class="xbtn" aria-expanded="false" aria-controls="' + id + '" data-label="' + esc(label) + '"><span>' + esc(label) + '</span>' + CHEVD + '</button>' +
-      '<div class="collapse" id="' + id + '"><div class="collapse-in">' + inner + '</div></div>';
-  }
+  var CHIP = '<span class="chev-chip" aria-hidden="true">' + CHEVD + '</span>';
+  function box(id, inner, open) { return '<div class="collapse' + (open ? ' open' : '') + '" id="' + id + '"><div class="collapse-in">' + inner + '</div></div>'; }
   function setOpen(btn, open) {
     var box = document.getElementById(btn.getAttribute('aria-controls')); if (!box) return;
     btn.setAttribute('aria-expanded', String(open));
     box.classList.toggle('open', open);
-    var lab = btn.querySelector('span');
+    var lab = btn.querySelector('.lbl');
     if (lab && btn.dataset.label) lab.textContent = open ? btn.dataset.label.replace(/^Xem/, 'Ẩn') : btn.dataset.label;
   }
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest && e.target.closest('.xbtn, .team-toggle'); if (!btn) return;
+    var btn = e.target.closest && e.target.closest('.vs-toggle, .team-toggle, .lane-toggle, .b-toggle'); if (!btn) return;
     setOpen(btn, btn.getAttribute('aria-expanded') !== 'true');
     if (btn.classList.contains('team-toggle')) syncTeamsAll();
   });
@@ -264,9 +262,12 @@
       ? '<div class="score"><span class="' + (m.winner === 'a' ? '' : 'lo') + '">' + esc(m.result.a) + '</span><span class="lo">:</span><span class="' + (m.winner === 'b' ? '' : 'lo') + '">' + esc(m.result.b) + '</span></div>'
       : '<span class="x">VS</span>';
     var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb : esc(m.round);
-    return '<article class="match glass" style="--i:' + i + '"><div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>' +
-      '<div class="vs-card"><div class="vs-side"><b>' + esc(sideName(m.a)) + '</b></div><div class="vs-mid">' + mid + '<span>' + sub + '</span></div><div class="vs-side"><b>' + esc(sideName(m.b)) + '</b></div></div>' +
-      (m.a.team || m.b.team ? collapsible('pairs-' + m.code, 'Xem 5 cặp đánh đôi', pairsHtml(m)) : pairsHtml(m)) + '</article>';
+    var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side"><b>' + esc(sideName(m.b)) + '</b></span>';
+    var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>';
+    if (!(m.a.team || m.b.team)) return '<article class="match glass" style="--i:' + i + '">' + top + '<div class="vs-card">' + sides + '</div>' + pairsHtml(m) + '</article>';
+    return '<article class="match glass" style="--i:' + i + '">' + top +
+      '<button type="button" class="vs-card vs-toggle" aria-expanded="false" aria-controls="pairs-' + m.code + '" data-label="Xem thành viên">' + sides +
+      '<span class="vs-hint"><span class="lbl">Xem thành viên</span>' + CHIP + '</span></button>' + box('pairs-' + m.code, pairsHtml(m)) + '</article>';
   }
   function pickDay(i) {
     if (i === curDay) return;
@@ -285,30 +286,30 @@
   var COLS = ['Vòng 1', 'Bán kết', 'CK nhánh thắng', 'Chung kết tổng'], LCOLS = ['Thua vòng 1', 'Thua vòng 2', 'Thua vòng 3', 'CK nhánh thua'];
   function bCard(code) {
     var m = byCode[code]; if (!m) return '';
-    var team = function (k) { var s = m[k]; return '<div class="b-team' + (s.team ? '' : ' tbd') + (m.winner === k ? ' win' : '') + '"><span>' + esc(sideName(s)) + '</span><b>' + (m.result ? esc(m.result[k]) : '') + '</b></div>'; };
+    var team = function (k) { var s = m[k]; return '<span class="b-team' + (s.team ? '' : ' tbd') + (m.winner === k ? ' win' : '') + '"><span>' + esc(sideName(s)) + '</span><b>' + (m.result ? esc(m.result[k]) : '') + '</b></span>'; };
     var foot = [];
     if (m.winTo) foot.push('Thắng → ' + m.winTo);
     if (m.loseTo) foot.push('Thua → ' + m.loseTo);
     if (m.branch === 'lose') foot.push('Thua: dừng');
     if (m.branch === 'final') foot.push('Thắng: vô địch');
-    return '<div class="b-card' + (m.branch === 'final' ? ' final' : '') + '"><div class="b-head"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span>' + esc(m.date.slice(0, 5)) + '</span></div>' +
-      team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
+    var head = '<span class="b-head"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span>' + esc(m.date.slice(0, 5)) + '</span></span>';
+    var cls = 'b-card' + (m.branch === 'final' ? ' final' : '');
+    if (!(m.a.team || m.b.team)) return '<div class="' + cls + '">' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
+    var roster = function (k) {
+      var s = m[k]; if (!s.team) return '<div class="b-roster tbd"><b>' + esc(sideName(s)) + '</b><span>Chưa xác định</span></div>';
+      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span>' + esc(n) + (isFemale(n) ? HEART : '') + '</span></li>'; }).join('') + '</ol></div>';
+    };
+    return '<div class="' + cls + '"><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
+      '<span class="b-foot"><span>' + foot.join(' · ') + '</span>' + CHIP + '</span></button>' + box('bk-' + m.code, roster('a') + roster('b')) + '</div>';
   }
-  $('bracket').innerHTML = '<div class="b-lane lane-win">Nhánh thắng</div>' +
-    S.bracket.win.map(function (c, i) { return '<div class="b-col lane-win"><span class="b-colhead">' + COLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') +
-    '<div class="b-lane lose lane-lose">Nhánh thua</div>' +
-    S.bracket.lose.map(function (c, i) { return '<div class="b-col lane-lose"><span class="b-colhead">' + LCOLS[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('');
-
-
-  var laneBtns = $('laneSeg').querySelectorAll('button');
-  function showLane(l) {
-    laneBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.lane === l)); });
-    $('bracket').querySelectorAll('.lane-win').forEach(function (el) { el.hidden = l === 'lose'; });
-    $('bracket').querySelectorAll('.lane-lose').forEach(function (el) { el.hidden = l === 'win'; });
-    $('bracket').classList.toggle('one-lane', l !== 'all');
+  var phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  function lane(key, title, cols, heads, open) {
+    var n = cols.reduce(function (t, c) { return t + c.length; }, 0);
+    return '<div class="b-sec ' + key + '"><button type="button" class="lane-toggle" aria-expanded="' + open + '" aria-controls="lane-' + key + '">' +
+      '<span class="lt">' + title + '<small>' + n + ' trận</small></span>' + CHIP + '</button>' +
+      box('lane-' + key, '<div class="b-grid">' + cols.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + heads[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') + '</div>', open) + '</div>';
   }
-  $('laneSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showLane(b.dataset.lane); });
-  showLane(window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? 'win' : 'all');
+  $('bracket').innerHTML = lane('win', 'Nhánh thắng', S.bracket.win, COLS, true) + lane('lose', 'Nhánh thua', S.bracket.lose, LCOLS, !phone);
 
   /* ---------- teams: seed tags + female label ---------- */
   $('teams').innerHTML = S.teams.map(function (t) {
@@ -316,7 +317,7 @@
     var fem = t.members.filter(isFemale).length;
     return '<article class="team glass tilt rv"><h3 class="team-h"><button type="button" class="team-toggle" aria-expanded="false" aria-controls="roster-' + t.id + '">' +
       '<span class="tn">' + esc(t.name) + '<small>' + t.members.length + ' VĐV' + (fem ? ' · ' + fem + ' nữ' : '') + '</small></span>' +
-      '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHEVD + '</button></h3>' +
+      '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHIP + '</button></h3>' +
       '<div class="collapse" id="roster-' + t.id + '"><div class="collapse-in"><ol>' +
       t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + '<span class="nm">' + esc(n) + '</span>' + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
   }).join('');
