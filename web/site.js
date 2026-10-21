@@ -52,7 +52,9 @@
   var HEART = '<svg class="fh" viewBox="0 0 24 24" aria-label="Nữ" role="img"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
   function isFemale(n) { return /(^|\s)Thị(\s|$)/.test(String(n).normalize('NFC')); }
   function seedTag(i) { return '<span class="seed-tag s' + i + '" aria-label="Seed ' + i + '">' + i + '</span>'; }
+  /* name chip: tappable in the schedule (pick + highlight), plain glass chip elsewhere */
   function pn(n, cls) { return '<button type="button" class="pn' + (cls ? ' ' + cls : '') + '" data-p="' + esc(n) + '">' + esc(n) + (isFemale(n) ? HEART : '') + '</button>'; }
+  function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '">' + esc(n) + (isFemale(n) ? HEART : '') + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
   /* ---------- show/hide blocks (member lists) ---------- */
@@ -263,7 +265,7 @@
       ? '<div class="score"><span class="' + (m.winner === 'a' ? '' : 'lo') + '">' + esc(m.result.a) + '</span><span class="lo">:</span><span class="' + (m.winner === 'b' ? '' : 'lo') + '">' + esc(m.result.b) + '</span></div>'
       : '<span class="x">VS</span>';
     var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb : esc(m.round);
-    var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side"><b>' + esc(sideName(m.b)) + '</b></span>';
+    var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side r"><b>' + esc(sideName(m.b)) + '</b></span>';
     var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>';
     if (!(m.a.team || m.b.team)) return '<article class="match glass" style="--i:' + i + '">' + top + '<div class="vs-card">' + sides + '</div>' + pairsHtml(m) + '</article>';
     return '<article class="match glass" style="--i:' + i + '">' + top +
@@ -298,7 +300,7 @@
     if (!(m.a.team || m.b.team)) return '<div class="' + cls + '">' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
     var roster = function (k) {
       var s = m[k]; if (!s.team) return '<div class="b-roster tbd"><b>' + esc(sideName(s)) + '</b><span>Chưa xác định</span></div>';
-      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pn(n) + '</li>'; }).join('') + '</ol></div>';
+      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n) + '</li>'; }).join('') + '</ol></div>';
     };
     return '<div class="' + cls + '"><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
       '<span class="b-foot"><span>' + foot.join(' · ') + '</span>' + CHIP + '</span></button>' + box('bk-' + m.code, roster('a') + roster('b')) + '</div>';
@@ -320,7 +322,7 @@
       '<span class="tn">' + esc(t.name) + '<small>' + t.members.length + ' VĐV' + (fem ? ' · ' + fem + ' nữ' : '') + '</small></span>' +
       '<span class="badge ' + st[1] + '">' + st[0] + ' · ' + rec[t.id].w + '–' + rec[t.id].l + '</span>' + CHIP + '</button></h3>' +
       '<div class="collapse" id="roster-' + t.id + '"><div class="collapse-in"><ol>' +
-      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pn(n, 'nm') + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
+      t.members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n, 'nm') + (isFemale(n) ? femTag() : '<span></span>') + '</li>'; }).join('') + '</ol></div></div></article>';
   }).join('');
   function syncTeamsAll() {
     var t = document.querySelectorAll('.team-toggle'), open = [].filter.call(t, function (b) { return b.getAttribute('aria-expanded') === 'true'; }).length;
@@ -331,11 +333,13 @@
     t.forEach(function (b) { setOpen(b, !allOpen); });
     syncTeamsAll();
   });
-  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span><span><span class="pn demo">Tên VĐV</span>Chạm vào tên để tô sáng người đó ở mọi bảng</span>';
+  $('seedLegend').innerHTML = '<span>' + seedTag(1) + 'Số trong ô là seed (seed 1 viền vàng)</span><span>' + femTag() + 'VĐV nữ</span>';
 
-  /* ---------- pick a player: highlight every place they appear (schedule, bracket, teams, standings) ---------- */
+  /* ---------- pick a player in the schedule: highlight their pairs + show their heat from the standings ---------- */
   var hlCss = document.createElement('style'); document.head.appendChild(hlCss);
   var allNames = {}; S.teams.forEach(function (t) { t.members.forEach(function (n) { allNames[n] = t; }); });
+  var pStats = {}, heatRank = ((S.stats && S.stats.players) || []).slice().sort(function (a, b) { return b.heat - a.heat; });
+  heatRank.forEach(function (p, i) { p.hrank = i + 1; pStats[p.name] = p; });
   var selP = null;
   function cssStr(v) { return '"' + String(v).replace(/["\\]/g, '\\$&') + '"'; }
   function selectPlayer(n) {
@@ -345,14 +349,23 @@
     if (!selP) { hlCss.textContent = ''; bar.hidden = true; return; }
     var q = '[data-p=' + cssStr(selP) + ']';
     hlCss.textContent =
-      '.pn' + q + '{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);box-shadow:0 0 0 3px var(--brand-soft),0 4px 12px rgba(12,20,48,.18)}' +
-      '.pn' + q + ' .fh{color:currentColor}' +
-      '.pn.bare' + q + '{background:transparent;color:var(--brand-text);box-shadow:none}' +
-      '.pair:has(' + q + '),.team li:has(' + q + '),.b-roster li:has(' + q + '),.prow:has(' + q + '){background:var(--brand-soft)}' +
-      '.match:has(' + q + ') .vs-toggle,.b-card:has(' + q + '),.team:has(' + q + '){box-shadow:0 0 0 2px var(--brand),var(--shadow)}';
+      '#lich .pn' + q + '{background:var(--brand);color:var(--brand-ink);box-shadow:0 0 0 3px var(--brand-soft),0 4px 12px rgba(12,20,48,.18)}' +
+      '#lich .pn' + q + ' .fh{color:currentColor}' +
+      '#lich .pair:has(' + q + '){background:var(--brand-soft)}' +
+      '#lich .match:has(' + q + ') .vs-toggle{box-shadow:0 0 0 2px var(--brand)}';
     var t = allNames[selP], codes = S.matches.filter(function (m) { return m.a.team === t.id || m.b.team === t.id; }).map(function (m) { return m.code; });
     $('pFocusName').textContent = selP;
-    $('pFocusMeta').textContent = t.name + ' · seed ' + (t.members.indexOf(selP) + 1) + (codes.length ? ' · trận ' + codes.join(', ') : '');
+    $('pFocusMeta').textContent = t.name + ' · seed ' + (t.members.indexOf(selP) + 1) + (codes.length ? ' · ' + codes.join(', ') : '');
+    var st = pStats[selP];
+    if (st) {
+      $('pFocusHeat').hidden = false;
+      $('pFocusDeg').textContent = st.heat.toFixed(1) + '°';
+      var tr = $('pFocusTrend');
+      tr.className = 'trend' + (st.trend > 0 ? ' up' : st.trend < 0 ? ' down' : '');
+      tr.textContent = st.played ? (st.trend > 0 ? '▲ +' + st.trend : st.trend < 0 ? '▼ ' + st.trend : '—') : '';
+      $('pFocusRank').textContent = 'Hạng ' + st.hrank + '/' + heatRank.length + (st.played ? ' · ' + st.won + 'T ' + st.lost + 'B' : ' · theo seed');
+      $('pFocusBar').style.width = Math.max(4, Math.min(100, (st.heat - 20) / 25 * 100)).toFixed(0) + '%';
+    } else $('pFocusHeat').hidden = true;
     bar.hidden = false;
   }
   document.addEventListener('click', function (e) {
@@ -455,7 +468,7 @@
           sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
         }
         return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
-          '<span class="who">' + pn(p.name, 'bare') + '<small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
+          '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span></li>';
       }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
       note.textContent = state.metric === 'heat'

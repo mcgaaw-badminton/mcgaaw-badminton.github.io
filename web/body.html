@@ -89,6 +89,7 @@
       </div>
       <div class="seg-scroll rv"><div class="seg" id="daySeg" role="tablist" aria-label="Chọn ngày thi đấu"><span class="seg-thumb" id="segThumb" aria-hidden="true"></span></div></div>
       <div class="day-panel" id="dayPanel" role="tabpanel" aria-live="polite"></div>
+      <p class="pick-hint rv">Mở "Xem thành viên" và chạm vào tên một VĐV để tô sáng các cặp của người đó và xem nhiệt độ hiện tại.</p>
       <p class="hint glass rv" id="busyNote"></p>
     </div>
   </section>
@@ -193,7 +194,8 @@
 <div class="pfocus glass" id="pFocus" role="status" hidden>
   <span class="pf-dot" aria-hidden="true"></span>
   <span class="pf-txt"><b id="pFocusName"></b><small id="pFocusMeta"></small></span>
-  <button type="button" class="pf-x" id="pFocusClear">Bỏ chọn</button>
+  <a class="pf-heat" id="pFocusHeat" href="#bxh" title="Xem bảng nhiệt độ ở BXH"><span class="pf-deg"><b id="pFocusDeg"></b><small class="trend" id="pFocusTrend"></small></span><span class="thermo" aria-hidden="true"><i id="pFocusBar"></i></span><small id="pFocusRank"></small></a>
+  <button type="button" class="pf-x" id="pFocusClear" aria-label="Bỏ chọn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 <div class="toast glass" id="toast" role="status" hidden>
   <span class="pulse" aria-hidden="true"></span>
