@@ -63,66 +63,48 @@
   function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '" data-h="' + esc(n) + '" tabindex="0">' + esc(n) + marks(n) + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
-  /* ---------- rotten eggs: shared counter per player (Firebase Realtime Database over REST; local-only when not configured) ---------- */
-  var EGG_SVG = '<svg class="egg-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c-3.6 0-6.5 5.3-6.5 10.2A6.5 6.5 0 0 0 12 21.5a6.5 6.5 0 0 0 6.5-8.8C18.5 7.8 15.6 2.5 12 2.5z"/><path class="egg-crack" d="M8.2 11.5l1.6 1.3 1.4-1.5 1.5 1.4 1.5-1.4 1.6 1.2"/></svg>';
-  var FLAME_SVG = '<svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path class="fo" d="M12 2c1.2 3.4 5.8 5.8 5.8 11.2A5.8 5.8 0 0 1 12 19a5.8 5.8 0 0 1-5.8-5.8c0-2.5 1.2-4 2.4-5.2.2 1.7.9 2.9 2.2 3.4C10.2 8.6 10.8 5 12 2z"/><path class="fi" d="M12 10.5c.7 1.9 3 3.2 3 5.6a3 3 0 0 1-6 0c0-1.3.6-2.1 1.3-2.7.2 1 .7 1.6 1.4 1.8-.3-1.6 0-3.3.3-4.7z"/></svg>';
+  /* ---------- rotten eggs: shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
   var EGG = (function () {
-    var cfg = (S.meta && S.meta.eggs) || {}, db = cfg.db || '', limit = +cfg.limit || 0;
-    var counts = {}, pending = {}, subs = [], timer = null, state = db ? 'connecting' : 'local';
+    var cfg = (S.meta && S.meta.eggs) || {}, api = cfg.api || '', limit = +cfg.limit || 0;
+    var counts = {}, pending = {}, inflight = {}, subs = [], timer = null, state = api ? 'connecting' : 'local';
     var LKEY = 'gcl-eggs', DKEY = 'gcl-eggs-day';
     function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
-    if (!db) counts = ls(LKEY) || {};
+    if (!api) counts = ls(LKEY) || {};
     function emit() { subs.forEach(function (f) { try { f(); } catch (e) {} }); }
-    function get(id) { return (counts[id] || 0) + (pending[id] || 0); }
+    function get(id) { return (counts[id] || 0) + (pending[id] || 0) + (inflight[id] || 0); }
     function usedToday() { var d = ls(DKEY); return d && d.day === new Date().toDateString() ? d.n : 0; }
     function left() { return limit ? Math.max(0, limit - usedToday()) : Infinity; }
+    function take(d) { if (d && typeof d === 'object' && !d.error) { Object.keys(d).forEach(function (k) { if (typeof d[k] === 'number') counts[k] = d[k]; }); state = 'live'; emit(); } }
     function hit(id) {
       if (!left()) return false;
       if (limit) ls(DKEY, { day: new Date().toDateString(), n: usedToday() + 1 });
       pending[id] = (pending[id] || 0) + 1;
       emit();
-      clearTimeout(timer); timer = setTimeout(flush, 900);
+      clearTimeout(timer); timer = setTimeout(flush, 1200);
       return true;
     }
-    function flush() {
+    function flush(beacon) {
+      if (Object.keys(inflight).length && !beacon) { clearTimeout(timer); timer = setTimeout(flush, 800); return; }
       var batch = pending; pending = {};
       var ids = Object.keys(batch); if (!ids.length) return;
-      if (!db) { ids.forEach(function (id) { counts[id] = (counts[id] || 0) + batch[id]; }); ls(LKEY, counts); emit(); return; }
-      var body = {}; ids.forEach(function (id) { body[id] = { '.sv': { increment: batch[id] } }; });
-      fetch(db + '/eggs.json', { method: 'PATCH', body: JSON.stringify(body) }).then(function (r) {
-        if (!r.ok) throw new Error(r.status);
-        return r.json();
-      }).then(function (res) {
-        ids.forEach(function (id) { if (typeof res[id] === 'number') counts[id] = Math.max(counts[id] || 0, res[id]); });
-        emit();
-      }).catch(function () {  // keep the throws and retry a little later
-        ids.forEach(function (id) { pending[id] = (pending[id] || 0) + batch[id]; });
-        clearTimeout(timer); timer = setTimeout(flush, 5000);
-      });
+      if (!api) { ids.forEach(function (id) { counts[id] = (counts[id] || 0) + batch[id]; }); ls(LKEY, counts); emit(); return; }
+      var body = JSON.stringify(batch);
+      if (beacon) { try { navigator.sendBeacon(api, new Blob([body], { type: 'text/plain' })); } catch (e) {} return; }
+      inflight = batch;
+      fetch(api, { method: 'POST', body: body, headers: { 'Content-Type': 'text/plain;charset=utf-8' } })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) { if (!d || d.error) throw new Error('bad'); inflight = {}; take(d); })
+        .catch(function () {  // keep the throws and retry a little later
+          ids.forEach(function (id) { pending[id] = (pending[id] || 0) + batch[id]; }); inflight = {};
+          clearTimeout(timer); timer = setTimeout(flush, 5000);
+        });
     }
-    window.addEventListener('pagehide', function () {
-      var ids = Object.keys(pending); if (!ids.length || !db) return flush();
-      var body = {}; ids.forEach(function (id) { body[id] = { '.sv': { increment: pending[id] } }; });
-      try { fetch(db + '/eggs.json', { method: 'PATCH', body: JSON.stringify(body), keepalive: true }); pending = {}; } catch (e) {}
-    });
-    function applyTree(path, data, merge) {
-      if (path === '/') {
-        if (!merge) counts = {};
-        Object.keys(data || {}).forEach(function (k) { if (typeof data[k] === 'number') counts[k] = data[k]; });
-      } else {
-        var id = path.replace(/^\//, '').split('/')[0];
-        if (typeof data === 'number') counts[id] = data; else if (data === null) delete counts[id];
-      }
-      emit();
+    window.addEventListener('pagehide', function () { flush(true); });
+    function pull() {
+      if (!api || document.hidden) return;
+      fetch(api).then(function (r) { return r.json(); }).then(take).catch(function () { if (state !== 'live') { state = 'offline'; emit(); } });
     }
-    if (db && window.EventSource) {
-      var es = new EventSource(db + '/eggs.json');
-      es.addEventListener('put', function (e) { state = 'live'; var m = JSON.parse(e.data); applyTree(m.path, m.data, false); });
-      es.addEventListener('patch', function (e) { var m = JSON.parse(e.data); applyTree(m.path, m.data, true); });
-      es.onerror = function () { if (state !== 'live') { state = 'offline'; emit(); } };
-    } else if (db) {
-      fetch(db + '/eggs.json').then(function (r) { return r.json(); }).then(function (d) { state = 'live'; applyTree('/', d, false); }).catch(function () { state = 'offline'; emit(); });
-    }
+    if (api) { pull(); setInterval(pull, 20000); document.addEventListener('visibilitychange', pull); }
     return { get: get, hit: hit, left: left, limit: limit, on: function (f) { subs.push(f); }, state: function () { return state; } };
   })();
   function eggLevel(n) { return n >= 200 ? 4 : n >= 50 ? 3 : n >= 10 ? 2 : n >= 1 ? 1 : 0; }
@@ -131,35 +113,74 @@
     return '<button type="button" class="egg-btn' + (cls ? ' ' + cls : '') + '" data-egg="' + esc(id) + '" aria-label="Ném trứng thối vào ' + esc(name) + ' (đã có ' + n + ')">' +
       EGG_SVG + '<span class="egg-say">Ném</span><b class="egg-n" data-egg-n="' + esc(id) + '">' + n + '</b><span class="egg-fire lv' + eggLevel(n) + '" data-egg-f="' + esc(id) + '">' + FLAME_SVG + '</span></button>';
   }
+  /* animated Noto fire (Lottie) in every flame that has at least one egg; players are created/destroyed as rows render */
+  var FIRE = (function () {
+    var data = FXI.fire || null, live = [], want = !!window.lottie && !reduce;
+    if (want && !data) fetch('assets/fx/fire.json').then(function (r) { return r.json(); }).then(function (d) { data = d; sync(); }).catch(function () {});
+    function sync() {
+      live = live.filter(function (x) { if (document.body.contains(x.el) && !x.el.closest('.lv0')) return true; x.anim.destroy(); x.el.removeAttribute('data-on'); return false; });
+      if (!want || !data) return;
+      document.querySelectorAll('.egg-fire:not(.lv0) .flame-l:not([data-on])').forEach(function (el) {
+        if (!el.offsetParent) return;
+        el.setAttribute('data-on', '1');
+        live.push({ el: el, anim: lottie.loadAnimation({ container: el, renderer: 'svg', loop: true, autoplay: true, animationData: data, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } }) });
+      });
+    }
+    return { sync: sync };
+  })();
   function refreshEggs() {
     document.querySelectorAll('[data-egg-n]').forEach(function (el) { var n = EGG.get(el.dataset.eggN); if (el.textContent !== String(n)) el.textContent = n; });
     document.querySelectorAll('[data-egg-f]').forEach(function (el) { el.className = 'egg-fire lv' + eggLevel(EGG.get(el.dataset.eggF)); });
+    FIRE.sync();
   }
   EGG.on(refreshEggs);
+  if (window.MutationObserver) { var fireMo; new MutationObserver(function () { clearTimeout(fireMo); fireMo = setTimeout(FIRE.sync, 60); }).observe(document.body, { childList: true, subtree: true }); }
 
-  /* throw animation: an egg arcs from the mascot (or from below) to the target, splats, flame flares, +1 floats up */
+  /* throw: GSAP flies a Noto egg in an arc from the mascot, the fried-egg splat squashes onto the button,
+     canvas-confetti scatters shell + yolk, and the Lottie flame flares and spits embers (more at higher levels) */
+  var G = window.gsap, boom = window.confetti && !reduce ? confetti.create(null, { resize: true, useWorker: true, disableForReducedMotion: true }) : null;
   var flying = 0;
+  function burst(x, y, lvl) {
+    if (!boom) return;
+    var o = { x: x / innerWidth, y: y / innerHeight };
+    boom({ origin: o, particleCount: 10, spread: 80, startVelocity: 16, gravity: 1.3, ticks: 55, scalar: .55, shapes: ['square'], colors: ['#FFFFFF', '#F3EBD3', '#E3D6B0'], disableForReducedMotion: true });
+    boom({ origin: o, particleCount: 8, spread: 60, startVelocity: 12, gravity: 1.5, ticks: 60, scalar: .7, shapes: ['circle'], colors: ['#FFC21A', '#FFA800', '#FFD54A'], disableForReducedMotion: true });
+    if (lvl) boom({ origin: { x: o.x + 18 / innerWidth, y: o.y }, particleCount: 4 + lvl * 5, angle: 90, spread: 40 + lvl * 8, startVelocity: 6 + lvl * 2, gravity: -.35, decay: .9, drift: 0, ticks: 40 + lvl * 8, scalar: .45, shapes: ['circle'], colors: ['#FF5A00', '#FF8A00', '#FFC400', '#FF2D00'], disableForReducedMotion: true });
+  }
   function throwFx(btn) {
-    var r = btn.getBoundingClientRect(), tx = r.left + 18, ty = r.top + r.height / 2;
-    var m = document.querySelector('.mascot:not(.away) .ms-body'), mr = m && m.getBoundingClientRect();
-    var sx = mr ? mr.left + mr.width / 2 : tx + (Math.random() * 120 - 60), sy = mr ? mr.top + 10 : window.innerHeight + 20;
-    if (m) { var ms = m.closest('.mascot'); ms.classList.remove('throwing'); void ms.offsetWidth; ms.classList.add('throwing'); }
-    var plus = document.createElement('span'); plus.className = 'egg-plus'; plus.textContent = '+1';
+    var icon = btn.querySelector('.egg-i') || btn, r = icon.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
+    var lvl = eggLevel(EGG.get(btn.dataset.egg));
     var land = function () {
-      btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit');
-      plus.style.left = tx + 'px'; plus.style.top = ty + 'px'; document.body.appendChild(plus);
-      setTimeout(function () { plus.remove(); }, 900);
+      var fl = btn.querySelector('.egg-fire');
+      if (G) {
+        G.fromTo(btn, { scale: .86 }, { scale: 1, duration: .5, ease: 'elastic.out(1.1,.45)', clearProps: 'transform' });
+        if (fl) G.fromTo(fl, { scale: 1.8, y: -4 }, { scale: 1, y: 0, duration: .6, ease: 'elastic.out(1,.4)', clearProps: 'transform' });
+        var sp = document.createElement('img'); sp.src = SPLAT_IMG; sp.className = 'egg-splat'; sp.alt = ''; document.body.appendChild(sp);
+        G.set(sp, { x: tx - 20, y: ty - 20, rotation: Math.random() * 360 });
+        G.timeline({ onComplete: function () { sp.remove(); } })
+          .fromTo(sp, { scaleX: .2, scaleY: .2, opacity: 1 }, { scaleX: 1.25, scaleY: .9, duration: .12, ease: 'power3.out' })
+          .to(sp, { scaleX: 1, scaleY: 1, duration: .35, ease: 'elastic.out(1,.5)' })
+          .to(sp, { y: '+=14', opacity: 0, duration: .5, ease: 'power1.in' }, '+=.15');
+        var plus = document.createElement('span'); plus.className = 'egg-plus'; plus.textContent = '+1'; document.body.appendChild(plus);
+        G.fromTo(plus, { x: tx + 10, y: ty - 10, opacity: 1, scale: .6 }, { y: ty - 54, scale: 1.1, opacity: 0, duration: .9, ease: 'power2.out', onComplete: function () { plus.remove(); } });
+      }
+      burst(tx, ty, lvl);
     };
-    if (reduce || flying > 10) return land();
+    var ms = document.querySelector('.mascot:not(.away)'), mb = ms && ms.offsetParent !== null && ms.querySelector('.ms-body');
+    if (mb && G) G.fromTo(mb, { rotation: 0 }, { keyframes: [{ rotation: -16, y: -6, duration: .12 }, { rotation: 6, y: 0, duration: .18 }, { rotation: 0, duration: .2 }], ease: 'power2.out', clearProps: 'transform' });
+    if (!G || reduce || flying > 12) return land();
+    var mr = mb && mb.getBoundingClientRect();
+    var sx = mr ? mr.left + mr.width / 2 : tx + (Math.random() * 160 - 80), sy = mr ? mr.top + 16 : innerHeight + 30;
+    var egg = document.createElement('img'); egg.src = EGG_IMG; egg.className = 'egg-fly'; egg.alt = ''; document.body.appendChild(egg);
+    var peak = Math.min(sy, ty) - 70 - Math.random() * 70, dur = .5 + Math.min(.35, Math.hypot(tx - sx, ty - sy) / 2000);
     flying++;
-    var egg = document.createElement('span'); egg.className = 'egg-fly'; egg.innerHTML = EGG_SVG; document.body.appendChild(egg);
-    var dx = tx - sx, dy = ty - sy, peak = Math.min(sy, ty) - 80 - Math.random() * 60;
-    var anim = egg.animate([
-      { transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(0deg) scale(.8)' },
-      { transform: 'translate(' + (sx + dx * .5) + 'px,' + peak + 'px) rotate(260deg) scale(1.1)', offset: .5 },
-      { transform: 'translate(' + tx + 'px,' + ty + 'px) rotate(540deg) scale(.9)' }
-    ], { duration: 520 + Math.min(300, Math.hypot(dx, dy) * .35), easing: 'cubic-bezier(.3,.1,.6,1)' });
-    anim.onfinish = function () { egg.remove(); flying--; land(); };
+    G.set(egg, { x: sx - 13, y: sy - 13, rotation: -30, scale: .7 });
+    G.timeline({ onComplete: function () { egg.remove(); flying--; land(); } })
+      .to(egg, { x: tx - 13, duration: dur, ease: 'none' }, 0)
+      .to(egg, { y: peak - 13, duration: dur * .45, ease: 'power2.out' }, 0)
+      .to(egg, { y: ty - 13, duration: dur * .55, ease: 'power2.in' }, dur * .45)
+      .to(egg, { rotation: 420 + Math.random() * 180, scale: 1.05, duration: dur, ease: 'none' }, 0)
+      .to(egg, { scaleX: 1.35, scaleY: .6, duration: .06 }, dur - .06);
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('.egg-btn'); if (!b) return;

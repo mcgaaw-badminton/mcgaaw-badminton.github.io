@@ -153,7 +153,7 @@ def main():
     build_id = f"{BUILT:%Y%m%d%H%M%S}-{commit}"
     data = {
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
-                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"db": site.get("eggs", {}).get("database_url", "").rstrip("/"), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
+                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
@@ -186,6 +186,10 @@ def main():
                          f"src:url(fonts/{fn}) format('woff2');unicode-range:{rng}}}")
     (out / "assets" / "fonts.css").write_text("\n".join(faces) + "\n", encoding="utf-8")
     shutil.copy2(paths.LOGO, out / "assets" / "logo.png")
+    for sub in ("vendor", "fx"):  # animation libraries + effect files (licenses in assets/vendor/README.md)
+        shutil.copytree(paths.ASSETS / sub, out / "assets" / sub, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns("README.md"))
+    vendor = "".join(f'<script src="assets/vendor/{f}?v={build_id}"></script>\n' for f in VENDOR_JS)
     (out / "assets" / "site.css").write_text(css, encoding="utf-8")
     (out / "assets" / "site.js").write_text(js, encoding="utf-8")
     (out / "data.js").write_text(data_js, encoding="utf-8")
@@ -199,7 +203,7 @@ def main():
             '<link rel="icon" href="assets/logo.png">\n<link rel="stylesheet" href="assets/fonts.css">\n'
             f'<link rel="stylesheet" href="assets/site.css?v={v}">\n</head>\n<body>\n'
             + body.replace("{{LOGO}}", "assets/logo.png")
-            + '\n<script src="data.js?v=' + v + '"></script>\n<script src="assets/site.js?v=' + v + '"></script>\n</body>\n</html>\n')
+            + '\n<script src="data.js?v=' + v + '"></script>\n' + vendor + '<script src="assets/site.js?v=' + v + '"></script>\n</body>\n</html>\n')
     (out / "index.html").write_text(page, encoding="utf-8")
 
     if a.preview:
@@ -209,10 +213,19 @@ def main():
         prev = (f'<title>{site["title"]}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
                 f'<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="{GOOGLE_FONTS}">\n'
                 f"<style>\n{css}</style>\n" + body.replace("{{LOGO}}", logo)
-                + "\n<script>window.SITE = " + json.dumps(pdata, ensure_ascii=False) + ";</script>\n<script>\n" + js + "</script>\n")
+                + "\n<script>window.SITE = " + json.dumps(pdata, ensure_ascii=False) + ";</script>\n"
+                + "".join("<script>\n" + (paths.ASSETS / "vendor" / f).read_text(encoding="utf-8") + "\n</script>\n" for f in VENDOR_JS)
+                + "<script>window.FX_INLINE = " + json.dumps({
+                    "fire": json.loads((paths.ASSETS / "fx" / "fire.json").read_text(encoding="utf-8")),
+                    "egg": "data:image/svg+xml;base64," + base64.b64encode((paths.ASSETS / "fx" / "egg.svg").read_bytes()).decode(),
+                    "splat": "data:image/svg+xml;base64," + base64.b64encode((paths.ASSETS / "fx" / "splat.svg").read_bytes()).decode(),
+                }) + ";</script>\n<script>\n" + js + "</script>\n")
         paths.SITE_PREVIEW.write_text(prev, encoding="utf-8")
         print(f"[PREVIEW] {paths.SITE_PREVIEW}")
     print(f"[OUTPUT] {out / 'index.html'}")
+
+
+VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js")
 
 
 def git_head():
