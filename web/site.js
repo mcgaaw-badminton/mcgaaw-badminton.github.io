@@ -63,6 +63,111 @@
   function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '" data-h="' + esc(n) + '" tabindex="0">' + esc(n) + marks(n) + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
+  /* ---------- rotten eggs: shared counter per player (Firebase Realtime Database over REST; local-only when not configured) ---------- */
+  var EGG_SVG = '<svg class="egg-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c-3.6 0-6.5 5.3-6.5 10.2A6.5 6.5 0 0 0 12 21.5a6.5 6.5 0 0 0 6.5-8.8C18.5 7.8 15.6 2.5 12 2.5z"/><path class="egg-crack" d="M8.2 11.5l1.6 1.3 1.4-1.5 1.5 1.4 1.5-1.4 1.6 1.2"/></svg>';
+  var FLAME_SVG = '<svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path class="fo" d="M12 2c1.2 3.4 5.8 5.8 5.8 11.2A5.8 5.8 0 0 1 12 19a5.8 5.8 0 0 1-5.8-5.8c0-2.5 1.2-4 2.4-5.2.2 1.7.9 2.9 2.2 3.4C10.2 8.6 10.8 5 12 2z"/><path class="fi" d="M12 10.5c.7 1.9 3 3.2 3 5.6a3 3 0 0 1-6 0c0-1.3.6-2.1 1.3-2.7.2 1 .7 1.6 1.4 1.8-.3-1.6 0-3.3.3-4.7z"/></svg>';
+  var EGG = (function () {
+    var cfg = (S.meta && S.meta.eggs) || {}, db = cfg.db || '', limit = +cfg.limit || 0;
+    var counts = {}, pending = {}, subs = [], timer = null, state = db ? 'connecting' : 'local';
+    var LKEY = 'gcl-eggs', DKEY = 'gcl-eggs-day';
+    function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+    if (!db) counts = ls(LKEY) || {};
+    function emit() { subs.forEach(function (f) { try { f(); } catch (e) {} }); }
+    function get(id) { return (counts[id] || 0) + (pending[id] || 0); }
+    function usedToday() { var d = ls(DKEY); return d && d.day === new Date().toDateString() ? d.n : 0; }
+    function left() { return limit ? Math.max(0, limit - usedToday()) : Infinity; }
+    function hit(id) {
+      if (!left()) return false;
+      if (limit) ls(DKEY, { day: new Date().toDateString(), n: usedToday() + 1 });
+      pending[id] = (pending[id] || 0) + 1;
+      emit();
+      clearTimeout(timer); timer = setTimeout(flush, 900);
+      return true;
+    }
+    function flush() {
+      var batch = pending; pending = {};
+      var ids = Object.keys(batch); if (!ids.length) return;
+      if (!db) { ids.forEach(function (id) { counts[id] = (counts[id] || 0) + batch[id]; }); ls(LKEY, counts); emit(); return; }
+      var body = {}; ids.forEach(function (id) { body[id] = { '.sv': { increment: batch[id] } }; });
+      fetch(db + '/eggs.json', { method: 'PATCH', body: JSON.stringify(body) }).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      }).then(function (res) {
+        ids.forEach(function (id) { if (typeof res[id] === 'number') counts[id] = Math.max(counts[id] || 0, res[id]); });
+        emit();
+      }).catch(function () {  // keep the throws and retry a little later
+        ids.forEach(function (id) { pending[id] = (pending[id] || 0) + batch[id]; });
+        clearTimeout(timer); timer = setTimeout(flush, 5000);
+      });
+    }
+    window.addEventListener('pagehide', function () {
+      var ids = Object.keys(pending); if (!ids.length || !db) return flush();
+      var body = {}; ids.forEach(function (id) { body[id] = { '.sv': { increment: pending[id] } }; });
+      try { fetch(db + '/eggs.json', { method: 'PATCH', body: JSON.stringify(body), keepalive: true }); pending = {}; } catch (e) {}
+    });
+    function applyTree(path, data, merge) {
+      if (path === '/') {
+        if (!merge) counts = {};
+        Object.keys(data || {}).forEach(function (k) { if (typeof data[k] === 'number') counts[k] = data[k]; });
+      } else {
+        var id = path.replace(/^\//, '').split('/')[0];
+        if (typeof data === 'number') counts[id] = data; else if (data === null) delete counts[id];
+      }
+      emit();
+    }
+    if (db && window.EventSource) {
+      var es = new EventSource(db + '/eggs.json');
+      es.addEventListener('put', function (e) { state = 'live'; var m = JSON.parse(e.data); applyTree(m.path, m.data, false); });
+      es.addEventListener('patch', function (e) { var m = JSON.parse(e.data); applyTree(m.path, m.data, true); });
+      es.onerror = function () { if (state !== 'live') { state = 'offline'; emit(); } };
+    } else if (db) {
+      fetch(db + '/eggs.json').then(function (r) { return r.json(); }).then(function (d) { state = 'live'; applyTree('/', d, false); }).catch(function () { state = 'offline'; emit(); });
+    }
+    return { get: get, hit: hit, left: left, limit: limit, on: function (f) { subs.push(f); }, state: function () { return state; } };
+  })();
+  function eggLevel(n) { return n >= 200 ? 4 : n >= 50 ? 3 : n >= 10 ? 2 : n >= 1 ? 1 : 0; }
+  function eggBtn(id, name, cls) {
+    var n = EGG.get(id);
+    return '<button type="button" class="egg-btn' + (cls ? ' ' + cls : '') + '" data-egg="' + esc(id) + '" aria-label="Ném trứng thối vào ' + esc(name) + ' (đã có ' + n + ')">' +
+      EGG_SVG + '<span class="egg-say">Ném</span><b class="egg-n" data-egg-n="' + esc(id) + '">' + n + '</b><span class="egg-fire lv' + eggLevel(n) + '" data-egg-f="' + esc(id) + '">' + FLAME_SVG + '</span></button>';
+  }
+  function refreshEggs() {
+    document.querySelectorAll('[data-egg-n]').forEach(function (el) { var n = EGG.get(el.dataset.eggN); if (el.textContent !== String(n)) el.textContent = n; });
+    document.querySelectorAll('[data-egg-f]').forEach(function (el) { el.className = 'egg-fire lv' + eggLevel(EGG.get(el.dataset.eggF)); });
+  }
+  EGG.on(refreshEggs);
+
+  /* throw animation: an egg arcs from the mascot (or from below) to the target, splats, flame flares, +1 floats up */
+  var flying = 0;
+  function throwFx(btn) {
+    var r = btn.getBoundingClientRect(), tx = r.left + 18, ty = r.top + r.height / 2;
+    var m = document.querySelector('.mascot:not(.away) .ms-body'), mr = m && m.getBoundingClientRect();
+    var sx = mr ? mr.left + mr.width / 2 : tx + (Math.random() * 120 - 60), sy = mr ? mr.top + 10 : window.innerHeight + 20;
+    if (m) { var ms = m.closest('.mascot'); ms.classList.remove('throwing'); void ms.offsetWidth; ms.classList.add('throwing'); }
+    var plus = document.createElement('span'); plus.className = 'egg-plus'; plus.textContent = '+1';
+    var land = function () {
+      btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit');
+      plus.style.left = tx + 'px'; plus.style.top = ty + 'px'; document.body.appendChild(plus);
+      setTimeout(function () { plus.remove(); }, 900);
+    };
+    if (reduce || flying > 10) return land();
+    flying++;
+    var egg = document.createElement('span'); egg.className = 'egg-fly'; egg.innerHTML = EGG_SVG; document.body.appendChild(egg);
+    var dx = tx - sx, dy = ty - sy, peak = Math.min(sy, ty) - 80 - Math.random() * 60;
+    var anim = egg.animate([
+      { transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(0deg) scale(.8)' },
+      { transform: 'translate(' + (sx + dx * .5) + 'px,' + peak + 'px) rotate(260deg) scale(1.1)', offset: .5 },
+      { transform: 'translate(' + tx + 'px,' + ty + 'px) rotate(540deg) scale(.9)' }
+    ], { duration: 520 + Math.min(300, Math.hypot(dx, dy) * .35), easing: 'cubic-bezier(.3,.1,.6,1)' });
+    anim.onfinish = function () { egg.remove(); flying--; land(); };
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.egg-btn'); if (!b) return;
+    e.stopPropagation();
+    if (!EGG.hit(b.dataset.egg)) { b.classList.add('empty'); setTimeout(function () { b.classList.remove('empty'); }, 600); if (window.mascotSay) mascotSay('Hôm nay anh đã hết ' + EGG.limit + ' quả trứng rồi, mai ném tiếp nhé!'); return; }
+    throwFx(b);
+  });
+
   /* ---------- show/hide blocks (member lists) ---------- */
   var CHEVD = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   var CHIP = '<span class="chev-chip" aria-hidden="true">' + CHEVD + '</span>';
@@ -372,6 +477,7 @@
       $('pFocusRank').textContent = 'Hạng ' + st.hrank + '/' + heatRank.length + (st.played ? ' · ' + st.won + 'T ' + st.lost + 'B' : ' · theo seed');
       $('pFocusBar').style.width = Math.max(4, Math.min(100, (st.heat - 20) / 25 * 100)).toFixed(0) + '%';
     } else $('pFocusHeat').hidden = true;
+    $('pFocusEgg').innerHTML = st ? eggBtn(st.id, selP, 'small') : '';
     bar.hidden = false;
   }
   document.addEventListener('click', function (e) {
@@ -409,6 +515,7 @@
   try { var keep = localStorage.getItem('gcl-player'); if (keep) selectPlayer(keep); } catch (e) {}
   $('pairChips').innerHTML = S.pairs.map(function (p) { return '<span>' + p[0] + '–' + p[1] + '</span>'; }).join('');
 
+
   /* ---------- standings & stats (BXH): team table, matches, players; recalculated by the build after every result ---------- */
   (function () {
     var ST = S.stats || { teams: [], players: [], highlights: {}, played: 0 };
@@ -417,6 +524,7 @@
     var STATUS = { champ: ['Vô địch', 'champ'], runner: ['Á quân', 'win'], win: ['Nhánh thắng', 'win'], lose: ['Nhánh thua', 'lose'], out: ['Đã dừng', 'out'] };
     var METRICS = [
       ['heat', 'Nhiệt độ', function (p) { return p.heat; }, function (p) { return p.heat.toFixed(1) + '°'; }],
+      ['eggs', 'Trứng thối', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
       ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
       ['pf', 'Điểm ghi', function (p) { return p.pf; }, function (p) { return p.pf; }],
       ['diff', 'Hiệu số', function (p) { return p.diff; }, function (p) { return (p.diff > 0 ? '+' : '') + p.diff; }],
@@ -491,9 +599,12 @@
       }).sort(function (x, y) { return M[2](y) - M[2](x) || y.heat - x.heat || x.seed - y.seed; });
       if (!list.length) { body.innerHTML = '<p class="board-empty">Không có VĐV nào khớp bộ lọc.</p>'; return; }
       var shown = state.showAll ? list : list.slice(0, 10);
-      body.innerHTML = '<ol class="plist">' + shown.map(function (p, i) {
+      body.innerHTML = '<ol class="plist' + (state.metric === 'eggs' ? ' eggs-mode' : '') + '">' + shown.map(function (p, i) {
         var main = M[3](p), sub = '';
-        if (state.metric === 'heat') {
+        if (state.metric === 'eggs') {
+          main = '<span class="egg-main"><span data-egg-n="' + esc(p.id) + '">' + EGG.get(p.id) + '</span><span class="egg-fire lv' + eggLevel(EGG.get(p.id)) + '" data-egg-f="' + esc(p.id) + '">' + FLAME_SVG + '</span></span>';
+          sub = '<small>' + p.heat.toFixed(1) + '° nhiệt độ</small>';
+        } else if (state.metric === 'heat') {
           var w = Math.max(4, Math.min(100, (p.heat - 20) / 25 * 100));
           sub = '<span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span>' +
             (p.played ? '<small class="trend ' + (p.trend > 0 ? 'up' : p.trend < 0 ? 'down' : '') + '">' + (p.trend > 0 ? '▲ +' + p.trend : p.trend < 0 ? '▼ ' + p.trend : 'giữ nguyên') + '</small>' : '<small>theo seed</small>');
@@ -502,9 +613,11 @@
         }
         return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
           '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
-          '<span class="val"><b>' + main + '</b>' + sub + '</span></li>';
+          '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
       }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
-      note.textContent = state.metric === 'heat'
+      note.textContent = state.metric === 'eggs'
+        ? 'Bấm nút quả trứng ở mỗi dòng để ném trứng thối, bấm liên tục để ném nhiều quả. Trứng càng nhiều lửa càng cháy to. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
+        : state.metric === 'heat'
         ? 'Nhiệt độ 20°–45°: lúc đầu tính theo seed; sau mỗi trận, tỉ lệ thắng cặp và hiệu số điểm của chính VĐV dần thay thế điểm khởi đầu. Mũi tên so với trước trận gần nhất.'
         : 'Chỉ số tính từ điểm từng cặp đã nhập. ' + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
     }
@@ -536,8 +649,68 @@
       render();
     });
     body.addEventListener('click', function (e) { if (e.target.id === 'bxhMore') { state.showAll = !state.showAll; render(); } });
+    var eggRe;
+    EGG.on(function () {  // re-sort the egg board shortly after the throwing stops
+      if (state.tab !== 'player' || state.metric !== 'eggs') return;
+      clearTimeout(eggRe); eggRe = setTimeout(render, 1500);
+    });
     $('bxhEyebrow').textContent = ST.played ? 'Sau ' + ST.played + ' trận · tự cập nhật' : 'Tự cập nhật sau mỗi trận';
     render();
+  })();
+
+
+  /* ---------- mascot "Cầu Bông": schedule reminders in a bubble, eyes follow the pointer, reacts to clicks ---------- */
+  (function () {
+    var root = $('mascot'); if (!root) return;
+    var bubble = $('msBubble'), text = $('msText'), act = $('msAct'), eyes = root.querySelectorAll('.ms-pupil');
+    var pref = (function () { try { return localStorage.getItem('gcl-mascot'); } catch (e) { return null; } })();
+    function save(v) { try { localStorage.setItem('gcl-mascot', v); } catch (e) {} }
+    var msgs = [];
+    if (nextM) {
+      var dl = daysLeft(nextM), sameDay = S.matches.filter(function (m) { return m.date === nextM.date && !m.result; });
+      msgs.push([dl === 0 ? 'Hôm nay có trận ' + sameDay.map(function (m) { return m.code; }).join(' & ') + '! Nhớ ra sân cổ vũ nha.'
+        : dl === 1 ? 'Mai thi đấu rồi! ' + nextM.code + ': ' + sideName(nextM.a) + ' vs ' + sideName(nextM.b) + '.'
+        : 'Còn ' + dl + ' ngày tới ' + nextM.code + ': ' + sideName(nextM.a) + ' vs ' + sideName(nextM.b) + ', ' + S.rules.weekday + ' ' + nextM.date.slice(0, 5) + '.', 'Xem lịch', '#lich']);
+    }
+    var lastDone = S.matches.filter(function (m) { return m.result; }).slice(-1)[0];
+    if (lastDone) msgs.push(['Kết quả mới: ' + lastDone.code + ' ' + sideName(lastDone.a) + ' ' + lastDone.result.a + '–' + lastDone.result.b + ' ' + sideName(lastDone.b) + '.', 'Xem BXH', '#bxh']);
+    msgs.push(['Thấy ai đánh hay quá? Vào BXH ném trứng thối cho lửa cháy to lên!', 'Ném trứng', '#bxh', 'eggs']);
+    msgs.push(['Chạm vào tên VĐV trong lịch để xem cặp đấu và nhiệt độ của người đó.', 'Mở lịch', '#lich']);
+    var i = 0, cycle;
+    function show(k) {
+      var m = msgs[k % msgs.length]; text.textContent = m[0];
+      act.textContent = m[1]; act.setAttribute('href', m[2]); act.dataset.eggs = m[3] || '';
+      bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+    }
+    window.mascotSay = function (t) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
+    function start() { clearTimeout(cycle); show(i); cycle = setTimeout(function next() { bubble.hidden = true; cycle = setTimeout(function () { i++; show(i); cycle = setTimeout(next, 9000); }, 20000); }, 9000); }
+    function away(on) { root.classList.toggle('away', on); save(on ? 'away' : 'on'); if (on) { clearTimeout(cycle); bubble.hidden = true; } }
+    if (pref === 'away') away(true); else setTimeout(start, 2500);
+    $('msBody').addEventListener('click', function () {
+      if (root.classList.contains('away')) { away(false); start(); return; }
+      root.classList.remove('boing'); void root.offsetWidth; root.classList.add('boing');
+      i++; start();
+    });
+    $('msClose').addEventListener('click', function () { away(true); });
+    act.addEventListener('click', function () {
+      bubble.hidden = true;
+      if (act.dataset.eggs) { var t = document.querySelector('#bxhTabs [data-tab="player"]'); if (t) t.click(); var c = document.querySelector('#bxhBar .chip[data-v="eggs"]'); if (c) c.click(); }
+    });
+    /* eyes follow the pointer; a click anywhere makes it blink and glance there */
+    var raf = 0, px = innerWidth / 2, py = innerHeight / 2;
+    function look() {
+      raf = 0;
+      eyes.forEach(function (p) {
+        var r = p.parentNode.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        var a = Math.atan2(py - cy, px - cx), d = Math.min(1, Math.hypot(px - cx, py - cy) / 200);
+        p.style.transform = 'translate(' + (Math.cos(a) * 2.6 * d).toFixed(2) + 'px,' + (Math.sin(a) * 2.6 * d).toFixed(2) + 'px)';
+      });
+    }
+    document.addEventListener('pointermove', function (e) { px = e.clientX; py = e.clientY; if (!raf) raf = requestAnimationFrame(look); }, { passive: true });
+    document.addEventListener('pointerdown', function (e) {
+      px = e.clientX; py = e.clientY; look();
+      root.classList.remove('blink'); void root.offsetWidth; root.classList.add('blink');
+    }, { passive: true });
   })();
 
   /* ---------- gallery + lightbox ---------- */

@@ -153,7 +153,7 @@ def main():
     build_id = f"{BUILT:%Y%m%d%H%M%S}-{commit}"
     data = {
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
-                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "firstDate": dates[0][:5], "lastDate": dates[-1]},
+                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"db": site.get("eggs", {}).get("database_url", "").rstrip("/"), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
