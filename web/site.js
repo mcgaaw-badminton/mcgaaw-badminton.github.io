@@ -63,6 +63,10 @@
   function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '" data-h="' + esc(n) + '" tabindex="0">' + esc(n) + marks(n) + '</span>'; }
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
+  var FXI = window.FX_INLINE || {};
+  var EGG_IMG = FXI.egg || 'assets/fx/egg.svg', SPLAT_IMG = FXI.splat || 'assets/fx/splat.svg';
+  var EGG_SVG = '<img class="egg-i" src="' + EGG_IMG + '" alt="" aria-hidden="true" draggable="false">';
+  var FLAME_SVG = '<span class="flame-l" aria-hidden="true"></span>';
   /* ---------- rotten eggs: shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
   var EGG = (function () {
     var cfg = (S.meta && S.meta.eggs) || {}, api = cfg.api || '', limit = +cfg.limit || 0;
