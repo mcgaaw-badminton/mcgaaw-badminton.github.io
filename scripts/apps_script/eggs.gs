@@ -10,6 +10,7 @@ function sheet_() {
   if (!sh) {
     sh = ss.insertSheet('eggs', 0);
     sh.getRange(1, 1, 1, 4).setValues([['id', 'Đội', 'VĐV', 'Trứng thối']]).setFontWeight('bold');
+    sh.getRange(2, 1, PLAYERS.length, 1).setNumberFormat('@');  // ids like "1-1" must stay text, not dates
     sh.getRange(2, 1, PLAYERS.length, 4).setValues(PLAYERS.map(p => [p[0], p[1], p[2], 0]));
     sh.setFrozenRows(1);
     sh.autoResizeColumns(1, 4);
@@ -42,4 +43,10 @@ function doPost(e) {
   } finally { lock.releaseLock(); }
 }
 
-function setup() { sheet_(); SpreadsheetApp.openById(SHEET_ID).rename('MCGAAW Cup — Trứng thối'); }
+function setup() {
+  const ss = SpreadsheetApp.openById(SHEET_ID), old = ss.getSheetByName('eggs');
+  if (old && String(old.getRange(2, 1).getValue()) !== '1-1') ss.deleteSheet(old);  // rebuild a sheet whose ids were turned into dates
+  sheet_();
+  ss.rename('MCGAAW Cup — Trứng thối');
+  CacheService.getScriptCache().remove('eggs');
+}
