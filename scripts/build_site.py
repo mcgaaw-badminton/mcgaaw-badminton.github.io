@@ -225,7 +225,7 @@ def main():
     print(f"[OUTPUT] {out / 'index.html'}")
 
 
-VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js")
+VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js", "robot-heads.min.js")
 
 
 def git_head():

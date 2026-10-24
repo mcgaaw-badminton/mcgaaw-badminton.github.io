@@ -593,22 +593,9 @@ a.doc:hover .go { transform: translateX(4px); color: var(--brand-text) }
 
 /* ---------- mascot ---------- */
 .mascot { position: fixed; z-index: 75; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none }
-.ms-body { pointer-events: auto; width: 72px; height: 84px; padding: 0; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; filter: drop-shadow(0 6px 12px rgba(12, 20, 48, .22)); transition: transform .4s var(--spring) }
-.ms-body svg { width: 100%; height: 100%; overflow: visible; animation: bob 3.2s ease-in-out infinite }
-@keyframes bob { 50% { transform: translateY(-4px) rotate(-2deg) } }
-.ms-body .f1 { fill: #FFFFFF; stroke: #C9CFE6; stroke-width: 1.5 } .ms-body .f2 { fill: #F4F6FC; stroke: #C9CFE6; stroke-width: 1.5 } .ms-body .f3 { fill: #E8ECF8; stroke: #C9CFE6; stroke-width: 1.5 }
-.ms-body .fl { stroke: #C9CFE6; stroke-width: 1.2; fill: none }
-.ms-body .band { fill: #0C1430 } .ms-body .band-hi { fill: #2F45F0 }
-.ms-body .cork { fill: #FFF4E2; stroke: #E6D3B3; stroke-width: 1.5 }
-.ms-body .ew { fill: #FFFFFF; stroke: #0C1430; stroke-width: 1.4 }
-.ms-pupil { fill: #0C1430; transition: transform .12s linear }
-.ms-body .cheek { fill: #F4A3B8; opacity: .7 }
-.ms-body .mouth { fill: none; stroke: #0C1430; stroke-width: 2.4; stroke-linecap: round }
-.ms-eye { transform-box: fill-box; transform-origin: center }
-.mascot.blink .ms-eye { animation: blink .28s }
-@keyframes blink { 50% { transform: scaleY(.1) } }
-.mascot.boing .ms-body { animation: boing .5s var(--spring) }
-@keyframes boing { 30% { transform: scale(1.12, .88) } 60% { transform: scale(.94, 1.06) } }
+.ms-body { pointer-events: auto; padding: 0; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transform-origin: 50% 100%; transition: transform .45s var(--spring), opacity .3s }
+.ms-body:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: 16px }
+.ms-robot { pointer-events: none }
 .ms-bubble { pointer-events: auto; order: -1; max-width: 260px; padding: 12px 14px; border-radius: 18px 18px 18px 6px; box-shadow: var(--shadow) }
 .ms-bubble.pop { animation: pop .45s var(--spring) }
 @keyframes pop { from { transform: translateY(8px) scale(.9); opacity: 0 } }
@@ -616,15 +603,13 @@ a.doc:hover .go { transform: translateX(4px); color: var(--brand-text) }
 .ms-row { display: flex; align-items: center; gap: 8px }
 .ms-act { padding: 6px 12px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); font-size: 13px; font-weight: 700; text-decoration: none }
 .ms-close { margin-left: auto; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 6px 4px }
-.mascot.away .ms-body { width: 44px; height: 52px; transform: translateX(-26px) rotate(18deg); opacity: .85 }
-.mascot.away .ms-body svg { animation: none }
+.mascot.away .ms-body { transform: translateX(-34px) rotate(14deg) scale(.6); opacity: .9 }
 @media (max-width: 900px) {
   .mascot { left: auto; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); align-items: flex-end }
-  .ms-body { width: 54px; height: 63px }
   .ms-bubble { max-width: min(260px, calc(100vw - 32px)); border-radius: 18px 18px 6px 18px }
-  .mascot.away .ms-body { width: 40px; height: 47px; transform: translateX(24px) rotate(-18deg) }
+  .mascot.away .ms-body { transform: translateX(28px) rotate(-14deg) scale(.6) }
 }
-@media (prefers-reduced-motion: reduce) { .ms-body svg, .egg-fire .flame { animation: none !important } }
+
 body:has(#pFocus:not([hidden])) .mascot { bottom: calc(92px + env(safe-area-inset-bottom, 0px)) }
 @media (max-width: 900px) { body:has(#pFocus:not([hidden])) .mascot { bottom: calc(170px + env(safe-area-inset-bottom, 0px)) } }
 

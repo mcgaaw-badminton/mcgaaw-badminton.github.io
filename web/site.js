@@ -71,20 +71,26 @@
   var EGG = (function () {
     var cfg = (S.meta && S.meta.eggs) || {}, api = cfg.api || '', limit = +cfg.limit || 0;
     var counts = {}, pending = {}, inflight = {}, subs = [], timer = null, state = api ? 'connecting' : 'local';
-    var LKEY = 'gcl-eggs', DKEY = 'gcl-eggs-day';
+    var LKEY = 'gcl-eggs', DKEY = 'gcl-eggs-day', CKEY = 'gcl-eggs-last';
     function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
-    if (!api) counts = ls(LKEY) || {};
+    counts = (api ? ls(CKEY) : ls(LKEY)) || {};  // last known board shows instantly, the server refreshes it
     function emit() { subs.forEach(function (f) { try { f(); } catch (e) {} }); }
     function get(id) { return (counts[id] || 0) + (pending[id] || 0) + (inflight[id] || 0); }
     function usedToday() { var d = ls(DKEY); return d && d.day === new Date().toDateString() ? d.n : 0; }
     function left() { return limit ? Math.max(0, limit - usedToday()) : Infinity; }
-    function take(d) { if (d && typeof d === 'object' && !d.error) { Object.keys(d).forEach(function (k) { if (typeof d[k] === 'number') counts[k] = d[k]; }); state = 'live'; emit(); } }
+    var seq = 0, applied = 0;
+    function take(d, n) {
+      if (!d || typeof d !== 'object' || d.error) return;
+      if (n !== undefined) { if (n < applied || Object.keys(inflight).length) return; applied = n; }  // never let an older read undo newer throws
+      Object.keys(d).forEach(function (k) { if (typeof d[k] === 'number') counts[k] = d[k]; });
+      state = 'live'; ls(CKEY, counts); emit();
+    }
     function hit(id) {
       if (!left()) return false;
       if (limit) ls(DKEY, { day: new Date().toDateString(), n: usedToday() + 1 });
       pending[id] = (pending[id] || 0) + 1;
       emit();
-      clearTimeout(timer); timer = setTimeout(flush, 1200);
+      clearTimeout(timer); timer = setTimeout(flush, 350);
       return true;
     }
     function flush(beacon) {
@@ -97,18 +103,32 @@
       inflight = batch;
       fetch(api, { method: 'POST', body: body, headers: { 'Content-Type': 'text/plain;charset=utf-8' } })
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (d) { if (!d || d.error) throw new Error('bad'); inflight = {}; take(d); })
+        .then(function (d) { if (!d || d.error) throw new Error('bad'); inflight = {}; applied = ++seq; take(d); setTimeout(flush, 0); })
         .catch(function () {  // keep the throws and retry a little later
           ids.forEach(function (id) { pending[id] = (pending[id] || 0) + batch[id]; }); inflight = {};
           clearTimeout(timer); timer = setTimeout(flush, 5000);
         });
     }
     window.addEventListener('pagehide', function () { flush(true); });
-    function pull() {
-      if (!api || document.hidden) return;
-      fetch(api).then(function (r) { return r.json(); }).then(take).catch(function () { if (state !== 'live') { state = 'offline'; emit(); } });
+    /* refresh fast (every 4 s) while an egg board is on screen, slowly (20 s) otherwise */
+    var busy = false, lastPull = 0;
+    function onScreen() {
+      if ($('pFocus') && !$('pFocus').hidden) return true;
+      var b = $('bxh'); if (!b) return false; var r = b.getBoundingClientRect();
+      return r.bottom > 0 && r.top < innerHeight;
     }
-    if (api) { pull(); setInterval(pull, 20000); document.addEventListener('visibilitychange', pull); }
+    function pull() {
+      if (!api || document.hidden || busy) return;
+      busy = true; lastPull = Date.now(); var n = ++seq;
+      fetch(api).then(function (r) { return r.json(); }).then(function (d) { take(d, n); })
+        .catch(function () { if (state !== 'live') { state = 'offline'; emit(); } })
+        .then(function () { busy = false; });
+    }
+    if (api) {
+      pull();
+      setInterval(function () { if (Date.now() - lastPull >= (onScreen() ? 4000 : 20000)) pull(); }, 1000);
+      document.addEventListener('visibilitychange', pull);
+    }
     return { get: get, hit: hit, left: left, limit: limit, on: function (f) { subs.push(f); }, state: function () { return state; } };
   })();
   function eggLevel(n) { return n >= 200 ? 4 : n >= 50 ? 3 : n >= 10 ? 2 : n >= 1 ? 1 : 0; }
@@ -171,7 +191,7 @@
       burst(tx, ty, lvl);
     };
     var ms = document.querySelector('.mascot:not(.away)'), mb = ms && ms.offsetParent !== null && ms.querySelector('.ms-body');
-    if (mb && G) G.fromTo(mb, { rotation: 0 }, { keyframes: [{ rotation: -16, y: -6, duration: .12 }, { rotation: 6, y: 0, duration: .18 }, { rotation: 0, duration: .2 }], ease: 'power2.out', clearProps: 'transform' });
+    if (mb && window.mascotMood) mascotMood('happy', 1400);
     if (!G || reduce || flying > 12) return land();
     var mr = mb && mb.getBoundingClientRect();
     var sx = mr ? mr.left + mr.width / 2 : tx + (Math.random() * 160 - 80), sy = mr ? mr.top + 16 : innerHeight + 30;
@@ -684,15 +704,21 @@
   })();
 
 
-  /* ---------- mascot "Cầu Bông": schedule reminders in a bubble, eyes follow the pointer, reacts to clicks ---------- */
+  /* ---------- mascot: a robot-heads TV robot (MIT, vendored) that reminds the schedule; its face follows what is happening ---------- */
   (function () {
     var root = $('mascot'); if (!root) return;
-    var bubble = $('msBubble'), text = $('msText'), act = $('msAct'), eyes = root.querySelectorAll('.ms-pupil');
+    var bubble = $('msBubble'), text = $('msText'), act = $('msAct');
+    var phone = window.matchMedia && matchMedia('(max-width: 900px)').matches;
+    var bot = window.RobotHeads ? RobotHeads.mount($('msRobot'), { shape: 'rectangle', size: phone ? 58 : 76, color: '#22337F', trimColor: '#D9C08A', screenColor: '#E9EDFF', seed: .42, label: 'Robot của giải' }) : null;
+    var base = 'idle', moodT;
+    function mood(m, ms) { if (!bot) return; clearTimeout(moodT); bot.setState(m); if (ms) moodT = setTimeout(function () { bot.setState(base); }, ms); }
+    window.mascotMood = mood;
     var pref = (function () { try { return localStorage.getItem('gcl-mascot'); } catch (e) { return null; } })();
     function save(v) { try { localStorage.setItem('gcl-mascot', v); } catch (e) {} }
     var msgs = [];
     if (nextM) {
       var dl = daysLeft(nextM), sameDay = S.matches.filter(function (m) { return m.date === nextM.date && !m.result; });
+      if (dl === 0) base = 'happy';
       msgs.push([dl === 0 ? 'Hôm nay có trận ' + sameDay.map(function (m) { return m.code; }).join(' & ') + '! Nhớ ra sân cổ vũ nha.'
         : dl === 1 ? 'Mai thi đấu rồi! ' + nextM.code + ': ' + sideName(nextM.a) + ' vs ' + sideName(nextM.b) + '.'
         : 'Còn ' + dl + ' ngày tới ' + nextM.code + ': ' + sideName(nextM.a) + ' vs ' + sideName(nextM.b) + ', ' + S.rules.weekday + ' ' + nextM.date.slice(0, 5) + '.', 'Xem lịch', '#lich']);
@@ -706,14 +732,18 @@
       var m = msgs[k % msgs.length]; text.textContent = m[0];
       act.textContent = m[1]; act.setAttribute('href', m[2]); act.dataset.eggs = m[3] || '';
       bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+      mood('speaking', Math.min(4200, 900 + m[0].length * 45));
     }
-    window.mascotSay = function (t) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
+    window.mascotSay = function (t) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; mood('speaking', 2500); clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
     function start() { clearTimeout(cycle); show(i); cycle = setTimeout(function next() { bubble.hidden = true; cycle = setTimeout(function () { i++; show(i); cycle = setTimeout(next, 9000); }, 20000); }, 9000); }
-    function away(on) { root.classList.toggle('away', on); save(on ? 'away' : 'on'); if (on) { clearTimeout(cycle); bubble.hidden = true; } }
-    if (pref === 'away') away(true); else setTimeout(start, 2500);
+    function away(on) {
+      root.classList.toggle('away', on); save(on ? 'away' : 'on');
+      if (on) { clearTimeout(cycle); bubble.hidden = true; base = 'sleeping'; mood('sleeping'); } else { base = nextM && daysLeft(nextM) === 0 ? 'happy' : 'idle'; mood(base); }
+    }
+    if (pref === 'away') away(true); else { mood(base); setTimeout(start, 2500); }
     $('msBody').addEventListener('click', function () {
       if (root.classList.contains('away')) { away(false); start(); return; }
-      root.classList.remove('boing'); void root.offsetWidth; root.classList.add('boing');
+      if (bot) bot.poke();
       i++; start();
     });
     $('msClose').addEventListener('click', function () { away(true); });
@@ -721,21 +751,12 @@
       bubble.hidden = true;
       if (act.dataset.eggs) { var t = document.querySelector('#bxhTabs [data-tab="player"]'); if (t) t.click(); var c = document.querySelector('#bxhBar .chip[data-v="eggs"]'); if (c) c.click(); }
     });
-    /* eyes follow the pointer; a click anywhere makes it blink and glance there */
-    var raf = 0, px = innerWidth / 2, py = innerHeight / 2;
-    function look() {
-      raf = 0;
-      eyes.forEach(function (p) {
-        var r = p.parentNode.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        var a = Math.atan2(py - cy, px - cx), d = Math.min(1, Math.hypot(px - cx, py - cy) / 200);
-        p.style.transform = 'translate(' + (Math.cos(a) * 2.6 * d).toFixed(2) + 'px,' + (Math.sin(a) * 2.6 * d).toFixed(2) + 'px)';
-      });
-    }
-    document.addEventListener('pointermove', function (e) { px = e.clientX; py = e.clientY; if (!raf) raf = requestAnimationFrame(look); }, { passive: true });
-    document.addEventListener('pointerdown', function (e) {
-      px = e.clientX; py = e.clientY; look();
-      root.classList.remove('blink'); void root.offsetWidth; root.classList.add('blink');
-    }, { passive: true });
+    /* react to the page: thinking while the egg board loads, error if it is offline, happy on every throw */
+    var lastEgg = EGG.state();
+    EGG.on(function () {
+      var st = EGG.state(); if (st === lastEgg) return; lastEgg = st;
+      if (st === 'offline') mood('error', 2500);
+    });
   })();
 
   /* ---------- gallery + lightbox ---------- */
