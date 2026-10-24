@@ -565,7 +565,7 @@
   (function () {
     var ST = S.stats || { teams: [], players: [], highlights: {}, played: 0 };
     var bar = $('bxhBar'), body = $('bxhBody'), note = $('bxhNote');
-    var state = { tab: 'team', teamFilter: 'all', matchFilter: 'all', matchTeam: '', metric: 'heat', pTeam: '', pSeed: '', pFem: false, showAll: false };
+    var state = { tab: 'player', teamFilter: 'all', matchFilter: 'all', matchTeam: '', metric: 'eggs', pTeam: '', pSeed: '', pFem: false, showAll: false };
     var STATUS = { champ: ['Vô địch', 'champ'], runner: ['Á quân', 'win'], win: ['Nhánh thắng', 'win'], lose: ['Nhánh thua', 'lose'], out: ['Đã dừng', 'out'] };
     var METRICS = [
       ['heat', 'Nhiệt độ', function (p) { return p.heat; }, function (p) { return p.heat.toFixed(1) + '°'; }],
@@ -709,7 +709,7 @@
     var root = $('mascot'); if (!root) return;
     var bubble = $('msBubble'), text = $('msText'), act = $('msAct');
     var phone = window.matchMedia && matchMedia('(max-width: 900px)').matches;
-    var bot = window.RobotHeads ? RobotHeads.mount($('msRobot'), { shape: 'rectangle', size: phone ? 58 : 76, color: '#22337F', trimColor: '#D9C08A', screenColor: '#E9EDFF', seed: .42, label: 'Robot của giải' }) : null;
+    var bot = window.RobotHeads ? RobotHeads.mount($('msRobot'), { shape: 'rectangle', size: phone ? 64 : 112, color: '#22337F', trimColor: '#D9C08A', screenColor: '#E9EDFF', seed: .42, label: 'Robot của giải' }) : null;
     var base = 'idle', moodT;
     function mood(m, ms) { if (!bot) return; clearTimeout(moodT); bot.setState(m); if (ms) moodT = setTimeout(function () { bot.setState(base); }, ms); }
     window.mascotMood = mood;
