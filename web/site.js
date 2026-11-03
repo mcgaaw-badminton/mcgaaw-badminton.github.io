@@ -836,32 +836,42 @@
     var desk = window.matchMedia('(min-width: 901px)');
     var main = fly.querySelector('.fly-shuttle'), ghosts = [].slice.call(fly.querySelectorAll('.ghost'));
     var BW = 56, BH = 73, OY = BH * .57;
-    // anchor: selector, fx, fy, dx, dy, scale, kind
+    // the flight stays in the empty right margin (the robot owns the left); anchor: selector, fy, position across the margin (0 = content edge, 1 = window edge), scale, kind
     var A = [
-      ['#rkSpot', .5, .5, 0, 0, 0, 'rest'],
-      ['.hero', .5, .07, 0, 0, .8],
-      ['.bento', 0, .55, -44, 0, .7],
-      ['#lich .sec-head', .55, .6, 0, 0, .85],
-      ['#so-do .bracket-scroll', .02, .22, 0, 0, .75],
-      ['#so-do .bracket-scroll', .98, .72, 0, 0, .75],
-      ['#doi .teams', .82, .06, 0, -34, .8],
-      ['#thu-vien', .02, .55, 0, 0, 1, 'smash'],
-      ['.foot-in', .9, 0, 0, -42, 1.1, 'land']
+      ['#rkSpot', .5, 0, 0, 'rest'],
+      ['.hero', .3, .5, .8],
+      ['.bento', .5, .38, .7],
+      ['#lich', .3, .62, .8],
+      ['#so-do', .3, .4, .75],
+      ['#so-do', .8, .6, .75],
+      ['#bxh', .4, .38, .8],
+      ['#doi', .4, .62, .8],
+      ['#thu-vien', .5, .45, 1, 'smash'],
+      ['.foot', .15, .55, 1.1, 'land']
     ];
-    var P = [], C = [], T = [], S = [], K = [], ready = false, running = false;
+    var SZ = 84;  // the shuttle's footprint while it spins
+    var P = [], C = [], T = [], S = [], K = [], ready = false, running = false, gut = 0;
     var cur = null, ang = -28, hist = [], lastScroll = 0, dir = 1, lastT = 0;
 
+    function gutter() {  // width of the empty margin beside the content column
+      var w = document.querySelector('main .wrap');
+      return w ? w.getBoundingClientRect().left + 16 : 0;
+    }
     function layout() {
-      var sx = window.scrollX, sy = window.scrollY, vw = window.innerWidth, vh = window.innerHeight;
+      var sx = window.scrollX, sy = window.scrollY, vw = document.documentElement.clientWidth, vh = window.innerHeight;
       var maxS = Math.max(1, document.documentElement.scrollHeight - vh);
+      gut = gutter();
+
       P = []; S = []; K = []; T = [];
       A.forEach(function (a) {
         var el = document.querySelector(a[0]); if (!el) return;
-        var r = el.getBoundingClientRect();
-        var x = r.left + sx + r.width * a[1] + a[3], y = r.top + sy + r.height * a[2] + a[4];
-        P.push([Math.min(vw - 34, Math.max(34, x)), y]);
-        S.push(a[5] || (rkShuttle.getBoundingClientRect().width / BW));
-        K.push(a[6] || '');
+        var r = el.getBoundingClientRect(), x, y;
+        if (a[4] === 'rest') { x = r.left + sx + r.width / 2; y = r.top + sy + r.height / 2; }
+        else { x = vw - gut + gut * a[2]; y = r.top + sy + r.height * a[1]; }
+        P.push([x, y]);
+        var room = Math.min(gut * a[2], gut * (1 - a[2])) - 4;  // free space on the narrower side
+        S.push(a[4] === 'rest' ? rkShuttle.getBoundingClientRect().width / BW : Math.max(.35, Math.min(a[3], 2 * room / SZ)));
+        K.push(a[4] || '');
       });
       P.forEach(function (p, i) {
         var t = i === 0 ? 0 : i === P.length - 1 ? maxS : Math.min(maxS, Math.max(0, p[1] - vh * .5));
@@ -872,7 +882,8 @@
       C = [];
       for (var i = 0; i < P.length - 1; i++) {
         var p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
-        C.push([p1, [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6], p2]);
+        var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+        C.push([p1, c1, c2, p2]);
       }
       ready = P.length > 2;
     }
@@ -910,7 +921,10 @@
       var sy = window.scrollY;
       if (sy !== lastScroll) { dir = sy > lastScroll ? 1 : -1; lastScroll = sy; }
       var tg = target(sy);
-      if (!tg.rest) tg.y = Math.min(sy + window.innerHeight - 90, Math.max(sy + 120, tg.y)); // never leave the screen
+      if (!tg.rest) {
+        tg.y = Math.min(sy + window.innerHeight - 90, Math.max(sy + 120, tg.y)); // stay on screen
+        if (sy > T[1] * .6) { var vw2 = document.documentElement.clientWidth, hw = SZ * tg.s / 2 + 2; tg.x = Math.max(vw2 - gut + hw, Math.min(vw2 - hw, tg.x)); } // stay inside the margin
+      }
       var swing = Math.min(1, sy / (T[1] || 1));
       racket.style.setProperty('--swing', (22 - 18 * swing) + 'deg');
       if (!cur) cur = { x: tg.x, y: tg.y, s: tg.s };
@@ -939,7 +953,7 @@
       });
     }
     var rt;
-    function relayout() { clearTimeout(rt); rt = setTimeout(function () { layout(); }, 120); }
+    function relayout() { clearTimeout(rt); rt = setTimeout(function () { sync(); if (running) layout(); }, 120); }
     function start() {
       if (running) return;
       running = true; fly.hidden = false; layout(); cur = null; lastT = 0; lastScroll = window.scrollY;
@@ -948,7 +962,7 @@
     function stop() {
       running = false; fly.hidden = true; rkShuttle.classList.remove('away'); racket.style.removeProperty('--swing');
     }
-    function sync() { if (desk.matches && !reduce) start(); else stop(); }
+    function sync() { if (desk.matches && !reduce && gutter() >= 64) start(); else stop(); }  // margin too narrow: the shuttle stays on the racket
     if (desk.addEventListener) desk.addEventListener('change', sync); else desk.addListener(sync);
     window.addEventListener('resize', relayout);
     window.addEventListener('load', relayout);

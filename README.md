@@ -5,7 +5,7 @@ Mỗi lần có commit lên nhánh `main`, GitHub Actions tự build và đăng 
 
 ## Cập nhật kết quả trận (làm được ngay trên GitHub, kể cả điện thoại)
 1. Mở `config/schedule.json` → bấm biểu tượng bút (Edit).
-2. Ở trận vừa đấu, thêm `"result"` sau `"b": ...`. Cách nên dùng — nhập điểm **từng cặp** theo thứ tự cặp 1–2, 1–3, 2–4, 3–5, 4–5 (đội trái trước):
+2. Ở trận vừa đấu, thêm `"result"` sau `"b": ...`. Cách nên dùng — nhập điểm **từng cặp** theo thứ tự cặp 1–2, 3–5, 2–4, 1–3, 4–5 (đội trái trước):
    ```json
    {"code": "T1", "round": "Vòng 1", "day": 1, "date": "04/11/2026", "a": "1", "b": "2", "result": {"pairs": [[21, 15], [18, 21], [21, 19], [21, 12], [17, 21]]}},
    ```

@@ -26,7 +26,7 @@ Giai cau long MCGAAW/
 ```
 
 ## 3. Tournament rules (source of truth for every output)
-1. Match = 5 doubles pairs by seed: 1–2, 1–3, 2–4, 3–5, 4–5. Each player plays exactly 2 pairs.
+1. Match = 5 doubles pairs by seed, played in this order: 1–2, 3–5, 2–4, 1–3, 4–5 (order changed 2026-11-03; results' "pairs" scores follow it). Each player plays exactly 2 pairs.
 2. Match winner: higher total points over 5 pairs; tie on total → more pairs won.
 3. Double elimination, 10 matches, T10 is the deciding final (no reset match T11).
 4. Play only on Wednesdays, 04/11 → 16/12/2026 (7 days; 23/12 and 30/12 avoided), max 2 matches per day, no team plays twice on one day.
@@ -48,7 +48,7 @@ Giai cau long MCGAAW/
 - Sections: hero slider · next match + countdown · schedule (filters, 5 pairs per match) · bracket · teams · rules · gallery (albums + lightbox) · documents.
 - Results go in `config/schedule.json`: preferred `"result": {"pairs": [[21, 15], ...]}` (score of each pair in pair order, left team first; totals derived, typed totals must agree), or totals only `{"a", "b", "pa", "pb"}` (no player stats for that match). The build fills later matches, winners and team records.
 - Standings (BXH, v1.2.0): computed in `scripts/_lib/tournament.py` `stats()` — team table (placements from `config/site.json` `placements`, else wins, losses, pair diff, point diff), match list + highlights, player table (heat °, pairs won, points, diff, win rate) with filters. Heat 20–45°: prior from main seed + `sub_seeds` in `config/teams.json` (sub seed = rank 1–6 among players sharing a main seed; not shown on the site), weighted as 2 pairs, then each real pair: 60 % pair win rate + 40 % point diff per pair.
-- Flying shuttle: `assets/shuttle.svg` + `assets/racket.svg` (approved 2026-10-21, source in `design/scroll-shuttle/`), injected as SVG symbols by the build. It follows scroll through 8 anchors (racket → serve → overview → schedule → bracket ×2 → teams → smash to gallery → lands on footer), desktop only (≥ 901 px); phones and reduced-motion show it resting on the racket.
+- Flying shuttle: `assets/shuttle.svg` + `assets/racket.svg` (approved 2026-10-21, source in `design/scroll-shuttle/`), injected as SVG symbols by the build. Since v1.12.0 it leaves the hero racket into the empty right margin and stays there (the robot owns the left), weaving across the margin section by section (hero → overview → schedule → bracket ×2 → standings → teams → smash beside the gallery → lands beside the footer), scaled to fit the margin; desktop only (≥ 901 px) and only when the margin is at least 64 px wide (about 1300 px windows and up), otherwise it rests on the racket; phones and reduced-motion show it resting on the racket.
 - Player tags: static seed tag 1–5 on every player (main seed only; navy square, seed 1 with a gold ring); names containing the word "Thị" get a static "♥ Nữ" label (hearts also mark them in the pair tables). Animated emoji removed in v1.1.0.
 - Palette C "Navy & Pearl" (v1.1.0): navy frames (nav, hero, footer) with a champagne-gold hairline, pearl reading area, logo blue for actions; light + dark mode, following the system until the viewer picks one with the nav button (saved in localStorage `gcl-theme`). Kept effects: drifting ambient, cursor spotlight on cards, scroll glide-in, flying shuttle, slider fade.
 - Live site: https://mcgaaw-badminton.github.io — repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (GitHub organization, free; moved from the personal account on 2026-10-21 so the address shows no personal ID).
