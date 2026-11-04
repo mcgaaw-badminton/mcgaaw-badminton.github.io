@@ -182,7 +182,7 @@
     el.dataset.ready = '1';
     el.innerHTML = '<div class="half hl"></div><div class="half hr"></div>' +
       '<div class="box lt"></div><div class="box lb"></div><div class="box rt"></div><div class="box rb"></div>' +
-      '<div class="net"></div><span class="lbl ll">TRÁI</span><span class="lbl lr">PHẢI</span><span class="lbl near">phía anh đứng</span>' +
+      '<div class="net"></div>' +
       '<svg class="arrow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0"/></svg><span class="shuttle" aria-hidden="true" hidden></span>';
   }
   function spot(su, t, court, front) {
@@ -254,7 +254,7 @@
       return '<h2 class="grp">' + g[1] + '</h2>' + ms.map(function (m) {
         var st = ls(keyOf(m.code)), n = st && st.pairs ? st.pairs.filter(function (p) { return p.done; }).length : 0, lk = locked(m);
         var inner = '<span class="code">' + esc(m.code) + '</span><span class="who"><b>' + esc(teamById[m.a.team].name) + ' vs ' + esc(teamById[m.b.team].name) + '</b><small>' + esc(S.rules.weekday) + ' ' + esc(m.date) + '</small></span>' +
-          '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Chưa tới ngày' : n === 5 ? 'Xong' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
+          '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : n === 5 ? 'Xong' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
         return lk ? '<div class="row locked" aria-disabled="true">' + inner + '<span></span></div>'
           : '<a class="row" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>';
       }).join('');
@@ -292,6 +292,7 @@
       $('serveCheck').innerHTML = 'Giao cầu: <b>' + esc(first(players(su.serve, I)[r.server])) + '</b> (ô phải) → nhận: <b>' + esc(first(players(other(su.serve), I)[r.receiver])) + '</b>. Đúng người thì bấm Bắt đầu; sai thì đổi ở bước 2.';
     } else $('serveCheck').textContent = '';
     $('setupWarn').hidden = !pr.log.length;
+    $('resetBtn').hidden = !(pr.log.length || su.left || su.serve || pr.done);
     $('startBtn').disabled = !ready;
     $('startBtn').textContent = pr.log.length ? 'Lưu vị trí, tính điểm tiếp' : 'Bắt đầu tính điểm';
   }
@@ -401,14 +402,26 @@
   $('toSum').addEventListener('click', function () { go(M.code + '/tong'); });
   $('log').addEventListener('click', function (e) {
     var b = e.target.closest('.lg'); if (!b) return;
-    var k = +b.dataset.k, pr = ST.pairs[I], ev = pr.log[k], sc = replay(pr, k).sc, o = other(ev.w);
-    sheet('Điểm #' + (k + 1) + ' (' + sc.a + '–' + sc.b + ')', '<p>Đang ghi cho <b>' + esc(teamName(ev.w)) + '</b>. Sửa xong, điểm số và chỗ đứng sau đó tự tính lại.</p>', [
-      ['Ghi cho ' + teamName(o), function () { pr.log[k] = { w: o, p: null }; touch(I); syncClock(); closeSheet(); renderLog(); }, 'pri'],
+    var k = +b.dataset.k, pr = ST.pairs[I], ev = pr.log[k], sc = replay(pr, k).sc, L = pr.setup.left || 'a';
+    /* one tap picks who won the rally: team and player together; later scores and positions recompute */
+    var cols = [L, other(L)].map(function (t) {
+      return '<div class="wcol ' + (t === L ? 's-l' : 's-r') + '"><span>' + esc(teamName(t)) + '</span>' + players(t, I).map(function (n, p) {
+        return '<button type="button" class="wp" data-w="' + t + '" data-p="' + p + '" aria-pressed="' + (ev.w === t && ev.p === p) + '">' + esc(first(n)) + '</button>';
+      }).join('') + '</div>';
+    }).join('');
+    sheet('Điểm #' + (k + 1) + ' (' + sc.a + '–' + sc.b + ')', '<p>Đang ghi cho <b>' + esc(teamName(ev.w)) + (ev.p != null ? ' · ' + esc(first(players(ev.w, I)[ev.p])) : ' (chưa rõ người)') + '</b>. Chạm người ghi điểm đúng:</p><div class="who-pick">' + cols + '</div>', [
       ['Xóa điểm này', function () { pr.log.splice(k, 1); touch(I); syncClock(); closeSheet(); renderLog(); }, 'danger'],
       ['Đóng', closeSheet]]);
+    $('sheetBody').querySelectorAll('.wp').forEach(function (w) {
+      w.onclick = function () {
+        var nw = w.dataset.w, np = +w.dataset.p;
+        if (!(ev.w === nw && ev.p === np)) { pr.log[k] = { w: nw, p: np }; touch(I); syncClock(); renderLog(); }
+        closeSheet();
+      };
+    });
   });
   $('scrSetup').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b || b.id === 'startBtn') return;
+    var b = e.target.closest('button'); if (!b || b.id === 'startBtn' || b.id === 'resetBtn') return;
     var pr = ST.pairs[I], su = pr.setup;
     if (b.dataset.left) su.left = b.dataset.left;
     if (b.dataset.far) su.far[b.dataset.far[0]] = +b.dataset.far[1];
@@ -419,6 +432,44 @@
     var pr = ST.pairs[I]; pr.setup.ok = true; touch(I);
     go(M.code + '/' + (I + 1) + (pr.done ? '/ket' : '/diem'));
   });
+  /* reset: the pair goes back to "not played" (0–0, no positions, clock 0); the blank row is also sent so other phones and the site follow */
+  $('resetBtn').addEventListener('click', function () {
+    var pr = ST.pairs[I], r = replay(pr);
+    sheet('Đặt lại ' + pairLabel(I) + '?', '<p>Xóa hết ' + pr.log.length + ' điểm (đang ' + r.sc.a + '–' + r.sc.b + '), vị trí đứng và đồng hồ. Cặp này về trạng thái chưa đấu' + (MODE === 'live' ? ', bảng tính cũng về 0–0' : '') + '. Không hoàn tác được.</p>', [
+      ['Đặt lại về 0', function () { closeSheet(); var n = blankPair(); n.sent = pr.sent; ST.pairs[I] = n; touch(I); syncClock(); renderSetup(); }, 'danger'],
+      ['Không, giữ nguyên', closeSheet]]);
+  });
+  /* drag a player onto a court box: the half sets the team's side, top/bottom sets far/near; the partner takes the other box */
+  var drag = null;
+  function pct(e, rc) { return { x: Math.max(3, Math.min(97, (e.clientX - rc.left) / rc.width * 100)), y: Math.max(6, Math.min(94, (e.clientY - rc.top) / rc.height * 100)) }; }
+  $('setupCourt').addEventListener('pointerdown', function (e) {
+    var t = e.target.closest('.tok'); if (!t || (e.button && e.button !== 0)) return;
+    e.preventDefault();
+    drag = { tok: t, rc: this.getBoundingClientRect(), x0: e.clientX, y0: e.clientY, moved: false };
+    try { t.setPointerCapture(e.pointerId); } catch (er) {}
+  });
+  $('setupCourt').addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) < 6) return;
+    drag.moved = true; drag.tok.classList.add('drag');
+    var q = pct(e, drag.rc); drag.tok.style.left = q.x + '%'; drag.tok.style.top = q.y + '%';
+    var box = (q.x < 50 ? 'l' : 'r') + (q.y < 50 ? 't' : 'b');
+    this.querySelectorAll('.box').forEach(function (b) { b.classList.toggle('drop', b.classList.contains(box)); });
+  });
+  function endDrag(e, ok) {
+    if (!drag) return;
+    var d = drag; drag = null; d.tok.classList.remove('drag');
+    $('setupCourt').querySelectorAll('.box').forEach(function (b) { b.classList.remove('drop'); });
+    if (ok && d.moved) {
+      var q = pct(e, d.rc), t = d.tok.dataset.team, k = +d.tok.dataset.idx, su = ST.pairs[I].setup;
+      su.left = q.x < 50 ? t : other(t);
+      su.far[t] = q.y < 50 ? k : 1 - k;
+      su.ok = false; touch(I);
+    }
+    renderSetup();
+  }
+  $('setupCourt').addEventListener('pointerup', function (e) { endDrag(e, true); });
+  $('setupCourt').addEventListener('pointercancel', function (e) { endDrag(e, false); });
   function sheet(title, body, acts) {
     $('sheetTitle').textContent = title; $('sheetBody').innerHTML = body;
     var box = $('sheetAct'); box.innerHTML = '';

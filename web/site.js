@@ -80,7 +80,7 @@
         if (!m || m.result || !rows) { el.hidden = true; return; }
         var n = S.pairs.length, done = 0, ta = 0, tb = 0, parts = [];
         for (var k = 1; k <= n; k++) {
-          var r = rows[String(k)]; if (!r) continue;
+          var r = rows[String(k)]; if (!r || (!r.done && !r.a && !r.b)) continue;  // a pair reset by the referee counts as not played
           ta += r.a; tb += r.b; if (r.done) done++;
           parts.push('<span class="' + (r.done ? 'd' : 'p') + '">' + S.pairs[k - 1].join('–') + ': ' + r.a + '–' + r.b + '</span>');
         }
