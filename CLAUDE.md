@@ -1,5 +1,5 @@
 # CLAUDE.md — Giai cau long MCGAAW
-Read `BASEMENT.md` first; it is the only rule set here. Replies to the user in Vietnamese, rule files in English.
+Read `BASEMENT.md` first; it is the only rule set here. Then read `HANDOFF.md` (current state, endpoints, open items) and update it before ending a session. Replies to the user in Vietnamese, rule files in English.
 
 - Standalone workspace: do not read or edit `Agent research/` (incl. `Visualize/P04-cau-long`) or other workspaces for this project.
 - Data changes (names, seeds, dates, results) → edit `config/*.json`, then rebuild; never hand-edit generated PDFs.

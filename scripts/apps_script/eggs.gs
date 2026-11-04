@@ -2,6 +2,7 @@
    GET  -> {"<team>-<seed>": eggs, ...}
    POST (text/plain JSON {"3-1": 4, ...}) -> adds 1..200 per player under a lock, returns the new totals.
    Referee scores (trong-tai.html): GET ?ref=T1 -> {"pairs": {"1": {"updated": ms, "state": {...}}, ...}}
+   POST {"_ref": 1, "final": true, "match": "T1", "report": "...", "pairs": [[31, 20], ...5], "players": {"1-1": [atk, sup], ...}} -> appends to 'referee_final'
    POST {"_ref": 1, "match": "T1", "pair": 1, "updated": ms, "a": 31, "b": 27, "done": true, "seeds": "1-2", "teamA": "Đội 1", "teamB": "Đội 2", "state": {...}}
    -> upserts one row of the 'referee' sheet (a newer 'updated' wins). */
 const SHEET_ID = '1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI';
@@ -57,9 +58,13 @@ function setup() {
 }
 
 /* ---------- referee scores ----------
-   'referee'        official scores, one row per match + pair (newer 'updated' wins); the standings read these at 20:00 on match days.
-   'referee_draft'  demo-mode pairs, one row per finished pair with its report code; never used by the standings. */
+   'referee'        official scores, one row per match + pair (newer 'updated' wins): live scores for the site and other phones.
+   'referee_draft'  demo-mode pairs, one row per finished pair with its report code; never used by the standings.
+   'referee_log'    every official save appended (never overwritten): the history of each pair.
+   'referee_final'  one row per "Chốt" press (match result + per player attack/support); the standings use the LAST row of each match. */
 const REF_HEAD = ['Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Cập nhật (ms)', 'Lưu trữ', 'Mã báo cáo', 'Thời gian (ms)'];
+const LOG_HEAD = ['Lưu lúc', 'Trận', 'Cặp', 'A', 'B', 'Xong', 'Pha', 'Mã báo cáo', 'Cập nhật (ms)'];
+const FINAL_HEAD = ['Chốt lúc', 'Trận', 'Mã chốt', 'Đội A', 'Đội B', 'Tổng A', 'Tổng B', 'Cặp thắng A', 'Cặp thắng B', 'Tỉ số từng cặp', 'VĐV (tấn công, hỗ trợ)'];
 const DRAFT_HEAD = ['Mã báo cáo', 'Lưu lúc', 'Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Thời gian (ms)', 'Lưu trữ'];
 function namedSheet_(name, head) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
@@ -85,7 +90,13 @@ function refGet_(match) {
       const m = String(r[0]); if (!m) return;
       (all[m] = all[m] || {})[String(r[1])] = { a: Number(r[5]) || 0, b: Number(r[6]) || 0, done: r[7] === 'x', updated: Number(r[8]) || 0, ms: Number(r[11]) || 0 };
     });
-    return { matches: all };
+    const finals = {};  // last "Chốt" of each match wins
+    const fs = namedSheet_('referee_final', FINAL_HEAD);
+    if (fs.getLastRow() >= 2) fs.getRange(2, 1, fs.getLastRow() - 1, FINAL_HEAD.length).getValues().forEach(r => {
+      let pairs = null, players = null; try { pairs = JSON.parse(r[9]); players = JSON.parse(r[10]); } catch (err) { return; }
+      finals[String(r[1])] = { at: String(r[0]), report: String(r[2]), a: Number(r[5]) || 0, b: Number(r[6]) || 0, pairs: pairs, players: players };
+    });
+    return { matches: all, finals: finals };
   }
   refRows_().forEach(r => {
     if (String(r[0]) !== match) return;
@@ -94,7 +105,23 @@ function refGet_(match) {
   });
   return out;
 }
+function refFinal_(b) {  // "Chốt": the match result the standings will use, appended so every submission stays on record
+  const match = String(b.match || ''), report = String(b.report || '').slice(0, 40);
+  if (!/^T\d{1,2}$/.test(match)) return { error: 'bad key' };
+  const pairs = b.pairs, players = b.players || {};
+  if (!Array.isArray(pairs) || pairs.length !== 5 || pairs.some(p => !Array.isArray(p) || p.length !== 2 || p.some(x => !(Number(x) >= 0)))) return { error: 'bad pairs' };
+  let a = 0, bb = 0, pa = 0, pb = 0;
+  pairs.forEach(p => { a += Number(p[0]); bb += Number(p[1]); if (Number(p[0]) > Number(p[1])) pa++; else pb++; });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const sh = namedSheet_('referee_final', FINAL_HEAD);
+    sh.getRange(sh.getLastRow() + 1, 1, 1, FINAL_HEAD.length).setValues([[new Date().toISOString(), match, report, String(b.teamA || ''), String(b.teamB || ''), a, bb, pa, pb, JSON.stringify(pairs), JSON.stringify(players).slice(0, 45000)]]);
+  } finally { lock.releaseLock(); }
+  return { ok: true, final: true, match: match, report: report, a: a, b: bb };
+}
 function refPut_(b) {
+  if (b.final) return refFinal_(b);
   const match = String(b.match || ''), pair = Number(b.pair), updated = Number(b.updated) || 0;
   if (!/^T\d{1,2}$/.test(match) || !(pair >= 1 && pair <= 5)) return { error: 'bad key' };
   const st = b.state || {}, state = JSON.stringify(st);
@@ -116,6 +143,8 @@ function refPut_(b) {
     if (row > 0 && (Number(sh.getRange(row, 9).getValue()) || 0) > updated) { echo.stale = true; return echo; }
     if (row < 0) row = sh.getLastRow() + 1;
     sh.getRange(row, 1, 1, REF_HEAD.length).setValues([[match, String(pair), String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), a, bb, b.done ? 'x' : '', updated, state, report, Number(st.ms) || 0]]);
+    const lg = namedSheet_('referee_log', LOG_HEAD);  // history: every official save, newest at the bottom
+    lg.getRange(lg.getLastRow() + 1, 1, 1, LOG_HEAD.length).setValues([[new Date().toISOString(), match, String(pair), a, bb, b.done ? 'x' : '', n, report, updated]]);
     return echo;
   } finally { lock.releaseLock(); }
 }

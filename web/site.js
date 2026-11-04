@@ -17,7 +17,7 @@
   function today() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
   function dateOf(m) { var p = m.iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function status(m) { var d = dateOf(m), t = today(); return m.result ? 'done' : d < t ? 'wait' : +d === +t ? 'today' : 'up'; }
-  var ST = { done: ['Đã đấu', 'done'], wait: ['Chờ kết quả', 'lose'], today: ['Hôm nay', 'win'], up: ['Sắp diễn ra', 'win'], live: ['Đang đấu', 'live'], locked: ['Đã chốt · BXH 20:00', 'done'] };
+  var ST = { done: ['Đã đấu', 'done'], wait: ['Chờ kết quả', 'lose'], today: ['Hôm nay', 'win'], up: ['Sắp diễn ra', 'win'], live: ['Đang đấu', 'live'], locked: ['Đã chốt', 'done'], ready: ['Chờ chốt', 'live'] };
   function tagCls(m) { return m.branch === 'lose' ? 'tag lose' : m.branch === 'final' ? 'tag final' : 'tag'; }
   var days = [];
   S.matches.forEach(function (m) { if (days.indexOf(m.iso) < 0) days.push(m.iso); });
@@ -68,10 +68,10 @@
   var EGG_SVG = '<img class="egg-i" src="' + EGG_IMG + '" alt="" aria-hidden="true" draggable="false">';
   var FLAME_SVG = '<span class="flame-l" aria-hidden="true"></span>';
   /* ---------- rotten eggs: shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
-  /* referees' official scores (Apps Script ?ref=all), shown on the match cards while a match is played and until the 20:00 build
+  /* referees' official scores (Apps Script ?ref=all), shown on the match cards while a match is played and until the build after the referee's "Chốt"
      puts the result into the standings. Only matches without a result in the build are touched. */
   var REF = (function () {
-    var api = (S.meta && S.meta.eggs && S.meta.eggs.api) || '', data = {}, busy = false;
+    var api = (S.meta && S.meta.eggs && S.meta.eggs.api) || '', data = {}, finals = {}, busy = false;
     var want = S.matches.some(function (m) { return !m.result && m.a.team && m.b.team && dateOf(m) <= today(); });
     function apply() {
       document.querySelectorAll('.ref-live[data-ref]').forEach(function (el) {
@@ -85,16 +85,17 @@
           parts.push('<span class="' + (r.done ? 'd' : 'p') + '">' + S.pairs[k - 1].join('–') + ': ' + r.a + '–' + r.b + '</span>');
         }
         if (!parts.length) { el.hidden = true; return; }
+        var fin = finals[code], k2 = fin ? 'locked' : done === n ? 'ready' : 'live';
         el.hidden = false;
-        el.innerHTML = '<b>' + (done === n ? 'Trọng tài đã chốt ' + n + '/' + n + ' cặp' : 'Đang đấu · xong ' + done + '/' + n + ' cặp') + ' · tổng ' + ta + '–' + tb + '</b>' + parts.join('') +
-          (done === n ? '<small>Bảng xếp hạng cập nhật lúc 20:00 ngày thi đấu.</small>' : '');
-        if (badge) { var st = ST[done === n ? 'locked' : 'live']; badge.className = 'badge ' + st[1]; badge.textContent = st[0]; }
+        el.innerHTML = '<b>' + (fin ? 'Trọng tài đã chốt · tổng ' + fin.a + '–' + fin.b : (done === n ? 'Xong ' + n + '/' + n + ' cặp, chờ trọng tài chốt' : 'Đang đấu · xong ' + done + '/' + n + ' cặp') + ' · tổng ' + ta + '–' + tb) + '</b>' + parts.join('') +
+          (fin ? '<small>Lịch và bảng xếp hạng cập nhật trong ít phút.</small>' : '');
+        if (badge) { var st = ST[k2]; badge.className = 'badge ' + st[1]; badge.textContent = st[0]; }
       });
     }
     function pull() {
       if (!api || !want || busy || document.hidden) return;
       busy = true;
-      fetch(api + '?ref=all').then(function (r) { return r.json(); }).then(function (d) { if (d && d.matches) { data = d.matches; apply(); } })
+      fetch(api + '?ref=all').then(function (r) { return r.json(); }).then(function (d) { if (d && d.matches) { data = d.matches; finals = d.finals || {}; apply(); } })
         .catch(function () {}).then(function () { busy = false; });
     }
     if (api && want) { pull(); setInterval(pull, 30000); document.addEventListener('visibilitychange', pull); }

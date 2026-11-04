@@ -112,7 +112,7 @@
 
   /* ---------- saving: phone first, then the sheet; finishing a pair is read back from the sheet ---------- */
   var queue = {}, timer = null, sending = false;
-  function needsSend(p) { return p.updated > p.sent && !!(p.log.length || p.sent); }  // positions alone are not sent: a phone opened by mistake never touches the sheet
+  function needsSend(p) { return p.updated > p.sent && !!(p.log.length || p.sent || p.absent); }  // positions alone are not sent: a phone opened by mistake never touches the sheet
   function unsent() { return ST ? ST.pairs.filter(needsSend).length : 0; }
   function showSync(kind, txt) { var s = $('sync'); s.className = 'sync ' + kind; $('syncTxt').textContent = txt; }
   function syncLabel() {
@@ -136,7 +136,7 @@
     var pr = ST.pairs[i], r = replay(pr);
     return { _ref: 1, draft: MODE === 'demo', report: reportId(i), match: M.code, pair: i + 1, updated: pr.updated, a: r.sc.a, b: r.sc.b, done: pr.done, seeds: PAIRS[i].join('-'),
       teamA: teamName('a'), teamB: teamName('b'),
-      state: { setup: pr.setup, log: pr.log, ms: tMs(pr), manualEnd: pr.manualEnd, names: players('a', i).concat(players('b', i)), stats: pairStats(pr, i) } };
+      state: { setup: pr.setup, log: pr.log, ms: tMs(pr), manualEnd: pr.manualEnd, absent: !!pr.absent, names: players('a', i).concat(players('b', i)), stats: pairStats(pr, i) } };
   }
   function post(i) {
     var body = payload(i), ver = body.updated, code = M.code;
@@ -191,7 +191,7 @@
         var sl = (sp.state && sp.state.log) || [];
         if (!lp || !sp.state || !(sp.updated > lp.updated || (!lp.log.length && sl.length && sp.updated > lp.sent))) return;
         var n = migrate({ setup: sp.state.setup, log: sp.state.log || [], updated: sp.updated });
-        lp.setup = n.setup; lp.log = n.log; lp.updated = lp.sent = sp.updated; lp.manualEnd = !!sp.state.manualEnd;
+        lp.setup = n.setup; lp.log = n.log; lp.updated = lp.sent = sp.updated; lp.manualEnd = !!sp.state.manualEnd; lp.absent = !!sp.state.absent;
         lp.timer = { ms: sp.state.ms || 0, since: null }; lp.done = !!replay(lp).end || (lp.manualEnd && !!winnerOf(lp)); if (sp.report) lp.report = sp.report; changed = true;
       });
       if (changed) { store(); route(); }  // newer scores from another phone: redraw the current screen
@@ -203,14 +203,12 @@
   function courtShell(el) {
     if (el.dataset.ready) return;
     el.dataset.ready = '1';
-    el.innerHTML = '<div class="half hl"></div><div class="half hr"></div>' +
-      '<div class="box lt"></div><div class="box lb"></div><div class="box rt"></div><div class="box rb"></div>' +
-      '<div class="net"></div>' +
+    el.innerHTML = '<div class="box lt"></div><div class="box lb"></div><div class="box rt"></div><div class="box rb"></div>' +
       '<svg class="arrow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0"/></svg><span class="shuttle" aria-hidden="true" hidden></span>';
   }
   function spot(L, t, court, front) {
     var left = L === t, top = left ? court === 'L' : court === 'R';
-    return { x: left ? (front ? 37 : 17) : (front ? 63 : 83), y: top ? 27 : 73, q: (left ? 'l' : 'r') + (top ? 't' : 'b') };
+    return { x: left ? 24.5 : 75.5, y: top ? 25 : 75, q: (left ? 'l' : 'r') + (top ? 't' : 'b') };  // centre of the player's own box: never crosses into another box
   }
   function drawCourt(el, i, mode) {
     courtShell(el);
@@ -224,8 +222,7 @@
         var tok = el.querySelector('.tok[data-k="' + t + k + '"]');
         if (!tok) { tok = document.createElement('button'); tok.type = 'button'; tok.className = 'tok'; tok.dataset.k = t + k; tok.dataset.team = t; tok.dataset.idx = k; tok.innerHTML = '<i></i><span></span>'; el.appendChild(tok); }
         var nm = first(players(t, i)[k]), x, y, cls = '';
-        if (!su.left) { x = t === 'a' ? 30 + k * 12 : 58 + k * 12; y = 50; cls = ' unset'; }
-        else if (su.far[t] == null) { var lft = su.left === t; x = lft ? 22 + k * 16 : 62 + k * 16; y = 50; cls = ' unset'; }
+        if (!su.left || su.far[t] == null) { var lft = su.left ? su.left === t : t === 'a'; x = lft ? 24.5 : 75.5; y = k ? 75 : 25; cls = ' unset'; }
         else {
           var court = (r ? r.pos[t].R : rIdx(su, t)) === k ? 'R' : 'L';
           var isS = !!(r && !r.end && t === r.srv && r.server === k), isR = !!(r && !r.end && t !== r.srv && r.receiver === k);
@@ -254,7 +251,7 @@
     if (sS && sR) {
       line.setAttribute('x1', sS.x); line.setAttribute('y1', sS.y); line.setAttribute('x2', sR.x); line.setAttribute('y2', sR.y);
       el.querySelector('.arrow').classList.remove('off');
-      sh.hidden = false; sh.style.left = (sS.x + (sS.x < 50 ? 7 : -7)) + '%'; sh.style.top = (sS.y + (sS.y < 50 ? -13 : 13)) + '%';
+      sh.hidden = false; sh.style.left = (sS.x + (sS.x < 50 ? 10 : -10)) + '%'; sh.style.top = (sS.y - 14) + '%';
     } else { el.querySelector('.arrow').classList.add('off'); sh.hidden = true; }
   }
 
@@ -288,7 +285,7 @@
         var st = ls(keyOf(m.code)), ps = st && st.pairs && st.pairs.length === PAIRS.length ? st.pairs.map(function (p) { return migrate(Object.assign(blankPair(), p)); }) : [], lk = locked(m);
         var n = ps.filter(function (p) { return p.done; }).length, pc = ps.length ? ps.reduce(function (t, p) { return t + prog(p); }, 0) / PAIRS.length : 0;
         var inner = '<span class="code">' + esc(m.code) + '</span><span class="who"><b>' + esc(teamById[m.a.team].name) + ' vs ' + esc(teamById[m.b.team].name) + '</b><small>' + esc(S.rules.weekday) + ' ' + esc(m.date) + '</small></span>' +
-          '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : n === 5 ? 'Xong' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
+          '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : st && st.final && st.final.state === 'ok' ? 'Đã chốt' : n === 5 ? 'Chờ chốt' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
         return lk ? '<div class="row locked" aria-disabled="true">' + inner + '<span></span></div>'
           : '<a class="row" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pc ? bar(pc, n === 5 ? 'done' : '') : '') + '</a>';
       }).join('');
@@ -297,11 +294,23 @@
   function renderPairs() {
     $('pairsTitle').textContent = M.code + ' · ' + teamName('a') + ' vs ' + teamName('b');
     $('plist').innerHTML = ST.pairs.map(function (pr, k) {
-      var A = players('a', k).map(first).join(' · '), B = players('b', k).map(first).join(' · ');
-      return '<a class="row" href="#' + M.code + '/' + (k + 1) + '/' + (pr.done ? 'ket' : pr.setup.ok ? 'diem' : 'vitri') + '"><span class="code">' + PAIRS[k].join('–') + '</span><span class="who"><b>' + esc(A) + '</b><small>vs ' + esc(B) + '</small></span>' +
-        '<span class="right">' + status(pr) + '</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pr.log.length || pr.done ? bar(prog(pr), pr.done ? 'done' : '') : '') + '</a>';
+      var A = players('a', k).map(first).join(' · '), B = players('b', k).map(first).join(' · '), fresh = !pr.done && !pr.log.length;
+      var head = '<span class="code">' + PAIRS[k].join('–') + '</span><span class="who"><b>' + esc(A) + '</b><small>vs ' + esc(B) + '</small></span>';
+      if (pr.absent) return '<div class="row absent">' + head + '<span class="right"><b class="st">Vắng</b></span><button type="button" class="abs on" data-abs="' + k + '" aria-label="Bỏ đánh dấu vắng ' + pairLabel(k) + '">Có mặt</button></div>';
+      return '<div class="row">' + head + '<span class="right">' + status(pr) + '</span>' +
+        (fresh ? '<button type="button" class="abs" data-abs="' + k + '" aria-label="Đánh dấu vắng ' + pairLabel(k) + '">Vắng</button>' : '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>') +
+        '<a class="rowlink" href="#' + M.code + '/' + (k + 1) + '/' + (pr.done ? 'ket' : pr.setup.ok ? 'diem' : 'vitri') + '" aria-label="Vào ' + pairLabel(k) + '"></a>' +
+        (pr.log.length || pr.done ? bar(prog(pr), pr.done ? 'done' : '') : '') + '</div>';
     }).join('');
+    $('pairFinal').innerHTML = finalBox();
   }
+  /* "Vắng": the pair is played on a later day; it cannot be opened until marked present again; the match total adds it once played */
+  $('plist').addEventListener('click', function (e) {
+    var b = e.target.closest('.abs'); if (!b) return;
+    var k = +b.dataset.abs, pr = ST.pairs[k]; if (pr.done || pr.log.length) return;
+    pr.absent = !pr.absent; if (pr.absent) pr.setup = blankPair().setup;
+    touch(k); renderSide();
+  });
   function choiceBtns(name, opts, val) {
     return opts.map(function (o) { return '<button type="button" data-' + name + '="' + o[0] + '" aria-pressed="' + (val === o[0]) + '" class="' + (o[2] || '') + '">' + o[1] + '</button>'; }).join('');
   }
@@ -350,11 +359,9 @@
       : '<b>' + (MODE === 'demo' ? 'Đang lưu bản nháp…' : 'Đang gửi lên bảng tính…') + '</b><span>Đợi dấu ✓ rồi hãy sang cặp sau.</span>';
     var rs = $('resend'); if (rs) rs.onclick = function () { submitAndCheck(I); };
     if (c.state === 'err' && MODE === 'demo') box.querySelector('span').textContent = 'Chưa lưu được bản nháp (mất mạng hoặc bảng tính chưa bật). Kết quả vẫn giữ trên máy.';
-    /* the referee picks the next pair (a pair whose players are absent can wait; the match total adds it once it is played) */
-    var left = []; for (var j = 1; j <= PAIRS.length; j++) { var k = (I + j) % PAIRS.length; if (!ST.pairs[k].done) left.push(k); }
-    $('nextPick').innerHTML = (left.length ? '<h2 class="grp">Chọn cặp đánh tiếp</h2>' + left.map(function (k, n) {
-        return '<button type="button" class="big nx ' + (n ? 'ghost' : 'pri') + '" data-k="' + k + '"><span>' + pairLabel(k) + '</span><small>' + esc(players('a', k).map(first).join(' · ')) + ' vs ' + esc(players('b', k).map(first).join(' · ')) + '</small></button>';
-      }).join('') : '') + '<button type="button" class="big ' + (left.length ? 'ghost' : 'pri') + ' nx" data-k="sum">' + (left.length ? 'Tổng trận (tạm tính)' : 'Tổng kết trận') + '</button>';
+    var left = ST.pairs.filter(function (p) { return !p.done && !p.absent; }).length;
+    $('nextBtn').textContent = left ? 'Tiếp: chọn cặp đánh' : 'Tổng kết trận';
+    $('nextBtn').onclick = function () { go(left ? M.code : M.code + '/tong'); };
   }
   function statTable(list) {  // per player attack / support, plus per side serve-won, breaks, longest run
     var P = {}, S = { a: { srv: 0, brk: 0, run: 0 }, b: { srv: 0, brk: 0, run: 0 } }, unk = 0;
@@ -370,11 +377,6 @@
     return '<table class="sum pst"><thead><tr><th>VĐV</th><th>Tấn công</th><th>Hỗ trợ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
       (unk ? '<p class="muted">' + unk + ' điểm chưa rõ người ghi: chọn lại ở Các điểm.</p>' : '');
   }
-  $('nextPick').addEventListener('click', function (e) {
-    var b = e.target.closest('.nx'); if (!b) return;
-    if (b.dataset.k === 'sum') return go(M.code + '/tong');
-    var k = +b.dataset.k; go(M.code + '/' + (k + 1) + '/' + (ST.pairs[k].setup.ok ? 'diem' : 'vitri'));
-  });
   function renderLog() {
     var pr = ST.pairs[I], ex = replay(pr).endAt;
     $('log').innerHTML = pr.log.map(function (e, k) {
@@ -386,24 +388,61 @@
     var tot = { a: 0, b: 0 }, won = { a: 0, b: 0 }, ms = 0, all = true, sentAll = true;
     var rows = ST.pairs.map(function (p, k) {
       var r = replay(p), w = winnerOf(p); tot.a += r.sc.a; tot.b += r.sc.b; ms += tMs(p); if (w) won[w]++; if (!p.done) all = false; if (API && needsSend(p)) sentAll = false;
-      if (!p.done && !p.log.length) return '<tr class="later"><td>' + PAIRS[k].join('–') + '</td><td colspan="3">chưa đấu · tự cộng khi xong</td></tr>';
+      if (!p.done && !p.log.length) return '<tr class="later"><td>' + PAIRS[k].join('–') + '</td><td colspan="3">' + (p.absent ? 'vắng · đánh sau' : 'chưa đấu') + ' · tự cộng khi xong</td></tr>';
       return '<tr><td>' + PAIRS[k].join('–') + '</td><td class="' + (w === 'a' ? 'w' : '') + '">' + r.sc.a + '</td><td class="' + (w === 'b' ? 'w' : '') + '">' + r.sc.b + '</td><td>' + fmt(tMs(p)) + '</td></tr>';
     });
     var win = tot.a !== tot.b ? (tot.a > tot.b ? 'a' : 'b') : won.a !== won.b ? (won.a > won.b ? 'a' : 'b') : null;
-    var json = '"result": {"pairs": [' + ST.pairs.map(function (p) { var r = replay(p); return '[' + r.sc.a + ', ' + r.sc.b + ']'; }).join(', ') + ']}';
     $('sum').innerHTML = '<p class="eyebrow">' + M.code + (all ? ' · đủ 5 cặp' : ' · chưa xong') + '</p><h1>' + (all ? (win ? esc(teamName(win)) + ' thắng trận' : 'Hòa') : 'Tạm tính') + '</h1>' +
       '<table class="sum"><thead><tr><th>Cặp</th><th>' + esc(teamName('a')) + '</th><th>' + esc(teamName('b')) + '</th><th>Giờ</th></tr></thead><tbody>' + rows.join('') +
       '<tr class="tot"><td>Tổng</td><td>' + tot.a + '</td><td>' + tot.b + '</td><td>' + fmt(ms) + '</td></tr><tr><td>Cặp thắng</td><td>' + won.a + '</td><td>' + won.b + '</td><td></td></tr></tbody></table>' +
       (tot.a === tot.b ? '<p class="muted">Bằng tổng điểm nên xét số cặp thắng.</p>' : '') + statTable(ST.pairs.map(function (p, k) { return pairStats(p, k); })) +
-      (API ? (sentAll ? '<p class="submit ok"><b>✓ Cả 5 cặp đã lên bảng tính</b></p>' : '<p class="submit err"><b>Còn cặp chưa gửi</b> <button type="button" class="link" id="sumResend">Gửi lại</button></p>') : '') +
-      '<p class="muted">Dòng kết quả cho config/schedule.json:</p><pre class="code" id="resJson">' + esc(json) + '</pre><button type="button" class="big ghost" id="copyRes">Chép dòng kết quả</button>';
-    $('copyRes').onclick = function () {
-      var b = this;
-      var sel = function () { var rg = document.createRange(); rg.selectNodeContents($('resJson')); var s = getSelection(); s.removeAllRanges(); s.addRange(rg); };
-      try { navigator.clipboard.writeText(json).then(function () { b.textContent = 'Đã chép'; }, sel); } catch (e) { sel(); }
-    };
+      (API && MODE === 'live' && !sentAll ? '<p class="submit err"><b>Còn cặp chưa gửi</b> <button type="button" class="link" id="sumResend">Gửi lại</button></p>' : '') +
+      '<div class="finalbox">' + finalBox() + '</div>';
     var rs = $('sumResend'); if (rs) rs.onclick = retryAll;
   }
+
+  /* ---------- "Chốt": the match result for the standings and the schedule ----------
+     Only when all 5 pairs are finished (an absent pair means no button). Every press is appended on the sheet ('referee_final');
+     the site uses the last one. Editing a pair afterwards does not change the standings until "Chốt lại" is pressed. */
+  function finalData() {
+    var players = {};
+    ST.pairs.forEach(function (p, k) { var st = pairStats(p, k); Object.keys(st.players).forEach(function (id) { var x = players[id] || (players[id] = [0, 0]); x[0] += st.players[id].atk; x[1] += st.players[id].sup; }); });
+    return { pairs: ST.pairs.map(function (p) { var r = replay(p); return [r.sc.a, r.sc.b]; }), players: players };
+  }
+  function canFinal() { return API && MODE === 'live' && ST.pairs.every(function (p) { return p.done && !p.absent; }); }
+  function finalBox() {
+    if (!canFinal()) {
+      var old = ST.final && ST.final.state === 'ok' && MODE === 'live' ? '<p class="submit err"><b>Bản chốt #' + esc(ST.final.report) + ' vẫn đang được dùng</b><span>Đánh đủ 5 cặp rồi chốt lại để thay.</span></p>' : '';
+      return old || (ST.pairs.some(function (p) { return p.absent; }) && MODE === 'live' ? '<p class="muted fin-note">Có cặp vắng: chốt khi đủ 5 cặp.</p>' : '');
+    }
+    var f = ST.final, same = f && f.sig === JSON.stringify(finalData());
+    if (f && f.state === 'sending') return '<p class="submit sending"><b>Đang chốt ' + M.code + '…</b></p>';
+    if (f && f.state === 'ok' && same) return '<p class="submit ok"><b>✓ Đã chốt ' + M.code + ' · mã #' + esc(f.report) + '</b><span>Lúc ' + clockTime(f.at) + '. Web chính cập nhật lịch và bảng xếp hạng trong ít phút.</span></p>';
+    return (f && f.state === 'ok' ? '<p class="submit err"><b>Đã sửa sau khi chốt</b><span>Bảng xếp hạng vẫn dùng bản chốt #' + esc(f.report) + ' cho tới khi chốt lại.</span></p>' : '') +
+      (f && f.state === 'err' ? '<p class="submit err"><b>Chưa chốt được</b><span>Mất mạng hoặc còn cặp chưa gửi. Thử lại.</span></p>' : '') +
+      '<button type="button" class="big pri final-btn">' + (f && f.state === 'ok' ? 'Chốt lại ' : 'Chốt ') + M.code + ' · gửi kết quả</button>';
+  }
+  function askFinal() {
+    var d = finalData(), ta = 0, tb = 0, pa = 0, pb = 0;
+    d.pairs.forEach(function (p) { ta += p[0]; tb += p[1]; if (p[0] > p[1]) pa++; else pb++; });
+    var w = ta !== tb ? (ta > tb ? 'a' : 'b') : pa > pb ? 'a' : 'b';
+    sheet('Chốt ' + M.code + '?', '<p><b>' + esc(teamName(w)) + ' thắng</b> · tổng ' + ta + '–' + tb + ' · cặp ' + pa + '–' + pb + '.</p><p class="muted">Lịch và bảng xếp hạng trên web chính dùng bản chốt này. Sửa điểm sau đó thì phải chốt lại.</p>', [
+      ['Chốt và gửi', function () { closeSheet(); sendFinal(d); }, 'pri'], ['Chưa, xem lại', closeSheet]]);
+  }
+  function sendFinal(d) {
+    var code = M.code, report = code + '-F' + Date.now().toString(36).toUpperCase().slice(-5), sig = JSON.stringify(d);
+    ST.final = { state: 'sending', report: report, sig: sig }; store(); renderSide();
+    var unsentNow = unsent();
+    (unsentNow ? Promise.reject(new Error('unsent')) : fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ _ref: 1, final: true, match: code, report: report, pairs: d.pairs, players: d.players, teamA: teamName('a'), teamB: teamName('b') }) })
+      .then(function (r) { return r.json(); })
+      .then(function (x) { if (!x || x.ok !== true || x.report !== report) throw new Error('not saved'); return fetch(API + '?ref=all').then(function (r) { return r.json(); }); })
+      .then(function (all) { var f = all && all.finals && all.finals[code]; if (!f || f.report !== report) throw new Error('not read back'); }))
+      .then(function () { if (M && M.code === code) { ST.final = { state: 'ok', report: report, sig: sig, at: Date.now() }; store(); } })
+      .catch(function () { if (M && M.code === code) { if (unsentNow) retryAll(); ST.final = { state: 'err', report: report, sig: sig }; store(); } })
+      .then(function () { if (M && M.code === code) renderSide(); });
+  }
+  document.addEventListener('click', function (e) { if (e.target.closest('.final-btn') && ST && M) askFinal(); });
 
   /* ---------- actions ---------- */
   var lastTap = 0, toastT;
@@ -565,6 +604,7 @@
     if (!(i >= 0 && i < PAIRS.length)) { VISIT = null; renderPairs(); return show('pairs', M.code, 'Các trận', '#'); }
     if (I !== i) { $('playCourt').innerHTML = ''; delete $('playCourt').dataset.ready; $('setupCourt').innerHTML = ''; delete $('setupCourt').dataset.ready; }
     I = i; var pr = ST.pairs[I], view = parts[2] || 'vitri';
+    if (pr.absent) return location.replace('#' + M.code);
     if (view !== 'vitri' && !pr.setup.ok) return location.replace('#' + M.code + '/' + (I + 1) + '/vitri');
     if (view === 'ket' && !pr.done) return location.replace('#' + M.code + '/' + (I + 1) + '/diem');
     if (!VISIT || VISIT.allow || VISIT.code !== M.code || VISIT.i !== I || VISIT.mode !== MODE) markVisit(); else VISIT.here = location.hash.replace('#', '');

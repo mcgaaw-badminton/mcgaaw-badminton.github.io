@@ -241,13 +241,10 @@ def main():
     print(f"[OUTPUT] {out / 'index.html'}")
 
 
-REF_HOUR = 20  # standings take the referees' official scores from 20:00 (Vietnam time) on each match day
-
-
 def referee_results(site, sched, n_pairs):
-    """Fill missing results from the referee sheet (Apps Script ?ref=all, official mode only).
-    A match is taken once its day has reached 20:00 and all its pairs are finished; results typed in
-    config/schedule.json always win. Network trouble only prints a warning (the site builds without them)."""
+    """Fill missing results from the referees' "Chốt" (Apps Script ?ref=all -> finals; official mode only).
+    The last "Chốt" of a match wins; it carries the 5 pair scores and each player's [attack, support].
+    Results typed in config/schedule.json always win. Network trouble only prints a warning (the site builds without them)."""
     api = (site.get("eggs") or {}).get("api_url", "")
     if not api or os.environ.get("NO_REFEREE"):
         return []
@@ -258,60 +255,24 @@ def referee_results(site, sched, n_pairs):
     except Exception as e:  # noqa: BLE001
         print(f"[WARN] referee sheet not read ({e}); standings use config/schedule.json only")
         return []
+    finals = (data or {}).get("finals") or {}
     rows = (data or {}).get("matches") or {}
     used = []
     for m in sched["matches"]:
-        got = rows.get(m["code"])
-        if m.get("result") or not got:
+        if m.get("result"):
             continue
-        d, mo, y = (int(x) for x in m["date"].split("/"))
-        cutoff = dt.datetime(y, mo, d, REF_HOUR, 0, tzinfo=BUILT.tzinfo)
-        pairs = [got.get(str(k + 1)) for k in range(n_pairs)]
-        if all(p and p.get("done") for p in pairs) and BUILT >= cutoff:
-            m["result"] = {"pairs": [[int(p["a"]), int(p["b"])] for p in pairs]}
-            pl = referee_players(api, m, n_pairs)
+        f = finals.get(m["code"])
+        if f and isinstance(f.get("pairs"), list) and len(f["pairs"]) == n_pairs:
+            m["result"] = {"pairs": [[int(x), int(y)] for x, y in f["pairs"]]}
+            pl = {k: [int(v[0]), int(v[1])] for k, v in (f.get("players") or {}).items() if isinstance(v, list) and len(v) == 2}
             if pl:
                 m["result"]["players"] = pl
             used.append(m["code"])
-            print(f"[REFEREE] {m['code']}: " + ", ".join(f"{p['a']}-{p['b']}" for p in pairs))
-        else:
-            n = sum(1 for p in pairs if p and p.get("done"))
-            print(f"[REFEREE] {m['code']}: {n}/{n_pairs} pairs finished" + ("" if BUILT >= cutoff else f", waits for {REF_HOUR}:00 {m['date']}"))
+            print(f"[REFEREE] {m['code']}: chốt #{f.get('report', '')} " + ", ".join(f"{x}-{y}" for x, y in f["pairs"]))
+        elif rows.get(m["code"]):
+            n = sum(1 for p in rows[m["code"]].values() if p.get("done"))
+            print(f"[REFEREE] {m['code']}: {n}/{n_pairs} pairs finished, not yet Chốt")
     return used
-
-
-def referee_players(api, m, n_pairs, target=31):
-    """Per player {"<team>-<seed>": [attack, support]} from the referee's rally log (?ref=<code>).
-    Attack = rallies the player won, support = rallies the partner won; rallies past 31 do not count.
-    Seeds come from config/teams.json pairs, so the ids match the standings' player ids."""
-    import urllib.request
-    try:
-        with urllib.request.urlopen(api + "?ref=" + m["code"], timeout=25) as r:
-            rows = (json.loads(r.read().decode("utf-8")) or {}).get("pairs") or {}
-    except Exception as e:  # noqa: BLE001
-        print(f"[WARN] {m['code']}: referee rallies not read ({e}); player attack/support skipped")
-        return {}
-    pairs = read_json(paths.TEAMS_JSON)["pairs"]
-    out, unknown = {}, 0
-    for k in range(n_pairs):
-        st = (rows.get(str(k + 1)) or {}).get("state") or {}
-        sc = {"a": 0, "b": 0}
-        for e in st.get("log") or []:
-            if max(sc.values()) >= target:
-                break
-            w, p = e.get("w"), e.get("p")
-            if w not in sc:
-                continue
-            sc[w] += 1
-            if p not in (0, 1):
-                unknown += 1
-                continue
-            me, mate = f"{m[w]}-{pairs[k][p]}", f"{m[w]}-{pairs[k][1 - p]}"
-            out.setdefault(me, [0, 0])[0] += 1
-            out.setdefault(mate, [0, 0])[1] += 1
-    if unknown:
-        print(f"[REFEREE] {m['code']}: {unknown} rallies without a scorer (no attack/support for them)")
-    return out
 
 
 VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js", "robot-heads.min.js")

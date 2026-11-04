@@ -5,8 +5,8 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # 20:05 Vietnam time every Wednesday (match days): standings pick up the referees' official scores
-    - cron: "5 13 * * *"  # 20:05 Vietnam every day: a match finished on a make-up day reaches the standings the same night
+    # evenings (Vietnam): the build takes each match's last referee "Chốt" into the schedule and standings
+    - cron: "*/15 10-16 * * *"  # every 15 min, 17:00–23:59 Vietnam: a referee "Chốt" reaches the schedule and standings within minutes
 
 permissions:
   contents: read

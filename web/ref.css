@@ -227,8 +227,32 @@ button.tok:active i { transform: scale(.9) }
 .box.serve { background: radial-gradient(closest-side, rgba(255, 214, 102, .42), rgba(255, 214, 102, 0)) }
 .box.recv { background: radial-gradient(closest-side, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0)) }
 .box.drop { background: radial-gradient(closest-side, rgba(255, 255, 255, .4), rgba(255, 255, 255, 0)) }
-/* pick the next pair */
-.nextpick { display: flex; flex-direction: column; gap: 8px }
-.nx { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 8px 12px }
-.nx small { font-size: 13px; font-weight: 600; opacity: .85 }
 .sum tr.later td { color: var(--muted) } .sum tr.later td[colspan] { text-align: left; font-size: 13px }
+
+/* court v3: four separate boxes like answer cards (no blend, no lines); each player sits in the centre of own box */
+.court { aspect-ratio: 2 / 1.12; border-radius: 0; overflow: visible; background: none; box-shadow: none }
+.court.big { aspect-ratio: 1 / .92 }
+.court .box { width: calc(50% - 5px); height: calc(50% - 4px); border-radius: 18px; transition: box-shadow .25s, filter .25s; box-shadow: 0 3px 10px rgba(12, 20, 48, .14) }
+.court .box.lt { left: 0; top: 0; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .06)), var(--court-l) }
+.court .box.lb { left: 0; bottom: 0; top: auto; background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(0, 0, 0, .16)), var(--court-l) }
+.court .box.rt { right: 0; top: 0; left: auto; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .06)), var(--court-r) }
+.court .box.rb { right: 0; bottom: 0; top: auto; left: auto; background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(0, 0, 0, .16)), var(--court-r) }
+.court .box.serve { box-shadow: inset 0 0 0 3px #FFD666, 0 3px 10px rgba(12, 20, 48, .14) }
+.court .box.recv { box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .8), 0 3px 10px rgba(12, 20, 48, .14) }
+.court .box.drop { box-shadow: inset 0 0 0 3px #fff, 0 3px 10px rgba(12, 20, 48, .14); filter: brightness(1.12) }
+.court .zone { width: calc(50% - 5px); height: calc(50% - 4px); border-radius: 18px }
+.court .zone.hitfx { animation: zhit .35s ease-out }
+.tok span { position: relative; z-index: 1 }
+
+/* pairs: whole row opens the pair; "Vắng" marks it for a later day */
+.row .rowlink { position: absolute; inset: 0; border-radius: 16px }
+.row .abs { position: relative; z-index: 1; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--hair); font-weight: 700; font-size: 13px; color: var(--muted) }
+.row .abs.on { background: var(--gold-soft); box-shadow: none; color: var(--ink) }
+.row.absent { opacity: .7 } .row.absent .st { color: var(--gold) }
+#plist .row { grid-template-columns: 52px minmax(0, 1fr) auto auto }
+/* finished screen fits one phone screen */
+#scrEnd { gap: 10px; padding-top: 10px }
+#scrEnd .result { gap: 4px; padding: 12px 12px 10px }
+.pst th, .pst td { padding: 6px 8px; font-size: 14px } .pst .th th { padding-top: 8px } .pst thead th { font-size: 12px }
+#scrEnd .submit { padding: 10px 12px }
+.finalbox { display: flex; flex-direction: column; gap: 8px } .finalbox:empty { display: none } .fin-note { margin: 0; font-size: 13px }
