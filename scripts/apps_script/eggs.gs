@@ -56,45 +56,66 @@ function setup() {
   CacheService.getScriptCache().remove('eggs');
 }
 
-/* ---------- referee scores ---------- */
-const REF_HEAD = ['Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Cập nhật (ms)', 'Lưu trữ'];
-function refSheet_() {
+/* ---------- referee scores ----------
+   'referee'        official scores, one row per match + pair (newer 'updated' wins); the standings read these at 20:00 on match days.
+   'referee_draft'  demo-mode pairs, one row per finished pair with its report code; never used by the standings. */
+const REF_HEAD = ['Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Cập nhật (ms)', 'Lưu trữ', 'Mã báo cáo', 'Thời gian (ms)'];
+const DRAFT_HEAD = ['Mã báo cáo', 'Lưu lúc', 'Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Thời gian (ms)', 'Lưu trữ'];
+function namedSheet_(name, head) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  let sh = ss.getSheetByName('referee');
+  let sh = ss.getSheetByName(name);
   if (!sh) {
-    sh = ss.insertSheet('referee');
-    sh.getRange(1, 1, 1, REF_HEAD.length).setValues([REF_HEAD]).setFontWeight('bold');
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
     sh.setFrozenRows(1);
-    sh.getRange('C:C').setNumberFormat('@');  // "1-2" must stay text
+    sh.getRange(1, 1, 1000, head.length).setNumberFormat('@');  // keep "1-2", "T1" etc. as text
+    head.forEach((h, k) => { if (/^(Điểm|Cập nhật|Thời gian)/.test(h)) sh.getRange(2, k + 1, 999, 1).setNumberFormat('0'); });  // number columns, by header
   }
   return sh;
 }
+function refRows_() {
+  const sh = namedSheet_('referee', REF_HEAD);
+  return sh.getLastRow() < 2 ? [] : sh.getRange(2, 1, sh.getLastRow() - 1, REF_HEAD.length).getValues();
+}
 function refGet_(match) {
-  const sh = refSheet_(), out = { pairs: {} };
-  if (sh.getLastRow() < 2) return out;
-  sh.getRange(2, 1, sh.getLastRow() - 1, REF_HEAD.length).getValues().forEach(r => {
+  const out = { pairs: {} };
+  if (match === 'all') {  // compact summary of every official pair, for the site build
+    const all = {};
+    refRows_().forEach(r => {
+      const m = String(r[0]); if (!m) return;
+      (all[m] = all[m] || {})[String(r[1])] = { a: Number(r[5]) || 0, b: Number(r[6]) || 0, done: r[7] === 'x', updated: Number(r[8]) || 0, ms: Number(r[11]) || 0 };
+    });
+    return { matches: all };
+  }
+  refRows_().forEach(r => {
     if (String(r[0]) !== match) return;
     let st = null; try { st = JSON.parse(r[9]); } catch (err) {}
-    out.pairs[String(r[1])] = { updated: Number(r[8]) || 0, state: st };
+    out.pairs[String(r[1])] = { updated: Number(r[8]) || 0, state: st, report: String(r[10] || '') };
   });
   return out;
 }
 function refPut_(b) {
   const match = String(b.match || ''), pair = Number(b.pair), updated = Number(b.updated) || 0;
   if (!/^T\d{1,2}$/.test(match) || !(pair >= 1 && pair <= 5)) return { error: 'bad key' };
-  const state = JSON.stringify(b.state || null);
-  if (state.length > 40000) return { error: 'too big' };
+  const st = b.state || {}, state = JSON.stringify(st);
+  if (state.length > 45000) return { error: 'too big' };
+  const a = Number(b.a) || 0, bb = Number(b.b) || 0, n = (st.log || []).length, report = String(b.report || '').slice(0, 40);
+  const echo = { ok: true, a: a, b: bb, n: n, report: report };
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    const sh = refSheet_(), n = Math.max(0, sh.getLastRow() - 1);
-    const keys = n ? sh.getRange(2, 1, n, 2).getValues() : [];
+    if (b.draft) {
+      const sh = namedSheet_('referee_draft', DRAFT_HEAD);
+      sh.getRange(sh.getLastRow() + 1, 1, 1, DRAFT_HEAD.length).setValues([[report, new Date().toISOString(), match, String(pair), String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), a, bb, b.done ? 'x' : '', Number(st.ms) || 0, state]]);
+      return echo;
+    }
+    const sh = namedSheet_('referee', REF_HEAD), cnt = Math.max(0, sh.getLastRow() - 1);
+    const keys = cnt ? sh.getRange(2, 1, cnt, 2).getValues() : [];
     let row = -1;
     for (let i = 0; i < keys.length; i++) if (String(keys[i][0]) === match && Number(keys[i][1]) === pair) { row = i + 2; break; }
-    if (row > 0 && (Number(sh.getRange(row, 9).getValue()) || 0) > updated) return { ok: true, stale: true };
-    const vals = [[match, pair, String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), Number(b.a) || 0, Number(b.b) || 0, b.done ? 'x' : '', updated, state]];
+    if (row > 0 && (Number(sh.getRange(row, 9).getValue()) || 0) > updated) { echo.stale = true; return echo; }
     if (row < 0) row = sh.getLastRow() + 1;
-    sh.getRange(row, 1, 1, REF_HEAD.length).setValues(vals);
-    return { ok: true };
+    sh.getRange(row, 1, 1, REF_HEAD.length).setValues([[match, String(pair), String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), a, bb, b.done ? 'x' : '', updated, state, report, Number(st.ms) || 0]]);
+    return echo;
   } finally { lock.releaseLock(); }
 }

@@ -634,3 +634,13 @@ body:has(#pFocus:not([hidden])) .mascot { bottom: calc(92px + env(safe-area-inse
 }
 @media (max-width: 900px) { body:has(#pFocus:not([hidden])) .mascot { display: none } }
 .foot .credit { font-size: 12px; font-style: italic }
+
+/* referee scores on a match card (official mode only) */
+.badge.live { background: rgba(226, 64, 64, .12); color: #C02626 }
+.badge.live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; animation: livePulse 1.2s infinite }
+@keyframes livePulse { 50% { opacity: .3 } }
+.ref-live { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--brand-soft); font-size: 13px; font-variant-numeric: tabular-nums }
+.ref-live b { flex-basis: 100%; font-size: 14px; color: var(--ink) }
+.ref-live span { padding: 2px 8px; border-radius: 8px; background: var(--glass-strong); color: var(--muted); font-weight: 600 }
+.ref-live span.d { color: var(--ink) }
+.ref-live small { flex-basis: 100%; color: var(--muted); font-style: italic }

@@ -85,6 +85,7 @@ def main():
     dry = a.dry_run
 
     teams_cfg, sched, site = read_json(paths.TEAMS_JSON), read_json(paths.SCHEDULE_JSON), read_json(paths.SITE_JSON)
+    ref_used = referee_results(site, sched, len(teams_cfg["pairs"]))
     errors = validate(sched, teams_cfg)
     matches = [] if errors else resolve_matches(sched, teams_cfg, site["branches"])
     errors += [f"{c}.result: đã nhập kết quả nhưng chưa biết đủ 2 đội (nhập kết quả trận trước nó trước)"
@@ -238,6 +239,42 @@ def main():
         paths.SITE_PREVIEW.write_text(prev, encoding="utf-8")
         print(f"[PREVIEW] {paths.SITE_PREVIEW}")
     print(f"[OUTPUT] {out / 'index.html'}")
+
+
+REF_HOUR = 20  # standings take the referees' official scores from 20:00 (Vietnam time) on each match day
+
+
+def referee_results(site, sched, n_pairs):
+    """Fill missing results from the referee sheet (Apps Script ?ref=all, official mode only).
+    A match is taken once its day has reached 20:00 and all its pairs are finished; results typed in
+    config/schedule.json always win. Network trouble only prints a warning (the site builds without them)."""
+    api = (site.get("eggs") or {}).get("api_url", "")
+    if not api or os.environ.get("NO_REFEREE"):
+        return []
+    import urllib.request
+    try:
+        with urllib.request.urlopen(api + "?ref=all", timeout=25) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] referee sheet not read ({e}); standings use config/schedule.json only")
+        return []
+    rows = (data or {}).get("matches") or {}
+    used = []
+    for m in sched["matches"]:
+        got = rows.get(m["code"])
+        if m.get("result") or not got:
+            continue
+        d, mo, y = (int(x) for x in m["date"].split("/"))
+        cutoff = dt.datetime(y, mo, d, REF_HOUR, 0, tzinfo=BUILT.tzinfo)
+        pairs = [got.get(str(k + 1)) for k in range(n_pairs)]
+        if all(p and p.get("done") for p in pairs) and BUILT >= cutoff:
+            m["result"] = {"pairs": [[int(p["a"]), int(p["b"])] for p in pairs]}
+            used.append(m["code"])
+            print(f"[REFEREE] {m['code']}: " + ", ".join(f"{p['a']}-{p['b']}" for p in pairs))
+        else:
+            n = sum(1 for p in pairs if p and p.get("done"))
+            print(f"[REFEREE] {m['code']}: {n}/{n_pairs} pairs finished" + ("" if BUILT >= cutoff else f", waits for {REF_HOUR}:00 {m['date']}"))
+    return used
 
 
 VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js", "robot-heads.min.js")

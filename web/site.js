@@ -16,8 +16,8 @@
   function sideName(s) { return s.team ? teamById[s.team].name : s.label; }
   function today() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
   function dateOf(m) { var p = m.iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
-  function status(m) { return m.result ? 'done' : dateOf(m) < today() ? 'wait' : 'up'; }
-  var ST = { done: ['Đã đấu', 'done'], wait: ['Chờ kết quả', 'lose'], up: ['Sắp diễn ra', 'win'] };
+  function status(m) { var d = dateOf(m), t = today(); return m.result ? 'done' : d < t ? 'wait' : +d === +t ? 'today' : 'up'; }
+  var ST = { done: ['Đã đấu', 'done'], wait: ['Chờ kết quả', 'lose'], today: ['Hôm nay', 'win'], up: ['Sắp diễn ra', 'win'], live: ['Đang đấu', 'live'], locked: ['Đã chốt · BXH 20:00', 'done'] };
   function tagCls(m) { return m.branch === 'lose' ? 'tag lose' : m.branch === 'final' ? 'tag final' : 'tag'; }
   var days = [];
   S.matches.forEach(function (m) { if (days.indexOf(m.iso) < 0) days.push(m.iso); });
@@ -68,6 +68,39 @@
   var EGG_SVG = '<img class="egg-i" src="' + EGG_IMG + '" alt="" aria-hidden="true" draggable="false">';
   var FLAME_SVG = '<span class="flame-l" aria-hidden="true"></span>';
   /* ---------- rotten eggs: shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
+  /* referees' official scores (Apps Script ?ref=all), shown on the match cards while a match is played and until the 20:00 build
+     puts the result into the standings. Only matches without a result in the build are touched. */
+  var REF = (function () {
+    var api = (S.meta && S.meta.eggs && S.meta.eggs.api) || '', data = {}, busy = false;
+    var want = S.matches.some(function (m) { return !m.result && m.a.team && m.b.team && dateOf(m) <= today(); });
+    function apply() {
+      document.querySelectorAll('.ref-live[data-ref]').forEach(function (el) {
+        var code = el.dataset.ref, m = S.matches.filter(function (x) { return x.code === code; })[0], rows = data[code];
+        var badge = document.querySelector('[data-badge="' + code + '"]');
+        if (!m || m.result || !rows) { el.hidden = true; return; }
+        var n = S.pairs.length, done = 0, ta = 0, tb = 0, parts = [];
+        for (var k = 1; k <= n; k++) {
+          var r = rows[String(k)]; if (!r) continue;
+          ta += r.a; tb += r.b; if (r.done) done++;
+          parts.push('<span class="' + (r.done ? 'd' : 'p') + '">' + S.pairs[k - 1].join('–') + ': ' + r.a + '–' + r.b + '</span>');
+        }
+        if (!parts.length) { el.hidden = true; return; }
+        el.hidden = false;
+        el.innerHTML = '<b>' + (done === n ? 'Trọng tài đã chốt ' + n + '/' + n + ' cặp' : 'Đang đấu · xong ' + done + '/' + n + ' cặp') + ' · tổng ' + ta + '–' + tb + '</b>' + parts.join('') +
+          (done === n ? '<small>Bảng xếp hạng cập nhật lúc 20:00 ngày thi đấu.</small>' : '');
+        if (badge) { var st = ST[done === n ? 'locked' : 'live']; badge.className = 'badge ' + st[1]; badge.textContent = st[0]; }
+      });
+    }
+    function pull() {
+      if (!api || !want || busy || document.hidden) return;
+      busy = true;
+      fetch(api + '?ref=all').then(function (r) { return r.json(); }).then(function (d) { if (d && d.matches) { data = d.matches; apply(); } })
+        .catch(function () {}).then(function () { busy = false; });
+    }
+    if (api && want) { pull(); setInterval(pull, 30000); document.addEventListener('visibilitychange', pull); }
+    return { apply: apply };
+  })();
+
   var EGG = (function () {
     var cfg = (S.meta && S.meta.eggs) || {}, api = cfg.api || '', limit = +cfg.limit || 0;
     var counts = {}, pending = {}, inflight = {}, subs = [], timer = null, state = api ? 'connecting' : 'local';
@@ -422,7 +455,8 @@
       : '<span class="x">VS</span>';
     var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb : esc(m.round);
     var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side r"><b>' + esc(sideName(m.b)) + '</b></span>';
-    var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '">' + st[0] + '</span></div>';
+    var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '" data-badge="' + esc(m.code) + '">' + st[0] + '</span></div>' +
+      '<p class="ref-live" data-ref="' + esc(m.code) + '" hidden></p>';
     if (!(m.a.team || m.b.team)) return '<article class="match glass" style="--i:' + i + '">' + top + '<div class="vs-card">' + sides + '</div>' + pairsHtml(m) + '</article>';
     return '<article class="match glass" style="--i:' + i + '">' + top +
       '<button type="button" class="vs-card vs-toggle" aria-expanded="false" aria-controls="pairs-' + m.code + '" data-label="Xem thành viên">' + sides +
@@ -434,6 +468,7 @@
     segBtns.forEach(function (b, k) { b.setAttribute('aria-selected', k === i); b.tabIndex = k === i ? 0 : -1; });
     $('dayPanel').setAttribute('aria-labelledby', 'day-' + i);
     $('dayPanel').innerHTML = dayInfo[i].matches.map(matchCard).join('');
+    REF.apply();
     moveThumb();
     var b = segBtns[i], sc = seg.parentNode;
     if (b.offsetLeft < sc.scrollLeft || b.offsetLeft + b.offsetWidth > sc.scrollLeft + sc.clientWidth) sc.scrollTo({ left: b.offsetLeft - 16, behavior: reduce ? 'auto' : 'smooth' });
