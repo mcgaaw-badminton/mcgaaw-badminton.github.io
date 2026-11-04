@@ -25,7 +25,7 @@
   function todayKey() { var n = new Date(); return '' + n.getFullYear() + ('0' + (n.getMonth() + 1)).slice(-2) + ('0' + n.getDate()).slice(-2); }
   function when(m) { var k = dayKey(m.date), t = todayKey(); return k === t ? 'today' : k < t ? 'past' : 'future'; }
   function locked(m) { return MODE === 'live' && when(m) === 'future'; }
-  var M = null, ST = null, I = 0, VIEW = 'list';
+  var M = null, ST = null, I = 0, VIEW = 'list', VISIT = null;
   /* two modes, same screens: 'live' (Chính thức) sends every tap to the sheet the standings read;
      'demo' sends nothing while playing, but a finished pair still goes to a separate draft sheet with a report code (in case a real pair was scored in demo) */
   var MODE = (function () { try { return localStorage.getItem('gcl-ref-mode') === 'demo' ? 'demo' : 'live'; } catch (e) { return 'live'; } })();
@@ -54,6 +54,7 @@
   function players(t, i) { var team = teamById[M[t].team], p = PAIRS[i]; return [team.members[p[0] - 1], team.members[p[1] - 1]]; }
   function teamName(t) { return teamById[M[t].team].name; }
   function rIdx(setup, t) { var f = setup.far[t]; return setup.left === t ? 1 - f : f; }  // which player stands in team t's RIGHT court at 0–0
+  function fillFar(su) { if (su.left) ['a', 'b'].forEach(function (t) { if (su.far[t] == null) su.far[t] = 0; }); }  // until changed: first-listed player stands far
   function complete(su) { return !!(su.left && su.serve && su.far.a != null && su.far.b != null); }
   function replay(pr, upto) {
     if (!complete(pr.setup)) return { pos: null, sc: { a: 0, b: 0 }, srv: null, court: 'R', server: null, receiver: null, end: null, endAt: -1 };
@@ -69,6 +70,8 @@
     var court = sc[srv] % 2 ? 'L' : 'R';
     return { pos: pos, sc: sc, srv: srv, court: court, server: pos[srv][court], receiver: pos[other(srv)][court], end: end, endAt: endAt };
   }
+  function prog(pr) { if (pr.done) return 100; var r = replay(pr); return Math.min(100, Math.max(r.sc.a, r.sc.b) / TARGET * 100); }
+  function bar(pc, cls) { return '<span class="prog' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><i style="width:' + pc.toFixed(1) + '%"></i></span>'; }
   function winnerOf(pr) { var r = replay(pr); if (r.end) return r.end; if (pr.manualEnd && r.sc.a !== r.sc.b) return r.sc.a > r.sc.b ? 'a' : 'b'; return null; }
 
   /* ---------- clock: runs only on the scoring screens of an unfinished pair ---------- */
@@ -91,7 +94,8 @@
 
   /* ---------- saving: phone first, then the sheet; finishing a pair is read back from the sheet ---------- */
   var queue = {}, timer = null, sending = false;
-  function unsent() { return ST ? ST.pairs.filter(function (p) { return p.updated > p.sent; }).length : 0; }
+  function needsSend(p) { return p.updated > p.sent && !!(p.log.length || p.sent); }  // positions alone are not sent: a phone opened by mistake never touches the sheet
+  function unsent() { return ST ? ST.pairs.filter(needsSend).length : 0; }
   function showSync(kind, txt) { var s = $('sync'); s.className = 'sync ' + kind; $('syncTxt').textContent = txt; }
   function syncLabel() {
     if (!API) return showSync('local', 'Chỉ lưu trên máy');
@@ -107,7 +111,7 @@
     var pr = ST.pairs[i]; pr.updated = Date.now(); pr.check = null;
     var r = replay(pr); pr.done = !!r.end || (pr.manualEnd && !!winnerOf(pr));
     store();
-    if (API && MODE === 'live') { queue[i] = true; showSync('wait', 'Đang gửi…'); clearTimeout(timer); timer = setTimeout(flush, 400); }
+    if (API && MODE === 'live' && needsSend(pr)) { queue[i] = true; showSync('wait', 'Đang gửi…'); clearTimeout(timer); timer = setTimeout(flush, 400); }
   }
   function reportId(i) { var pr = ST.pairs[i]; if (!pr.report) { pr.report = M.code + '-' + (i + 1) + '-' + Date.now().toString(36).toUpperCase().slice(-5); store(); } return pr.report; }
   function payload(i) {
@@ -134,7 +138,7 @@
     post(i).then(function () { sending = false; renderSide(); flush(); syncLabel(); })
       .catch(function () { sending = false; queue[i] = true; timer = setTimeout(flush, 4000); syncLabel(); });
   }
-  function retryAll() { if (!ST || MODE === 'demo') return; ST.pairs.forEach(function (p, k) { if (p.updated > p.sent) queue[k] = true; }); clearTimeout(timer); flush(); }
+  function retryAll() { if (!ST || MODE === 'demo') return; ST.pairs.forEach(function (p, k) { if (needsSend(p)) queue[k] = true; }); clearTimeout(timer); flush(); }
   $('sync').addEventListener('click', retryAll);
   window.addEventListener('online', retryAll);
   /* send this pair now, then read it back from the sheet and compare */
@@ -166,7 +170,8 @@
       var changed = false;
       Object.keys(d.pairs).forEach(function (k) {
         var i = +k - 1, sp = d.pairs[k], lp = ST.pairs[i];
-        if (!lp || !sp.state || !(sp.updated > lp.updated)) return;
+        var sl = (sp.state && sp.state.log) || [];
+        if (!lp || !sp.state || !(sp.updated > lp.updated || (!lp.log.length && sl.length && sp.updated > lp.sent))) return;
         var n = migrate({ setup: sp.state.setup, log: sp.state.log || [], updated: sp.updated });
         lp.setup = n.setup; lp.log = n.log; lp.updated = lp.sent = sp.updated; lp.manualEnd = !!sp.state.manualEnd;
         lp.timer = { ms: sp.state.ms || 0, since: null }; lp.done = !!replay(lp).end || (lp.manualEnd && !!winnerOf(lp)); if (sp.report) lp.report = sp.report; changed = true;
@@ -198,7 +203,7 @@
     ['a', 'b'].forEach(function (t) {
       [0, 1].forEach(function (k) {
         var tok = el.querySelector('.tok[data-k="' + t + k + '"]');
-        if (!tok) { tok = document.createElement(live ? 'button' : 'span'); if (live) tok.type = 'button'; tok.className = 'tok'; tok.dataset.k = t + k; tok.dataset.team = t; tok.dataset.idx = k; tok.innerHTML = '<i></i><span></span>'; el.appendChild(tok); }
+        if (!tok) { tok = document.createElement('button'); tok.type = 'button'; tok.className = 'tok'; tok.dataset.k = t + k; tok.dataset.team = t; tok.dataset.idx = k; tok.innerHTML = '<i></i><span></span>'; el.appendChild(tok); }
         var nm = first(players(t, i)[k]), x, y, cls = '';
         if (!su.left) { x = t === 'a' ? 30 + k * 12 : 58 + k * 12; y = 50; cls = ' unset'; }
         else if (su.far[t] == null) { var lft = su.left === t; x = lft ? 22 + k * 16 : 62 + k * 16; y = 50; cls = ' unset'; }
@@ -212,6 +217,7 @@
         cls += su.left ? (su.left === t ? ' s-l' : ' s-r') : ' s-n';
         tok.className = 'tok' + cls; tok.style.left = x + '%'; tok.style.top = y + '%';
         tok.querySelector('i').textContent = nm.charAt(0).toUpperCase(); tok.querySelector('span').textContent = nm;
+        if (!live) tok.setAttribute('aria-label', players(t, i)[k] + (su.left ? ' — chạm để đổi trước/sau với đồng đội' : ''));
         if (live) { tok.disabled = !!(r && r.end) || pr.manualEnd; tok.setAttribute('aria-label', players(t, i)[k] + ' — chạm để ghi điểm cho ' + teamName(t)); }
       });
     });
@@ -239,7 +245,7 @@
   function go(h) { h = String(h).replace(/^#/, ''); if (location.hash.replace('#', '') === h) route(); else location.hash = h; }
   function pairLabel(i) { return 'Cặp ' + (i + 1) + ' · ' + PAIRS[i].join('–'); }
   function status(pr) {
-    var r = replay(pr), w = winnerOf(pr), sent = !API ? '' : pr.updated && pr.updated <= pr.sent ? '<em class="ok">✓ đã gửi</em>' : pr.updated ? '<em class="no">chưa gửi</em>' : '';
+    var r = replay(pr), w = winnerOf(pr), sent = !API ? '' : !needsSend(pr) && pr.sent ? '<em class="ok">✓ đã gửi</em>' : needsSend(pr) ? '<em class="no">chưa gửi</em>' : '';
     if (pr.done && w) return '<b class="st done">Xong ' + r.sc.a + '–' + r.sc.b + '</b><small>' + fmt(tMs(pr)) + ' ' + sent + '</small>';
     if (pr.log.length) return '<b class="st on">Đang đấu ' + r.sc.a + '–' + r.sc.b + '</b><small>' + fmt(tMs(pr)) + ' ' + sent + '</small>';
     return '<b class="st">' + (pr.setup.ok ? 'Đã xếp vị trí' : 'Chưa đấu') + '</b>';
@@ -252,11 +258,12 @@
     $('mlist').innerHTML = groups.map(function (g) {
       var ms = playable.filter(function (m) { return when(m) === g[0]; }); if (!ms.length) return '';
       return '<h2 class="grp">' + g[1] + '</h2>' + ms.map(function (m) {
-        var st = ls(keyOf(m.code)), n = st && st.pairs ? st.pairs.filter(function (p) { return p.done; }).length : 0, lk = locked(m);
+        var st = ls(keyOf(m.code)), ps = st && st.pairs && st.pairs.length === PAIRS.length ? st.pairs.map(function (p) { return migrate(Object.assign(blankPair(), p)); }) : [], lk = locked(m);
+        var n = ps.filter(function (p) { return p.done; }).length, pc = ps.length ? ps.reduce(function (t, p) { return t + prog(p); }, 0) / PAIRS.length : 0;
         var inner = '<span class="code">' + esc(m.code) + '</span><span class="who"><b>' + esc(teamById[m.a.team].name) + ' vs ' + esc(teamById[m.b.team].name) + '</b><small>' + esc(S.rules.weekday) + ' ' + esc(m.date) + '</small></span>' +
           '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : n === 5 ? 'Xong' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
         return lk ? '<div class="row locked" aria-disabled="true">' + inner + '<span></span></div>'
-          : '<a class="row" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>';
+          : '<a class="row" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pc ? bar(pc, n === 5 ? 'done' : '') : '') + '</a>';
       }).join('');
     }).join('') || '<p class="muted">Chưa có trận nào biết đủ hai đội.</p>';
   }
@@ -265,7 +272,7 @@
     $('plist').innerHTML = ST.pairs.map(function (pr, k) {
       var A = players('a', k).map(first).join(' · '), B = players('b', k).map(first).join(' · ');
       return '<a class="row" href="#' + M.code + '/' + (k + 1) + '/' + (pr.done ? 'ket' : pr.setup.ok ? 'diem' : 'vitri') + '"><span class="code">' + PAIRS[k].join('–') + '</span><span class="who"><b>' + esc(A) + '</b><small>vs ' + esc(B) + '</small></span>' +
-        '<span class="right">' + status(pr) + '</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>';
+        '<span class="right">' + status(pr) + '</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pr.log.length || pr.done ? bar(prog(pr), pr.done ? 'done' : '') : '') + '</a>';
     }).join('');
   }
   function choiceBtns(name, opts, val) {
@@ -273,26 +280,18 @@
   }
   function renderSetup() {
     var pr = ST.pairs[I], su = pr.setup;
+    fillFar(su);
     drawCourt($('setupCourt'), I, 'setup');
     $('pickLeft').innerHTML = choiceBtns('left', [['a', esc(teamName('a'))], ['b', esc(teamName('b'))]], su.left);
-    var s2 = $('step2'), s3 = $('step3');
-    s2.classList.toggle('off', !su.left); s3.classList.toggle('off', !(su.left && su.far.a != null && su.far.b != null));
-    if (su.left) {
-      var order = [su.left, other(su.left)];
-      $('pickFar').innerHTML = order.map(function (t) {
-        var side = t === su.left ? 's-l' : 's-r';
-        return '<div class="far ' + side + '"><span>' + esc(teamName(t)) + ' <small>(' + (t === su.left ? 'trái' : 'phải') + ')</small></span><div class="choice">' +
-          choiceBtns('far', players(t, I).map(function (n, k) { return [t + k, esc(first(n))]; }), su.far[t] == null ? null : t + su.far[t]) + '</div></div>';
-      }).join('');
-    } else $('pickFar').innerHTML = '<p class="muted">Chọn bước 1 trước.</p>';
+    $('step3').classList.toggle('off', !su.left);
     $('pickServe').innerHTML = choiceBtns('serve', [['a', esc(teamName('a')), su.left ? (su.left === 'a' ? 's-l' : 's-r') : ''], ['b', esc(teamName('b')), su.left ? (su.left === 'b' ? 's-l' : 's-r') : '']], su.serve);
     var ready = complete(su);
     if (ready) {
       var r = replay({ setup: su, log: [] });
-      $('serveCheck').innerHTML = 'Giao cầu: <b>' + esc(first(players(su.serve, I)[r.server])) + '</b> (ô phải) → nhận: <b>' + esc(first(players(other(su.serve), I)[r.receiver])) + '</b>. Đúng người thì bấm Bắt đầu; sai thì đổi ở bước 2.';
+      $('serveCheck').innerHTML = 'Giao: <b>' + esc(first(players(su.serve, I)[r.server])) + '</b> (ô phải) → nhận: <b>' + esc(first(players(other(su.serve), I)[r.receiver])) + '</b>';
     } else $('serveCheck').textContent = '';
     $('setupWarn').hidden = !pr.log.length;
-    $('resetBtn').hidden = !(pr.log.length || su.left || su.serve || pr.done);
+    $('resetBtn').hidden = !(pr.log.length || pr.done);  // positions alone: leaving without saving clears them
     $('startBtn').disabled = !ready;
     $('startBtn').textContent = pr.log.length ? 'Lưu vị trí, tính điểm tiếp' : 'Bắt đầu tính điểm';
   }
@@ -304,7 +303,8 @@
     [['hitL', L], ['hitR', R]].forEach(function (x) {
       var b = $(x[0]), t = x[1];
       b.dataset.team = t; b.disabled = !!r.end;
-      b.innerHTML = '<span class="nm">' + esc(teamName(t)) + (r.srv === t && !r.end ? ' <em>giao</em>' : '') + '</span><b class="sc">' + r.sc[t] + '</b><small>' + esc(players(t, I).map(first).join(' · ')) + '</small><span class="p1">+1</span>';
+      b.innerHTML = '<span class="nm">' + esc(teamName(t)) + (r.srv === t && !r.end ? ' <em>giao</em>' : '') + '</span><b class="sc">' + r.sc[t] + '</b><small>' + esc(players(t, I).map(first).join(' · ')) + '</small><span class="p1">+1</span>' +
+        '<span class="tprog"><span class="prog" aria-hidden="true"><i style="width:' + Math.min(100, r.sc[t] / TARGET * 100).toFixed(1) + '%"></i></span><small>' + (r.sc[t] >= TARGET ? 'đủ ' + TARGET : 'còn ' + (TARGET - r.sc[t])) + '</small></span>';
       b.setAttribute('aria-label', 'Ghi 1 điểm cho ' + teamName(t) + ', đang ' + r.sc[t]);
     });
     $('endedNote').hidden = !r.end;
@@ -345,7 +345,7 @@
   function renderSum() {
     var tot = { a: 0, b: 0 }, won = { a: 0, b: 0 }, ms = 0, all = true, sentAll = true;
     var rows = ST.pairs.map(function (p, k) {
-      var r = replay(p), w = winnerOf(p); tot.a += r.sc.a; tot.b += r.sc.b; ms += tMs(p); if (w) won[w]++; if (!p.done) all = false; if (API && p.updated > p.sent) sentAll = false;
+      var r = replay(p), w = winnerOf(p); tot.a += r.sc.a; tot.b += r.sc.b; ms += tMs(p); if (w) won[w]++; if (!p.done) all = false; if (API && needsSend(p)) sentAll = false;
       return '<tr><td>' + PAIRS[k].join('–') + '</td><td class="' + (w === 'a' ? 'w' : '') + '">' + r.sc.a + '</td><td class="' + (w === 'b' ? 'w' : '') + '">' + r.sc.b + '</td><td>' + fmt(tMs(p)) + '</td></tr>';
     });
     var win = tot.a !== tot.b ? (tot.a > tot.b ? 'a' : 'b') : won.a !== won.b ? (won.a > won.b ? 'a' : 'b') : null;
@@ -422,12 +422,11 @@
     });
   });
   $('scrSetup').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b || b.id === 'startBtn' || b.id === 'resetBtn') return;
+    var b = e.target.closest('button'); if (!b || b.id === 'startBtn' || b.id === 'resetBtn' || b.classList.contains('tok')) return;
     var pr = ST.pairs[I], su = pr.setup;
     if (b.dataset.left) su.left = b.dataset.left;
-    if (b.dataset.far) su.far[b.dataset.far[0]] = +b.dataset.far[1];
     if (b.dataset.serve) su.serve = b.dataset.serve;
-    su.ok = false; touch(I); renderSetup();
+    fillFar(su); su.ok = false; touch(I); renderSetup();
   });
   $('startBtn').addEventListener('click', function () {
     var pr = ST.pairs[I]; pr.setup.ok = true; touch(I);
@@ -437,7 +436,7 @@
   function askReset() {
     var pr = ST.pairs[I], r = replay(pr);
     sheet('Đặt lại ' + pairLabel(I) + '?', '<p>Xóa hết ' + pr.log.length + ' điểm (đang ' + r.sc.a + '–' + r.sc.b + '), vị trí đứng và đồng hồ. Cặp này về trạng thái chưa đấu' + (MODE === 'live' ? ', bảng tính cũng về 0–0' : '') + '. Không hoàn tác được.</p>', [
-      ['Đặt lại về 0', function () { closeSheet(); $('toast').hidden = true; var n = blankPair(); n.sent = pr.sent; ST.pairs[I] = n; touch(I); go(M.code + '/' + (I + 1) + '/vitri'); }, 'danger'],
+      ['Đặt lại về 0', function () { closeSheet(); $('toast').hidden = true; var n = blankPair(); n.sent = pr.sent; ST.pairs[I] = n; touch(I); if (VISIT) { VISIT.sig = sig(n); VISIT.snap = JSON.parse(JSON.stringify(n)); } go(M.code + '/' + (I + 1) + '/vitri'); }, 'danger'],
       ['Không, giữ nguyên', closeSheet]]);
   }
   $('resetBtn').addEventListener('click', askReset);
@@ -467,10 +466,15 @@
       var q = pct(e, d.rc), t = d.tok.dataset.team, k = +d.tok.dataset.idx, su = ST.pairs[I].setup;
       su.left = q.x < 50 ? t : other(t);
       su.far[t] = q.y < 50 ? k : 1 - k;
-      su.ok = false; touch(I);
-    }
+      fillFar(su); su.ok = false; touch(I);
+    } else if (ok) swapTok(d.tok);
     renderSetup();
   }
+  function swapTok(tok) {  // tap a player: swap far/near with the partner
+    var su = ST.pairs[I].setup, t = tok.dataset.team; if (!su.left) return;
+    fillFar(su); su.far[t] = 1 - su.far[t]; su.ok = false; touch(I);
+  }
+  $('setupCourt').addEventListener('click', function (e) { var t = e.target.closest('.tok'); if (t && e.detail === 0) { swapTok(t); renderSetup(); } });  // keyboard
   $('setupCourt').addEventListener('pointerup', function (e) { endDrag(e, true); });
   $('setupCourt').addEventListener('pointercancel', function (e) { endDrag(e, false); });
   function sheet(title, body, acts) {
@@ -485,20 +489,45 @@
   /* ---------- routing: #T1 · #T1/2/vitri · #T1/2/diem · #T1/2/cacdiem · #T1/2/ket · #T1/tong ---------- */
   var wake = null;
   function keepAwake() { try { if (navigator.wakeLock && !wake) navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }).catch(function () {}); } catch (e) {} }
+  /* leaving a pair that changed during this visit asks first: "Thoát, không lưu" puts the pair back as it was on entry
+     (a phone opened by mistake, or a second person on the same pair, leaves it "Chưa đấu"). A finished pair never asks. */
+  function sig(pr) { return JSON.stringify([pr.setup.left, pr.setup.far, pr.setup.serve, pr.setup.ok, pr.log, !!pr.manualEnd]); }
+  function leaving(h) { var p = h.split('/'); return !(p[0] === VISIT.code && +p[1] - 1 === VISIT.i && MODE === VISIT.mode); }
+  function dirty() { var pr = ST.pairs[VISIT.i]; return !pr.done && sig(pr) !== VISIT.sig; }
+  function markVisit() { var pr = ST.pairs[I]; VISIT = { code: M.code, i: I, mode: MODE, sig: sig(pr), snap: JSON.parse(JSON.stringify(pr)), here: location.hash.replace('#', '') }; }
+  function askLeave(target) {
+    var i = VISIT.i, sn = VISIT.snap, blank = !sn.log.length && !sn.setup.ok;
+    sheet('Thoát ' + pairLabel(i) + '?', '<p>' + (blank ? 'Cặp này đang <b>Chưa đấu</b>. Thoát không lưu thì những gì vừa chọn hoặc ghi đều bỏ, cặp vẫn Chưa đấu. Dùng khi vào nhầm hoặc máy khác đang ghi cặp này.'
+      : 'Thoát không lưu thì mọi thay đổi trong lần vào này bị bỏ, cặp trở lại như lúc mới vào (' + replay(sn).sc.a + '–' + replay(sn).sc.b + ').') + '</p>', [
+      ['Thoát, không lưu', function () {
+        closeSheet(); var pr = ST.pairs[i], n = JSON.parse(JSON.stringify(sn));
+        n.timer.since = null; n.sent = pr.sent; n.check = null; ST.pairs[i] = n;
+        if (pr.sent > sn.sent || needsSend(pr)) touch(i); else store();  // only what already reached the sheet is sent back
+        VISIT.allow = true; go(target);
+      }, 'danger'],
+      ['Lưu và thoát', function () { closeSheet(); VISIT.allow = true; go(target); }, 'pri'],
+      ['Ở lại', closeSheet]]);
+  }
   function route() {
+    var target = location.hash.replace('#', '');
+    if (VISIT && !VISIT.allow && M && ST && M.code === VISIT.code && leaving(target) && dirty()) {
+      try { history.pushState(null, '', '#' + VISIT.here); } catch (e) {}
+      return askLeave(target);
+    }
     closeSheet(); $('toast').hidden = true;
     var parts = location.hash.replace('#', '').split('/'), m = playable.filter(function (x) { return x.code === parts[0]; })[0];
     if (m && locked(m)) m = null;  // a later match cannot be opened in official mode, even from an old link
-    if (!m) { if (ST) syncClock(); M = null; ST = null; renderList(); return show('list', 'Trọng tài'); }
+    if (!m) { if (ST) syncClock(); M = null; ST = null; VISIT = null; renderList(); return show('list', 'Trọng tài'); }
     if (M && ST && M.code === m.code && ST.mode !== MODE) M = null;  // mode switched: load the other copy
     if (!M || M.code !== m.code) { if (ST) { VIEW = 'list'; syncClock(); } M = m; ST = loadState(m.code); ['setupCourt', 'playCourt'].forEach(function (id) { $(id).innerHTML = ''; delete $(id).dataset.ready; }); pullServer(m.code); }
-    if (parts[1] === 'tong') { renderSum(); return show('sum', 'Tổng kết ' + M.code, 'Các cặp', M.code); }
+    if (parts[1] === 'tong') { VISIT = null; renderSum(); return show('sum', 'Tổng kết ' + M.code, 'Các cặp', M.code); }
     var i = +parts[1] - 1;
-    if (!(i >= 0 && i < PAIRS.length)) { renderPairs(); return show('pairs', M.code, 'Các trận', '#'); }
+    if (!(i >= 0 && i < PAIRS.length)) { VISIT = null; renderPairs(); return show('pairs', M.code, 'Các trận', '#'); }
     if (I !== i) { $('playCourt').innerHTML = ''; delete $('playCourt').dataset.ready; $('setupCourt').innerHTML = ''; delete $('setupCourt').dataset.ready; }
     I = i; var pr = ST.pairs[I], view = parts[2] || 'vitri';
     if (view !== 'vitri' && !pr.setup.ok) return location.replace('#' + M.code + '/' + (I + 1) + '/vitri');
     if (view === 'ket' && !pr.done) return location.replace('#' + M.code + '/' + (I + 1) + '/diem');
+    if (!VISIT || VISIT.allow || VISIT.code !== M.code || VISIT.i !== I || VISIT.mode !== MODE) markVisit(); else VISIT.here = location.hash.replace('#', '');
     if (view === 'vitri') { show('setup', pairLabel(I) + ' · xếp vị trí', 'Các cặp', M.code); return renderSetup(); }
     if (view === 'diem' && pr.manualEnd) { pr.manualEnd = false; touch(I); }  // coming back from "Kết thúc" by any path = scoring resumes
     if (view === 'diem') { show('play', pairLabel(I), 'Vị trí', M.code + '/' + (I + 1) + '/vitri'); keepAwake(); return renderPlay(); }
