@@ -309,6 +309,7 @@
     });
     $('endedNote').hidden = !r.end;
     $('undo').disabled = !pr.log.length;
+    $('resetPlay').disabled = !pr.log.length && !su.left;
     $('endBtn').disabled = !!r.end || pr.manualEnd;
     $('hitL').disabled = $('hitR').disabled = !!r.end || pr.manualEnd;
   }
@@ -433,12 +434,14 @@
     go(M.code + '/' + (I + 1) + (pr.done ? '/ket' : '/diem'));
   });
   /* reset: the pair goes back to "not played" (0–0, no positions, clock 0); the blank row is also sent so other phones and the site follow */
-  $('resetBtn').addEventListener('click', function () {
+  function askReset() {
     var pr = ST.pairs[I], r = replay(pr);
     sheet('Đặt lại ' + pairLabel(I) + '?', '<p>Xóa hết ' + pr.log.length + ' điểm (đang ' + r.sc.a + '–' + r.sc.b + '), vị trí đứng và đồng hồ. Cặp này về trạng thái chưa đấu' + (MODE === 'live' ? ', bảng tính cũng về 0–0' : '') + '. Không hoàn tác được.</p>', [
-      ['Đặt lại về 0', function () { closeSheet(); var n = blankPair(); n.sent = pr.sent; ST.pairs[I] = n; touch(I); syncClock(); renderSetup(); }, 'danger'],
+      ['Đặt lại về 0', function () { closeSheet(); $('toast').hidden = true; var n = blankPair(); n.sent = pr.sent; ST.pairs[I] = n; touch(I); go(M.code + '/' + (I + 1) + '/vitri'); }, 'danger'],
       ['Không, giữ nguyên', closeSheet]]);
-  });
+  }
+  $('resetBtn').addEventListener('click', askReset);
+  $('resetPlay').addEventListener('click', askReset);  // from the scoring screen: after reset, straight back to positions
   /* drag a player onto a court box: the half sets the team's side, top/bottom sets far/near; the partner takes the other box */
   var drag = null;
   function pct(e, rc) { return { x: Math.max(3, Math.min(97, (e.clientX - rc.left) / rc.width * 100)), y: Math.max(6, Math.min(94, (e.clientY - rc.top) / rc.height * 100)) }; }

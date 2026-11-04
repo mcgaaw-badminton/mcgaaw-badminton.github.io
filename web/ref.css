@@ -117,7 +117,7 @@ button.tok:active i { transform: scale(.9) }
 .team .sc { font-size: 60px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em }
 .team small { font-size: 13px; font-weight: 600; opacity: .92 }
 .team .p1 { position: absolute; top: 8px; right: 10px; font-weight: 800; font-size: 13px; opacity: .85 }
-.acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px }
 .act { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; padding: 6px; border: 0; border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--hair); font-weight: 700; font-size: 13px }
 .act svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
 .act.stop { color: var(--err) } .act:disabled { opacity: .4 }
