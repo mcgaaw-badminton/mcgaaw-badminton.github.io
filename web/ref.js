@@ -508,5 +508,14 @@
   }
   window.addEventListener('hashchange', route);
   document.addEventListener('visibilitychange', function () { if (document.hidden) { if (ST) store(); } else if (M) { retryAll(); pullServer(M.code); } });
+  /* light / dark: same choice as the main site (localStorage 'gcl-theme'); follows the phone until picked */
+  (function () {
+    var root = document.documentElement, btn = $('themeBtn'), mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : !!(mq && mq.matches); }
+    function paint() { var d = isDark(); root.classList.toggle('is-dark', d); btn.setAttribute('aria-label', d ? 'Chuyển sang nền sáng' : 'Chuyển sang nền tối'); btn.setAttribute('aria-pressed', String(d)); }
+    btn.addEventListener('click', function () { var next = isDark() ? 'light' : 'dark'; root.setAttribute('data-theme', next); try { localStorage.setItem('gcl-theme', next); } catch (e) {} paint(); });
+    if (mq && mq.addEventListener) mq.addEventListener('change', paint);
+    paint();
+  })();
   route();
 })();
