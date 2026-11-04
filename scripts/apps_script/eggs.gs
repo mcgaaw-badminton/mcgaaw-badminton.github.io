@@ -1,6 +1,9 @@
 /* MCGAAW Badminton Cup — rotten-egg counter (Google Sheet + Apps Script web app).
    GET  -> {"<team>-<seed>": eggs, ...}
-   POST (text/plain JSON {"3-1": 4, ...}) -> adds 1..200 per player under a lock, returns the new totals. */
+   POST (text/plain JSON {"3-1": 4, ...}) -> adds 1..200 per player under a lock, returns the new totals.
+   Referee scores (trong-tai.html): GET ?ref=T1 -> {"pairs": {"1": {"updated": ms, "state": {...}}, ...}}
+   POST {"_ref": 1, "match": "T1", "pair": 1, "updated": ms, "a": 31, "b": 27, "done": true, "seeds": "1-2", "teamA": "Đội 1", "teamB": "Đội 2", "state": {...}}
+   -> upserts one row of the 'referee' sheet (a newer 'updated' wins). */
 const SHEET_ID = '1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI';
 const PLAYERS = [["1-1", "Đội 1", "Nguyễn Viết Tri"], ["1-2", "Đội 1", "Nguyễn Duy Hiệu"], ["1-3", "Đội 1", "Nguyễn Thanh Thiên Minh"], ["1-4", "Đội 1", "Nguyễn Thanh Tiễn"], ["1-5", "Đội 1", "Nguyễn Thị Hồng Vấn"], ["2-1", "Đội 2", "Đoàn Anh Kiệt"], ["2-2", "Đội 2", "Trần Võ Toàn Phát"], ["2-3", "Đội 2", "Lữ Thị Trang"], ["2-4", "Đội 2", "Nguyễn Ngọc Bảo Kha"], ["2-5", "Đội 2", "Nguyễn Thị Diệp Sương"], ["3-1", "Đội 3", "Nguyễn Chí Toàn"], ["3-2", "Đội 3", "Nguyễn Đức Nhuận"], ["3-3", "Đội 3", "Huỳnh Hữu Tín"], ["3-4", "Đội 3", "Trần Thiện Sáng"], ["3-5", "Đội 3", "Tô Vy Quân"], ["4-1", "Đội 4", "Phạm Công Quân"], ["4-2", "Đội 4", "Phạm Quốc Nhật"], ["4-3", "Đội 4", "Nguyễn Văn Anh Tiến"], ["4-4", "Đội 4", "Nguyễn Văn Hùng"], ["4-5", "Đội 4", "Đỗ Sơn Tây"], ["5-1", "Đội 5", "Trương Lam"], ["5-2", "Đội 5", "Nguyễn Thái Thịnh"], ["5-3", "Đội 5", "Lê Đình Nhật Khang"], ["5-4", "Đội 5", "Lê Hữu Thái"], ["5-5", "Đội 5", "Huỳnh Thị Hồng Chi"], ["6-1", "Đội 6", "Lê Nguyễn Trung Vĩnh"], ["6-2", "Đội 6", "Huỳnh Lê Anh Vũ"], ["6-3", "Đội 6", "Huỳnh Võ Minh Tân"], ["6-4", "Đội 6", "Lê Quốc Tuấn"], ["6-5", "Đội 6", "Nguyễn Thị Như Thùy"]];
 
@@ -20,7 +23,8 @@ function sheet_() {
 function totals_(rows) { const o = {}; rows.forEach(r => { o[r[0]] = Number(r[3]) || 0; }); return o; }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
-function doGet() {
+function doGet(e) {
+  if (e && e.parameter && e.parameter.ref) return json_(refGet_(String(e.parameter.ref)));
   const cache = CacheService.getScriptCache(), hit = cache.get('eggs');
   if (hit) return json_(JSON.parse(hit));
   const sh = sheet_(), o = totals_(sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues());
@@ -31,6 +35,7 @@ function doGet() {
 function doPost(e) {
   let add = {};
   try { add = JSON.parse(e.postData.contents); } catch (err) { return json_({ error: 'bad json' }); }
+  if (add && add._ref) return json_(refPut_(add));
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -49,4 +54,47 @@ function setup() {
   sheet_();
   ss.rename('MCGAAW Cup — Trứng thối');
   CacheService.getScriptCache().remove('eggs');
+}
+
+/* ---------- referee scores ---------- */
+const REF_HEAD = ['Trận', 'Cặp', 'Seed', 'Đội A', 'Đội B', 'Điểm A', 'Điểm B', 'Xong', 'Cập nhật (ms)', 'Lưu trữ'];
+function refSheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName('referee');
+  if (!sh) {
+    sh = ss.insertSheet('referee');
+    sh.getRange(1, 1, 1, REF_HEAD.length).setValues([REF_HEAD]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange('C:C').setNumberFormat('@');  // "1-2" must stay text
+  }
+  return sh;
+}
+function refGet_(match) {
+  const sh = refSheet_(), out = { pairs: {} };
+  if (sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, REF_HEAD.length).getValues().forEach(r => {
+    if (String(r[0]) !== match) return;
+    let st = null; try { st = JSON.parse(r[9]); } catch (err) {}
+    out.pairs[String(r[1])] = { updated: Number(r[8]) || 0, state: st };
+  });
+  return out;
+}
+function refPut_(b) {
+  const match = String(b.match || ''), pair = Number(b.pair), updated = Number(b.updated) || 0;
+  if (!/^T\d{1,2}$/.test(match) || !(pair >= 1 && pair <= 5)) return { error: 'bad key' };
+  const state = JSON.stringify(b.state || null);
+  if (state.length > 40000) return { error: 'too big' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const sh = refSheet_(), n = Math.max(0, sh.getLastRow() - 1);
+    const keys = n ? sh.getRange(2, 1, n, 2).getValues() : [];
+    let row = -1;
+    for (let i = 0; i < keys.length; i++) if (String(keys[i][0]) === match && Number(keys[i][1]) === pair) { row = i + 2; break; }
+    if (row > 0 && (Number(sh.getRange(row, 9).getValue()) || 0) > updated) return { ok: true, stale: true };
+    const vals = [[match, pair, String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), Number(b.a) || 0, Number(b.b) || 0, b.done ? 'x' : '', updated, state]];
+    if (row < 0) row = sh.getLastRow() + 1;
+    sh.getRange(row, 1, 1, REF_HEAD.length).setValues(vals);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
 }

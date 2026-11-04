@@ -206,6 +206,21 @@ def main():
             + '\n<script src="data.js?v=' + v + '"></script>\n' + vendor + '<script src="assets/site.js?v=' + v + '"></script>\n</body>\n</html>\n')
     (out / "index.html").write_text(page, encoding="utf-8")
 
+    # referee scoring page: its own link (trong-tai.html), phone first, same data.js
+    for f in ("ref.css", "ref.js"):
+        shutil.copy2(paths.WEB / f, out / "assets" / f)
+    ref = (paths.WEB / "ref.html").read_text(encoding="utf-8")
+    (out / "trong-tai.html").write_text(
+        '<!doctype html>\n<html lang="vi">\n<head>\n<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        '<meta http-equiv="Cache-Control" content="no-cache">\n<meta name="robots" content="noindex">\n'
+        f'<title>Trọng tài · {site["title"]}</title>\n'
+        '<link rel="icon" href="assets/logo.png">\n<link rel="stylesheet" href="assets/fonts.css">\n'
+        f'<link rel="stylesheet" href="assets/ref.css?v={v}">\n</head>\n<body>\n'
+        + ref.replace("{{LOGO}}", "assets/logo.png")
+        + f'\n<script src="data.js?v={v}"></script>\n<script src="assets/ref.js?v={v}"></script>\n</body>\n</html>\n',
+        encoding="utf-8")
+
     if a.preview:
         logo = "data:image/png;base64," + base64.b64encode(paths.LOGO.read_bytes()).decode()
         pdata = dict(data, gallery=[], docs=[{"label": d["label"], "href": None} for d in docs],

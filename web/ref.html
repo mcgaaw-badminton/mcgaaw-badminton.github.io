@@ -1,0 +1,56 @@
+<script>try { var t = localStorage.getItem('gcl-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
+<div class="app" id="app">
+  <header class="top">
+    <a class="back" href="./" aria-label="Về trang giải"><img src="{{LOGO}}" alt="" width="28" height="28"></a>
+    <button type="button" class="match-btn" id="matchBtn" aria-haspopup="dialog"><span id="matchTitle">Chọn trận</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <span class="sync" id="sync" role="status"><i></i><span id="syncTxt">Chưa có dữ liệu</span></span>
+  </header>
+
+  <!-- match list -->
+  <section class="pick" id="pick" aria-label="Chọn trận">
+    <h1>Trọng tài</h1>
+    <p class="muted">Chọn trận. Mỗi cặp chạm 31 điểm là xong, tự sang cặp sau.</p>
+    <div class="mlist" id="mlist"></div>
+  </section>
+
+  <!-- scoring -->
+  <section class="game" id="game" hidden>
+    <div class="pairs-row"><nav class="pairs" id="pairs" aria-label="Các cặp"></nav><span class="target" id="target"></span></div>
+
+    <button type="button" class="side" id="sideTop" data-team=""><span class="tn"></span><span class="plus1">+1</span><b class="sc"></b></button>
+
+    <div class="court-wrap">
+      <div class="court" id="court" aria-label="Sân: chạm vào người ghi điểm">
+        <div class="half h-top"></div><div class="half h-bot"></div>
+        <div class="svc tl"></div><div class="svc tr"></div><div class="svc bl"></div><div class="svc br"></div>
+        <div class="net"></div>
+        <svg class="arrow" id="arrow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line id="arrowLine" x1="0" y1="0" x2="0" y2="0"/></svg>
+        <span class="shuttle" id="shuttle" aria-hidden="true"></span>
+        <div class="court-tools">
+          <button type="button" class="ctool" id="swapEnds" aria-label="Đổi đầu sân (đội trên xuống dưới)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M8 20l-4-4M8 4l4 4M16 20V4M16 4l4 4M16 20l-4-4"/></svg></button>
+          <button type="button" class="ctool" id="mirror" aria-label="Lật trái phải"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M20 8l-4-4M4 16h16M4 16l4 4"/></svg></button>
+        </div>
+      </div>
+      <p class="call" id="call" aria-live="polite"></p>
+    </div>
+
+    <button type="button" class="side" id="sideBot" data-team=""><span class="tn"></span><span class="plus1">+1</span><b class="sc"></b></button>
+
+    <div class="setup" id="setup">
+      <p><b>Trước khi giao cầu:</b> chọn đội giao, ai đứng ô phải. Nút ⇅ ⇄ trên sân xoay hình cho khớp chỗ anh đứng.</p>
+      <div class="setup-row" id="setupRow"></div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-head"><b>Điểm đã ghi</b><span class="muted">chạm để sửa</span><button type="button" class="undo" id="undo">↶ Hoàn tác</button></div>
+      <ol class="log" id="log"></ol>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden><span id="toastTxt"></span><button type="button" id="toastUndo">Hoàn tác</button></div>
+
+  <!-- pair finished / match summary -->
+  <div class="sheet" id="sheet" hidden><div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle"></h2><div id="sheetBody"></div><div class="sheet-act" id="sheetAct"></div>
+  </div></div>
+</div>
