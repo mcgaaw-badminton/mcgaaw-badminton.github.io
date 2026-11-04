@@ -20,7 +20,7 @@ with sync_playwright() as p:
         pg.route('**/macros/**',lambda r:r.fulfill(status=200,content_type='application/json',headers={'access-control-allow-origin':'*'},body='{"pairs":{}}'))
         pg.goto('http://127.0.0.1:8796/trong-tai.html#T1/1/vitri'); pg.wait_for_timeout(300)
         print(W,'setup blank', pg.evaluate(CHK,'#setupCourt'))
-        pg.click('#pickLeft [data-left="b"]'); pg.click('#pickServe [data-serve="a"]'); pg.wait_for_timeout(500)
+        pg.click('#teamFoot .tchip.s-l'); pg.click('#pickServe [data-serve="a"]'); pg.wait_for_timeout(500)
         print(W,'setup set  ', pg.evaluate(CHK,'#setupCourt'), '| page h', pg.evaluate('document.documentElement.scrollHeight'), '/', H)
         pg.screenshot(path=f'{SP}/q_setup_{W}.png')
         pg.click('#startBtn'); pg.wait_for_timeout(600)

@@ -28,11 +28,11 @@ with sync_playwright() as p:
     b=p.chromium.launch()
     for W,H in [(360,780),(375,667),(390,844)]:
         ctx=b.new_context(viewport={'width':W,'height':H}); ctx.route(API+'*',h); pg=ctx.new_page()
-        pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); pg.click('#pickLeft [data-left="a"]'); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
+        pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
         print(W,H,'play page height', pg.evaluate('document.documentElement.scrollHeight'), 'acts bottom', round(pg.locator('.acts').bounding_box()['y']+pg.locator('.acts').bounding_box()['height']))
         pg.screenshot(path=f'{SP}/p_play_{W}.png'); ctx.close(); official.clear()
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); ctx.route(API+'*',h); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); pg.click('#pickLeft [data-left="a"]'); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
+    pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
     print('call at 0-0:', pg.inner_text('#call').replace('\n',' / '), '| hitL exists', pg.locator('#hitL').count())
     q=zone_of(pg,'a1'); lg=pg.evaluate("JSON.parse(localStorage.getItem('gcl-ref-T1')).pairs[0].log"); print('tap box',q,'-> log', lg, '| toast', pg.inner_text('#toastTxt'))
     # score: a gets points alternating players until 15, b gets some
@@ -62,5 +62,5 @@ with sync_playwright() as p:
     pg.screenshot(path=f'{SP}/p_end.png', full_page=True)
     pg.click('#nextBtn'); pg.wait_for_timeout(400); print('next ->', pg.evaluate('location.hash'), pg.inner_text('#title'))
     pg.goto(B+'#T1/tong'); pg.wait_for_timeout(400); print('sum:', pg.inner_text('#sum table.sum >> nth=0').replace('\n',' | '))
-    pg.goto(B+'#T1/2/vitri'); pg.wait_for_timeout(300); pg.click('#pickLeft [data-left="b"]'); pg.click('#pickServe [data-serve="b"]'); pg.wait_for_timeout(200); pg.screenshot(path=f'{SP}/p_setup_new.png')
+    pg.goto(B+'#T1/2/vitri'); pg.wait_for_timeout(300); pg.click('#teamFoot .tchip.s-l'); pg.click('#pickServe [data-serve="b"]'); pg.wait_for_timeout(200); pg.screenshot(path=f'{SP}/p_setup_new.png')
     print('errors', errs); b.close()

@@ -29,7 +29,7 @@ with sync_playwright() as p:
         pg.screenshot(path=f'{SP}/r_pairs_{W}.png'); print(W,'pairs page h', pg.evaluate('document.documentElement.scrollHeight'),'/',H)
         pg.goto(B+'#T1/2/vitri'); pg.wait_for_timeout(300); print(W,'direct link to absent ->', pg.evaluate('location.hash'), pg.inner_text('#title'))
         pg.click('#plist .rowlink >> nth=0'); pg.wait_for_timeout(300)
-        pg.click('#pickLeft [data-left="a"]'); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
+        pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)
         n=0
         while '/ket' not in pg.evaluate('location.hash') and n<80:
             if pg.is_visible('#sheet'): pg.click('#sheetAct .big.pri')

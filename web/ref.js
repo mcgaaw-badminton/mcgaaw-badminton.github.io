@@ -37,7 +37,7 @@
   setMode(MODE);
 
   /* ---------- state ---------- */
-  function blankPair() { return { setup: { left: null, far: { a: null, b: null }, serve: null, ok: false }, log: [], timer: { ms: 0, since: null }, manualEnd: false, done: false, updated: 0, sent: 0, check: null }; }
+  function blankPair() { return { setup: { left: 'a', far: { a: 0, b: 0 }, serve: null, ok: false }, log: [], timer: { ms: 0, since: null }, manualEnd: false, done: false, updated: 0, sent: 0, check: null }; }
   function migrate(p) {  // v1 pairs (aR/bR + aTop) -> v2
     if (!p.setup || p.setup.left !== undefined) return p;
     var n = blankPair(); n.log = p.log || []; n.updated = p.updated || 0;
@@ -47,7 +47,7 @@
   function loadState(code) {
     var st = ls(keyOf(code));
     if (!st || !st.pairs || st.pairs.length !== PAIRS.length) st = { v: 2, pairs: PAIRS.map(blankPair) };
-    st.pairs = st.pairs.map(function (p) { p = migrate(p); var b = blankPair(); Object.keys(b).forEach(function (k) { if (p[k] === undefined) p[k] = b[k]; }); return p; });
+    st.pairs = st.pairs.map(function (p) { p = migrate(p); var b = blankPair(); Object.keys(b).forEach(function (k) { if (p[k] === undefined) p[k] = b[k]; }); if (!p.setup.left) { p.setup.left = 'a'; fillFar(p.setup); } return p; });
     st.v = 2; st.mode = MODE; return st;
   }
   function store() { ls(keyOf(M.code), ST); }
@@ -318,8 +318,10 @@
     var pr = ST.pairs[I], su = pr.setup;
     fillFar(su);
     drawCourt($('setupCourt'), I, 'setup');
-    $('pickLeft').innerHTML = choiceBtns('left', [['a', esc(teamName('a'))], ['b', esc(teamName('b'))]], su.left);
-    $('step3').classList.toggle('off', !su.left);
+    var L = su.left, R = other(L);
+    $('teamFoot').innerHTML = '<button type="button" class="tchip s-l" data-team="' + L + '" aria-label="' + esc(teamName(L)) + ' ở nửa trái, kéo hoặc chạm để đổi sân"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-4 5 4 5M16 7l4 5-4 5"/></svg>' + esc(teamName(L)) + '</button>' +
+      '<span class="ref-me" title="Chỗ trọng tài đứng"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21c0-4 3.1-7 7-7s7 3 7 7"/></svg>Trọng tài</span>' +
+      '<button type="button" class="tchip s-r" data-team="' + R + '" aria-label="' + esc(teamName(R)) + ' ở nửa phải, kéo hoặc chạm để đổi sân"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-4 5 4 5M16 7l4 5-4 5"/></svg>' + esc(teamName(R)) + '</button>';
     $('pickServe').innerHTML = choiceBtns('serve', [['a', esc(teamName('a')), su.left ? (su.left === 'a' ? 's-l' : 's-r') : ''], ['b', esc(teamName('b')), su.left ? (su.left === 'b' ? 's-l' : 's-r') : '']], su.serve);
     var ready = complete(su);
     $('setupWarn').hidden = !pr.log.length;
@@ -502,7 +504,7 @@
     });
   });
   $('scrSetup').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b || b.id === 'startBtn' || b.id === 'resetBtn' || b.classList.contains('tok')) return;
+    var b = e.target.closest('button'); if (!b || b.id === 'startBtn' || b.id === 'resetBtn' || b.classList.contains('tok') || b.classList.contains('tchip')) return;
     var pr = ST.pairs[I], su = pr.setup;
     if (b.dataset.left) su.left = b.dataset.left;
     if (b.dataset.serve) su.serve = b.dataset.serve;
@@ -550,6 +552,22 @@
     } else if (ok) swapTok(d.tok);
     renderSetup();
   }
+  /* team chips under the court: slide one to the other side (or tap it) and the two teams change halves; far/near stays */
+  function swapSides() { var su = ST.pairs[I].setup; su.left = other(su.left); fillFar(su); su.ok = false; touch(I); renderSetup(); }
+  var tdrag = null;
+  $('teamFoot').addEventListener('pointerdown', function (e) { var c = e.target.closest('.tchip'); if (!c) return; e.preventDefault(); tdrag = { c: c, x0: e.clientX, dx: 0, w: this.getBoundingClientRect().width }; try { c.setPointerCapture(e.pointerId); } catch (er) {} });
+  $('teamFoot').addEventListener('pointermove', function (e) {
+    if (!tdrag) return; var left = tdrag.c.classList.contains('s-l'), dx = e.clientX - tdrag.x0;
+    dx = left ? Math.max(0, Math.min(tdrag.w * .62, dx)) : Math.min(0, Math.max(-tdrag.w * .62, dx)); tdrag.dx = dx;
+    tdrag.c.style.transform = 'translateX(' + dx + 'px)'; tdrag.c.classList.add('drag');
+  });
+  function endTeam(ok) {
+    if (!tdrag) return; var d = tdrag; tdrag = null; d.c.style.transform = ''; d.c.classList.remove('drag');
+    if (ok && (Math.abs(d.dx) > d.w * .2 || Math.abs(d.dx) < 6)) swapSides();  // slid far enough, or a plain tap
+  }
+  $('teamFoot').addEventListener('pointerup', function () { endTeam(true); });
+  $('teamFoot').addEventListener('pointercancel', function () { endTeam(false); });
+  $('teamFoot').addEventListener('click', function (e) { if (e.detail === 0 && e.target.closest('.tchip')) swapSides(); });  // keyboard
   function swapTok(tok) {  // tap a player: swap far/near with the partner
     var su = ST.pairs[I].setup, t = tok.dataset.team; if (!su.left) return;
     fillFar(su); su.far[t] = 1 - su.far[t]; su.ok = false; touch(I);

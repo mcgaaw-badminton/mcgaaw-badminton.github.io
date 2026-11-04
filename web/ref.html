@@ -29,14 +29,10 @@
 
   <!-- 3. positions: must be set before scoring -->
   <section class="scr" id="scrSetup" hidden>
-    <div class="court-wrap"><div class="court" id="setupCourt"></div><div class="court-foot" aria-hidden="true"><span class="cf l"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Trái</span><span class="ref-me" title="Chỗ trọng tài đứng"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21c0-4 3.1-7 7-7s7 3 7 7"/></svg>Trọng tài</span><span class="cf r">Phải<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span></div></div>
-    <p class="muted drag-hint">Kéo người vào ô · chạm người để đổi trước ↔ sau.</p>
-    <div class="step" id="step1">
-      <h2><span class="n">1</span>Đội nào ở nửa sân <b class="t-l">bên TRÁI</b>?</h2>
-      <div class="choice" id="pickLeft"></div>
-    </div>
+    <div class="court-wrap"><div class="court" id="setupCourt"></div><div class="court-foot teams" id="teamFoot"></div></div>
+    <p class="muted drag-hint">Kéo người vào ô, chạm để đổi trước ↔ sau · kéo thẻ đội sang bên kia để đổi sân.</p>
     <div class="step" id="step3">
-      <h2><span class="n">2</span>Đội nào giao cầu trước?</h2>
+      <h2>Đội nào giao cầu trước?</h2>
       <div class="choice" id="pickServe"></div>
     </div>
     <p class="warn" id="setupWarn" hidden>Đã có điểm: đổi vị trí chỉ tính lại chỗ đứng, điểm giữ nguyên.</p>

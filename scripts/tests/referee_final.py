@@ -26,7 +26,7 @@ def h(route):
 B='http://127.0.0.1:8798/trong-tai.html'
 def play_pair(pg,k,win_lt=True):
     pg.goto(B+f'#T1/{k}/vitri'); pg.wait_for_timeout(300)
-    pg.click('#pickLeft [data-left="a"]'); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(300)
+    pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(300)
     n=0
     while '/ket' not in pg.evaluate('location.hash') and n<90:
         if pg.is_visible('#sheet'): pg.click('#sheetAct .big.pri')

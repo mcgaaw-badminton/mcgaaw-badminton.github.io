@@ -25,13 +25,13 @@ with sync_playwright() as p:
     b=p.chromium.launch()
     for (W,H) in [(390,844),(360,780),(375,667)]:
         ctx=b.new_context(viewport={'width':W,'height':H}); ctx.route(API+'*',lambda r:r.fulfill(status=200,content_type='application/json',headers={'access-control-allow-origin':'*'},body='{"pairs":{}}'))
-        pg=ctx.new_page(); pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); c(pg,'#pickLeft [data-left="a"]'); c(pg,'#pickServe [data-serve="a"]')
+        pg=ctx.new_page(); pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); c(pg,'#pickServe [data-serve="a"]')
         print(W,H,'setup page height', pg.evaluate('document.documentElement.scrollHeight'), 'start btn bottom', round(pg.locator('#startBtn').bounding_box()['y']+pg.locator('#startBtn').bounding_box()['height']))
         pg.screenshot(path=f'{SP}/z_setup_{W}.png'); ctx.close()
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); ctx.route(API+'*',h)
     pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
     pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(400)
-    c(pg,'#pickLeft [data-left="a"]'); print('default far', pair(pg)['setup']['far'], 'serve step on', 'off' not in pg.get_attribute('#step3','class'))
+    print('default far', pair(pg)['setup']['far'], 'serve step on', 'off' not in pg.get_attribute('#step3','class'))
     c(pg,'#setupCourt .tok[data-k="a1"] i'); print('tap a1 swaps:', pair(pg)['setup']['far'])
     c(pg,'#pickServe [data-serve="b"]'); print('posts after positions only:', posts)
     c(pg,'#back',400); print('leave sheet:', pg.is_visible('#sheet'), pg.inner_text('#sheetTitle'), '| hash', pg.evaluate('location.hash'))
@@ -40,7 +40,7 @@ with sync_playwright() as p:
     # unchanged visit: no prompt
     c(pg,'#back',400); print('unchanged leave -> no sheet:', pg.is_hidden('#sheet'), pg.evaluate('location.hash'))
     # real scoring, save and exit
-    c(pg,'#plist .row >> nth=0',400); c(pg,'#pickLeft [data-left="a"]'); c(pg,'#pickServe [data-serve="a"]'); c(pg,'#startBtn',400)
+    c(pg,'#plist .row >> nth=0',400); c(pg,'#pickServe [data-serve="a"]'); c(pg,'#startBtn',400)
     for s in ['#playCourt .zone.lt','#playCourt .zone.lt','#playCourt .zone.rt']: c(pg,s,380)
     pg.wait_for_timeout(800); print('team progress:', pg.inner_text('#bL .tprog'), pg.get_attribute('#bL .prog i','style'))
     pg.screenshot(path=f'{SP}/z_play.png')
