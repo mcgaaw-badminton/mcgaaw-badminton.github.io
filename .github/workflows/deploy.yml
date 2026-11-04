@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   schedule:
     # 20:05 Vietnam time every Wednesday (match days): standings pick up the referees' official scores
-    - cron: "5 13 * * 3"
+    - cron: "5 13 * * *"  # 20:05 Vietnam every day: a match finished on a make-up day reaches the standings the same night
 
 permissions:
   contents: read

@@ -607,6 +607,8 @@
       ['eggs', 'Trứng thối', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
       ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
       ['pf', 'Điểm ghi', function (p) { return p.pf; }, function (p) { return p.pf; }],
+      ['atk', 'Tấn công', function (p) { return p.atk || 0; }, function (p) { return p.atk || 0; }],
+      ['sup', 'Hỗ trợ', function (p) { return p.sup || 0; }, function (p) { return p.sup || 0; }],
       ['diff', 'Hiệu số', function (p) { return p.diff; }, function (p) { return (p.diff > 0 ? '+' : '') + p.diff; }],
       ['rate', 'Tỉ lệ thắng', function (p) { return p.rate == null ? -1 : p.rate; }, function (p) { return p.rate == null ? '–' : p.rate + '%'; }]
     ];

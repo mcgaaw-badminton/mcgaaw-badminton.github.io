@@ -45,13 +45,9 @@
 
   <!-- 4. scoring -->
   <section class="scr" id="scrPlay" hidden>
-    <p class="call" id="call" aria-live="polite"></p>
-    <div class="court-wrap"><div class="court" id="playCourt"></div><div class="court-foot" aria-hidden="true"><span class="cf l"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Trái</span><span class="ref-me" title="Chỗ trọng tài đứng"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21c0-4 3.1-7 7-7s7 3 7 7"/></svg>Trọng tài</span><span class="cf r">Phải<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span></div></div>
+    <div class="board"><div class="bt s-l" id="bL"></div><p class="call" id="call" aria-live="polite"></p><div class="bt s-r" id="bR"></div></div>
+    <div class="court-wrap"><div class="court big" id="playCourt"></div><div class="court-foot" aria-hidden="true"><span class="cf l"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Trái</span><span class="ref-me" title="Chỗ trọng tài đứng"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21c0-4 3.1-7 7-7s7 3 7 7"/></svg>Trọng tài</span><span class="cf r">Phải<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span></div></div>
     <p class="hint" id="endedNote" hidden>Đã đủ 31 điểm · <button type="button" class="link" id="seeResult">xem kết quả</button></p>
-    <div class="hit">
-      <button type="button" class="team s-l" id="hitL"></button>
-      <button type="button" class="team s-r" id="hitR"></button>
-    </div>
     <div class="acts">
       <button type="button" class="act" id="undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Hoàn tác</button>
       <button type="button" class="act" id="toLog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Các điểm</button>
@@ -64,7 +60,7 @@
   <section class="scr" id="scrEnd" hidden>
     <div class="result" id="result"></div>
     <div class="submit" id="submit"></div>
-    <button type="button" class="big pri" id="nextBtn"></button>
+    <div class="nextpick" id="nextPick"></div>
     <button type="button" class="big ghost" id="resumeBtn">Quay lại tính tiếp</button>
   </section>
 

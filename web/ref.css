@@ -197,3 +197,38 @@ button.tok:active i { transform: scale(.9) }
 .team .tprog small { font-size: 12px; font-weight: 700; white-space: nowrap }
 #setupCourt .tok { cursor: grab }
 #scrSetup { gap: 10px; padding-top: 12px } #scrSetup .step { padding: 12px 14px }
+
+/* scoring v2: scoreboard on top, taller court, each player's box is the tap target (a point always names its scorer) */
+.board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 8px }
+.bt { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 10px; border-radius: 16px; color: #fff; text-align: center }
+.bt.s-l { background: var(--sl) } .bt.s-r { background: var(--sr) }
+.bt .nm { font-weight: 800; font-size: 16px } .bt .nm em { font-style: normal; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: #FFD666; color: #0C1430; vertical-align: 2px }
+.bt .sc { font-size: 54px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em }
+.bt .tprog { width: 90% } .bt .prog { flex: 1; height: 5px; background: rgba(255, 255, 255, .28) } .bt .prog i { background: #fff } .bt .tprog small { font-size: 12px; font-weight: 700; white-space: nowrap }
+.board .call { align-self: center; max-width: 92px; font-size: 13px; line-height: 1.35; color: var(--muted) } .board .call b { font-size: 16px; color: var(--ink) }
+.court.big { aspect-ratio: 1 / .92 }
+.zone { position: absolute; z-index: 1; width: 50%; height: 50%; padding: 0; border: 0; background: transparent; -webkit-tap-highlight-color: transparent }
+.zone.lt { left: 0; top: 0 } .zone.lb { left: 0; bottom: 0 } .zone.rt { right: 0; top: 0 } .zone.rb { right: 0; bottom: 0 }
+.zone:disabled { cursor: default }
+.zone:focus-visible { outline: 3px solid #fff; outline-offset: -6px }
+.zone.hitfx { animation: zhit .35s ease-out }
+@keyframes zhit { from { background: rgba(255, 255, 255, .35) } to { background: transparent } }
+#playCourt .tok { pointer-events: none }
+.pst .th th { padding-top: 12px; text-align: left; color: var(--ink) } .pst .th small { font-weight: 600; color: var(--muted) }
+
+/* court without lines: halves shade top→bottom, the two colours blend across the net, each box is a soft glow */
+.court { box-shadow: 0 8px 22px rgba(12, 20, 48, .2) }
+.hl { background: linear-gradient(180deg, rgba(255, 255, 255, .09), rgba(0, 0, 0, .1)), var(--court-l) }
+.hr { background: linear-gradient(180deg, rgba(255, 255, 255, .09), rgba(0, 0, 0, .1)), var(--court-r) }
+.net { left: 40%; width: 20%; background: linear-gradient(90deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .09), rgba(0, 0, 0, .1)), linear-gradient(90deg, var(--court-l), var(--court-r)) }
+.box { border: 0 !important; border-radius: 40%; background: radial-gradient(closest-side, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0)); transition: background .35s }
+.box.lt, .box.rt { background: radial-gradient(closest-side, rgba(255, 255, 255, .1), rgba(255, 255, 255, 0)) }
+.box.lb, .box.rb { background: radial-gradient(closest-side, rgba(0, 0, 0, .1), rgba(0, 0, 0, 0)) }
+.box.serve { background: radial-gradient(closest-side, rgba(255, 214, 102, .42), rgba(255, 214, 102, 0)) }
+.box.recv { background: radial-gradient(closest-side, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0)) }
+.box.drop { background: radial-gradient(closest-side, rgba(255, 255, 255, .4), rgba(255, 255, 255, 0)) }
+/* pick the next pair */
+.nextpick { display: flex; flex-direction: column; gap: 8px }
+.nx { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 8px 12px }
+.nx small { font-size: 13px; font-weight: 600; opacity: .85 }
+.sum tr.later td { color: var(--muted) } .sum tr.later td[colspan] { text-align: left; font-size: 13px }

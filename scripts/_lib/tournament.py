@@ -148,7 +148,7 @@ def resolve_matches(sched, teams_cfg, branches):
             sides[k] = {"label": v, "team": team}
         res = m.get("result")
         if res:
-            res = {"a": res["a"], "b": res["b"], "pa": res["pa"], "pb": res["pb"], "pairs": res.get("pairs")}
+            res = {"a": res["a"], "b": res["b"], "pa": res["pa"], "pb": res["pb"], "pairs": res.get("pairs"), "players": res.get("players")}
         dd, mm, yy = m["date"].split("/")
         o = {"code": m["code"], "round": m["round"], "day": m["day"], "date": m["date"], "iso": f"{yy}-{mm}-{dd}",
              "branch": branch.get(m["code"], "win"), "a": sides["a"], "b": sides["b"], "result": res,
@@ -197,8 +197,11 @@ def stats(teams_cfg, matches, placements):
             rank = i * n_teams + subs[t][i]  # 1 = strongest overall by seed
             P[f"{t}-{i + 1}"] = {"id": f"{t}-{i + 1}", "name": name, "team": t, "seed": i + 1, "female": _female(name),
                                  "prior": 1 - (rank - 1) / max(1, n_all - 1),
-                                 "n": 0, "won": 0, "pf": 0, "pa": 0, "log": []}
+                                 "n": 0, "won": 0, "pf": 0, "pa": 0, "atk": 0, "sup": 0, "log": []}
     for m in played:
+        for pid, (atk, sup) in (m["result"].get("players") or {}).items():  # from the referee's rally log
+            if pid in P:
+                P[pid]["atk"] += int(atk); P[pid]["sup"] += int(sup)
         ps = m["result"].get("pairs")
         if not ps:
             continue
@@ -217,7 +220,7 @@ def stats(teams_cfg, matches, placements):
         before = [e for e in p["log"] if e not in last]
         prev = _heat(p["prior"], len(before), sum(e[1] for e in before), sum(e[2] for e in before)) if last else heat
         players.append({"id": p["id"], "name": p["name"], "team": p["team"], "seed": p["seed"], "female": p["female"],
-                        "played": p["n"], "won": p["won"], "lost": p["n"] - p["won"], "pf": p["pf"], "pa": p["pa"], "diff": diff,
+                        "played": p["n"], "won": p["won"], "lost": p["n"] - p["won"], "pf": p["pf"], "pa": p["pa"], "diff": diff, "atk": p["atk"], "sup": p["sup"],
                         "rate": round(100 * p["won"] / p["n"]) if p["n"] else None,
                         "heat": heat, "trend": round(heat - prev, 1),
                         "form": [1 if e[1] else 0 for e in p["log"][-4:]]})

@@ -269,12 +269,49 @@ def referee_results(site, sched, n_pairs):
         pairs = [got.get(str(k + 1)) for k in range(n_pairs)]
         if all(p and p.get("done") for p in pairs) and BUILT >= cutoff:
             m["result"] = {"pairs": [[int(p["a"]), int(p["b"])] for p in pairs]}
+            pl = referee_players(api, m, n_pairs)
+            if pl:
+                m["result"]["players"] = pl
             used.append(m["code"])
             print(f"[REFEREE] {m['code']}: " + ", ".join(f"{p['a']}-{p['b']}" for p in pairs))
         else:
             n = sum(1 for p in pairs if p and p.get("done"))
             print(f"[REFEREE] {m['code']}: {n}/{n_pairs} pairs finished" + ("" if BUILT >= cutoff else f", waits for {REF_HOUR}:00 {m['date']}"))
     return used
+
+
+def referee_players(api, m, n_pairs, target=31):
+    """Per player {"<team>-<seed>": [attack, support]} from the referee's rally log (?ref=<code>).
+    Attack = rallies the player won, support = rallies the partner won; rallies past 31 do not count.
+    Seeds come from config/teams.json pairs, so the ids match the standings' player ids."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(api + "?ref=" + m["code"], timeout=25) as r:
+            rows = (json.loads(r.read().decode("utf-8")) or {}).get("pairs") or {}
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] {m['code']}: referee rallies not read ({e}); player attack/support skipped")
+        return {}
+    pairs = read_json(paths.TEAMS_JSON)["pairs"]
+    out, unknown = {}, 0
+    for k in range(n_pairs):
+        st = (rows.get(str(k + 1)) or {}).get("state") or {}
+        sc = {"a": 0, "b": 0}
+        for e in st.get("log") or []:
+            if max(sc.values()) >= target:
+                break
+            w, p = e.get("w"), e.get("p")
+            if w not in sc:
+                continue
+            sc[w] += 1
+            if p not in (0, 1):
+                unknown += 1
+                continue
+            me, mate = f"{m[w]}-{pairs[k][p]}", f"{m[w]}-{pairs[k][1 - p]}"
+            out.setdefault(me, [0, 0])[0] += 1
+            out.setdefault(mate, [0, 0])[1] += 1
+    if unknown:
+        print(f"[REFEREE] {m['code']}: {unknown} rallies without a scorer (no attack/support for them)")
+    return out
 
 
 VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js", "robot-heads.min.js")
