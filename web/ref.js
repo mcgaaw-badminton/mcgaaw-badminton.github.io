@@ -286,10 +286,6 @@
     $('step3').classList.toggle('off', !su.left);
     $('pickServe').innerHTML = choiceBtns('serve', [['a', esc(teamName('a')), su.left ? (su.left === 'a' ? 's-l' : 's-r') : ''], ['b', esc(teamName('b')), su.left ? (su.left === 'b' ? 's-l' : 's-r') : '']], su.serve);
     var ready = complete(su);
-    if (ready) {
-      var r = replay({ setup: su, log: [] });
-      $('serveCheck').innerHTML = 'Giao: <b>' + esc(first(players(su.serve, I)[r.server])) + '</b> (ô phải) → nhận: <b>' + esc(first(players(other(su.serve), I)[r.receiver])) + '</b>';
-    } else $('serveCheck').textContent = '';
     $('setupWarn').hidden = !pr.log.length;
     $('resetBtn').hidden = !(pr.log.length || pr.done);  // positions alone: leaving without saving clears them
     $('startBtn').disabled = !ready;
@@ -324,7 +320,7 @@
     var c = pr.check || {}, box = $('submit');
     box.className = 'submit ' + (c.state || 'sending');
     box.innerHTML = c.state === 'ok' && c.draft ? '<b>✓ Đã lưu bản nháp · mã #' + esc(pr.report) + '</b><span>Chế độ Demo: kết quả không vào bảng xếp hạng. Nếu đây là trận thật, báo ban tổ chức mã này để chuyển sang chính thức.</span>'
-      : c.state === 'ok' ? '<b>✓ Đã lưu lên bảng tính · mã #' + esc(pr.report) + '</b><span>Đã đọc lại và khớp (' + c.a + '–' + c.b + ') lúc ' + clockTime(c.at) + '. Bảng xếp hạng tự cập nhật lúc 20:00 ngày thi đấu.</span>'
+      : c.state === 'ok' ? '<b>✓ Đã lưu lên bảng tính · mã #' + esc(pr.report) + '</b><span>Đã đọc lại và khớp (' + c.a + '–' + c.b + ') lúc ' + clockTime(c.at) + '.</span>'
       : c.state === 'err' ? '<b>Chưa gửi được</b><span>Mất mạng hoặc bảng tính chưa bật phần trọng tài. Điểm vẫn giữ trên máy và tự gửi lại.</span><button type="button" class="link" id="resend">Gửi lại ngay</button>'
       : c.state === 'local' ? '<b>Đã lưu trên máy</b><span>Web chưa nối bảng tính nên kết quả chỉ nằm trên điện thoại này.</span>'
       : '<b>' + (MODE === 'demo' ? 'Đang lưu bản nháp…' : 'Đang gửi lên bảng tính…') + '</b><span>Đợi dấu ✓ rồi hãy sang cặp sau.</span>';
@@ -497,8 +493,7 @@
   function markVisit() { var pr = ST.pairs[I]; VISIT = { code: M.code, i: I, mode: MODE, sig: sig(pr), snap: JSON.parse(JSON.stringify(pr)), here: location.hash.replace('#', '') }; }
   function askLeave(target) {
     var i = VISIT.i, sn = VISIT.snap, blank = !sn.log.length && !sn.setup.ok;
-    sheet('Thoát ' + pairLabel(i) + '?', '<p>' + (blank ? 'Cặp này đang <b>Chưa đấu</b>. Thoát không lưu thì những gì vừa chọn hoặc ghi đều bỏ, cặp vẫn Chưa đấu. Dùng khi vào nhầm hoặc máy khác đang ghi cặp này.'
-      : 'Thoát không lưu thì mọi thay đổi trong lần vào này bị bỏ, cặp trở lại như lúc mới vào (' + replay(sn).sc.a + '–' + replay(sn).sc.b + ').') + '</p>', [
+    sheet('Thoát ' + pairLabel(i) + '?', '<p>' + (blank ? 'Không lưu: cặp vẫn <b>Chưa đấu</b>.' : 'Không lưu: cặp trở lại <b>' + replay(sn).sc.a + '–' + replay(sn).sc.b + '</b> như lúc vào.') + '</p>', [
       ['Thoát, không lưu', function () {
         closeSheet(); var pr = ST.pairs[i], n = JSON.parse(JSON.stringify(sn));
         n.timer.since = null; n.sent = pr.sent; n.check = null; ST.pairs[i] = n;

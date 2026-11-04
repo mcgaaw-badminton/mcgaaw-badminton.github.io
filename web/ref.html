@@ -16,14 +16,12 @@
     <h1>Chế độ</h1>
     <div class="mode" id="modePick" role="group" aria-label="Chế độ ghi điểm"></div>
     <h1>Chọn trận</h1>
-    <p class="muted">Mỗi cặp chạm 31 điểm là xong. Bảng xếp hạng tự cập nhật lúc 20:00 ngày thi đấu.</p>
     <div class="list" id="mlist"></div>
   </section>
 
   <!-- 2. the 5 pairs of a match -->
   <section class="scr" id="scrPairs" hidden>
     <h1 id="pairsTitle"></h1>
-    <p class="muted">Đánh lần lượt từ trên xuống. Chạm một cặp để vào.</p>
     <div class="list" id="plist"></div>
     <button type="button" class="big ghost" id="toSum">Tổng kết trận</button>
   </section>
@@ -39,9 +37,8 @@
     <div class="step" id="step3">
       <h2><span class="n">2</span>Đội nào giao cầu trước?</h2>
       <div class="choice" id="pickServe"></div>
-      <p class="check" id="serveCheck"></p>
     </div>
-    <p class="warn" id="setupWarn" hidden>Cặp này đã có điểm. Đổi vị trí sẽ tính lại chỗ đứng theo các điểm đã ghi, điểm số giữ nguyên.</p>
+    <p class="warn" id="setupWarn" hidden>Đã có điểm: đổi vị trí chỉ tính lại chỗ đứng, điểm giữ nguyên.</p>
     <button type="button" class="big pri" id="startBtn" disabled>Bắt đầu tính điểm</button>
     <button type="button" class="big danger" id="resetBtn" hidden>Đặt lại cặp này (về 0, chưa đấu)</button>
   </section>
@@ -50,7 +47,7 @@
   <section class="scr" id="scrPlay" hidden>
     <p class="call" id="call" aria-live="polite"></p>
     <div class="court-wrap"><div class="court" id="playCourt"></div><div class="court-foot" aria-hidden="true"><span class="cf l"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Trái</span><span class="ref-me" title="Chỗ trọng tài đứng"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21c0-4 3.1-7 7-7s7 3 7 7"/></svg>Trọng tài</span><span class="cf r">Phải<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span></div></div>
-    <p class="hint" id="endedNote" hidden>Đã đủ 31 điểm. Ghi nhầm thì bấm Hoàn tác, hoặc <button type="button" class="link" id="seeResult">xem kết quả</button>.</p>
+    <p class="hint" id="endedNote" hidden>Đã đủ 31 điểm · <button type="button" class="link" id="seeResult">xem kết quả</button></p>
     <div class="hit">
       <button type="button" class="team s-l" id="hitL"></button>
       <button type="button" class="team s-r" id="hitR"></button>
@@ -74,7 +71,7 @@
   <!-- rally list, editable -->
   <section class="scr" id="scrLog" hidden>
     <h1>Các điểm đã ghi</h1>
-    <p class="muted">Chạm một điểm để chọn lại người ghi điểm hoặc xóa. Các điểm sau tự tính lại.</p>
+    <p class="muted">Chạm một điểm để sửa hoặc xóa.</p>
     <ol class="log" id="log"></ol>
   </section>
 
