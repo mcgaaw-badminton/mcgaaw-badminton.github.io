@@ -633,7 +633,8 @@
     box.innerHTML = '<div class="pm-card glass" role="dialog" aria-modal="true" aria-labelledby="pmTitle"><button type="button" class="pm-x" aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="pm-in"></div></div>';
     document.body.appendChild(box);
     var inner = box.querySelector('.pm-in'), back = null;
-    function open(html) { back = document.activeElement; inner.innerHTML = html; box.hidden = false; document.documentElement.classList.add('pm-open'); box.querySelector('.pm-x').focus(); }
+    var card = box.querySelector('.pm-card');
+    function open(html, kind) { back = document.activeElement; inner.innerHTML = html; card.className = 'pm-card glass ' + (kind || ''); box.hidden = false; document.documentElement.classList.add('pm-open'); box.querySelector('.pm-x').focus(); }
     function close() { box.hidden = true; document.documentElement.classList.remove('pm-open'); if (back && back.focus) back.focus(); }
     box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.pm-x')) close(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !box.hidden) close(); });
@@ -642,16 +643,14 @@
       var q = prof(id); if (!q.name) return;
       var w = Math.max(4, Math.min(100, (q.heat - 20) / 25 * 100)), tr = q.played ? (q.trend > 0 ? '▲ +' + q.trend : q.trend < 0 ? '▼ ' + q.trend : 'giữ nguyên') : 'theo seed';
       var tiles = ROWS.slice(1).map(function (r) { return '<div><b>' + esc(String(r[2](q))) + '</b><small>' + r[0] + '</small></div>'; }).join('');
-      var log = q.log.length ? '<p class="pm-h">Các cặp đã đấu</p><ul class="pm-log">' + q.log.map(function (l) {
-        var win = l.s[0] > l.s[1];
-        return '<li><span class="tag">' + esc(l.c) + '</span><span>Cặp ' + l.k + ' · với <b>' + esc(l.mate) + '</b><small>vs ' + esc(l.opp) + (l.closed ? '' : ' · chưa chốt') + '</small></span>' +
-          '<b class="' + (win ? 'won' : 'lost') + '">' + l.s[0] + '–' + l.s[1] + '</b><small>' + l.atk + ' TC · ' + l.sup + ' HT · chuỗi ' + l.run + '</small></li>';
-      }).join('') + '</ul>' : '<p class="pm-h">Chưa ra sân.</p>';
-      open('<div class="pm-head"><span class="av">' + esc(ini(q.name)) + '</span><div><h3 id="pmTitle">' + esc(q.name) + '</h3><p class="pm-tags">' + tags(q) + '</p></div></div>' +
-        '<div class="pm-heat"><b>' + q.heat.toFixed(1) + '°</b><span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span><small class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</small><small>#' + q.rank + '/30 nhiệt độ</small></div>' +
-        '<div class="pm-tiles">' + tiles + '</div>' + log +
-        '<div class="pm-act"><button type="button" class="cta" data-cmp-add="' + esc(id) + '">' + (api.ids.indexOf(id) >= 0 ? 'Đang trong so sánh' : 'So sánh với người khác') + '</button></div>' +
-        '<p class="pm-note">' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + ', gồm cặp của trận chưa chốt; nhiệt độ theo BXH.' : 'Chưa có dữ liệu trận.') + '</p>');
+      var peers = players.filter(function (p) { return p.seed === q.seed && p.id !== id; }).sort(function (a, b) { return (G[b.id] ? 1 : 0) - (G[a.id] ? 1 : 0) || b.heat - a.heat; }).slice(0, 3);
+      var sugg = '<div class="pm-sugg"><p class="pm-h">So sánh nhanh · cùng hạt giống ' + q.seed + '</p><div>' + peers.map(function (p) {
+        return '<button type="button" class="pm-chip" data-cmp-with="' + esc(id) + ',' + esc(p.id) + '"><b>' + esc(p.name.split(' ').slice(-2).join(' ')) + '</b><small>' + esc(teamById[p.team].name) + ' · ' + p.heat.toFixed(1) + '°</small></button>';
+      }).join('') + '<button type="button" class="pm-chip more" data-cmp-add="' + esc(id) + '"><b>Chọn người khác</b><small>' + (api.ids.indexOf(id) >= 0 ? 'đang trong so sánh' : 'tối đa ' + max() + ' người') + '</small></button></div></div>';
+      open('<div class="pm-head"><span class="av">' + esc(ini(q.name)) + '</span><div><h3 id="pmTitle">' + esc(q.name) + '</h3><p class="pm-tags">' + tags(q) + '</p></div>' +
+        '<div class="pm-heat"><b>' + q.heat.toFixed(1) + '°</b><span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span><small><span class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</span> · #' + q.rank + '/30</small></div></div>' +
+        '<div class="pm-tiles">' + tiles + '</div>' + sugg +
+        '<p class="pm-note">' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + ', gồm cặp của trận chưa chốt; nhiệt độ theo BXH.' : 'Chưa có dữ liệu trận.') + '</p>', 'prof');
     }
     function compare() {
       var qs = api.ids.map(prof);
@@ -661,7 +660,7 @@
         return '<tr><th>' + r[0] + '</th>' + qs.map(function (q, k) { return '<td class="' + (r[3] && vals[k] === best && nBest < qs.length ? 'best' : '') + '">' + esc(String(r[2](q))) + '</td>'; }).join('') + '</tr>';
       }).join('');
       open('<h3 id="pmTitle">So sánh ' + qs.length + ' VĐV</h3><div class="cmp-wrap"><table class="cmp"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
-        '<p class="pm-note">Ô tô đậm = tốt nhất trong nhóm. ' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + '.' : '') + '</p>');
+        '<p class="pm-note">Ô tô đậm = tốt nhất trong nhóm. ' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + '.' : '') + '</p>', 'wide c' + qs.length);
     }
     var tray = document.createElement('div'); tray.className = 'cmp-tray glass'; tray.hidden = true; document.body.appendChild(tray);
     api.tray = function () {
@@ -680,6 +679,7 @@
       var t;
       if ((t = e.target.closest('[data-pid]'))) { e.preventDefault(); return profile(t.dataset.pid); }
       if ((t = e.target.closest('[data-cmp]'))) return toggle(t.dataset.cmp);
+      if ((t = e.target.closest('[data-cmp-with]'))) { api.ids = t.dataset.cmpWith.split(','); api.on = true; api.render(); return compare(); }
       if ((t = e.target.closest('[data-cmp-add]'))) {
         var id = t.dataset.cmpAdd; api.on = true; if (api.ids.indexOf(id) < 0 && api.ids.length < max()) api.ids.push(id);
         close(); api.render(); var b = $('bxh'); if (b) b.scrollIntoView({ behavior: 'smooth' }); return;
