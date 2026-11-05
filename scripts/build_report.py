@@ -7,7 +7,7 @@ Usage (from the workspace root):
     python scripts/build_report.py --dry-run            # print what would be built, write nothing
 
 Pages: 1 overview of the day (results, pair-by-pair bars, highlights, heat top 5) · 1 page per match
-(pair table, score flow of every pair, attack/support per player, serve stats).
+(pair table with a rally strip per pair, attack/support per player, serve stats, top runs).
 Output: output/Bao_cao_<dd-mm-yyyy>.pdf (HTML in output/_build/, raw data in output/report/<yyyy-mm-dd>/).
 """
 import argparse
@@ -72,22 +72,6 @@ def mmss(ms):
     return f"{s // 60}:{s % 60:02d}"
 
 
-def flow_svg(r, w=300, h=74):
-    """Lead line (A above, B below) across the rallies of one pair; dashed mark at the change of ends."""
-    n, lead = max(1, r["n"]), r["lead"]
-    top = max(8, max(abs(x) for x in lead))
-    X = lambda i: 4 + i / n * (w - 8)  # noqa: E731
-    Y = lambda v: h / 2 - v / top * (h / 2 - 6)  # noqa: E731
-    pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(lead))
-    area_a = f"M{X(0):.1f},{h/2} " + " ".join(f"L{X(i):.1f},{min(Y(v), h/2):.1f}" for i, v in enumerate(lead)) + f" L{X(len(lead)-1):.1f},{h/2} Z"
-    area_b = f"M{X(0):.1f},{h/2} " + " ".join(f"L{X(i):.1f},{max(Y(v), h/2):.1f}" for i, v in enumerate(lead)) + f" L{X(len(lead)-1):.1f},{h/2} Z"
-    sw = (f'<line x1="{X(r["swap"]):.1f}" y1="3" x2="{X(r["swap"]):.1f}" y2="{h-3}" stroke="#7D84A3" stroke-width="1" stroke-dasharray="3 3"/>'
-          f'<text x="{X(r["swap"])+3:.1f}" y="11" font-size="8" fill="#7D84A3">đổi sân</text>') if r["swap"] else ""
-    return (f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}"><line x1="4" y1="{h/2}" x2="{w-4}" y2="{h/2}" stroke="#CDD1E6"/>'
-            f'<path d="{area_a}" fill="{CA}" opacity=".14"/><path d="{area_b}" fill="{CB}" opacity=".16"/>{sw}'
-            f'<polyline points="{pts}" fill="none" stroke="#0E1430" stroke-width="1.6" stroke-linejoin="round"/></svg>')
-
-
 def runs_of(seq):
     """Consecutive rallies won by the same side: [(side, start, length), ...]."""
     out = []
@@ -99,24 +83,59 @@ def runs_of(seq):
     return out
 
 
-def strip_svg(r, w=300, h=22):
-    """One cell per rally, coloured by the side that won it; each side's longest run outlined and labelled."""
+def pair_facts(r):
+    """Score when ends changed, biggest lead of each side, number of lead changes."""
+    sa = sb = 0
+    cum, maxl, changes, leader = [], {"a": 0, "b": 0}, 0, None
+    for w in r["seq"]:
+        sa, sb = (sa + 1, sb) if w == "a" else (sa, sb + 1)
+        cum.append((sa, sb))
+        d = sa - sb
+        if d > 0:
+            maxl["a"] = max(maxl["a"], d)
+        if d < 0:
+            maxl["b"] = max(maxl["b"], -d)
+        now = "a" if d > 0 else "b" if d < 0 else leader
+        if leader and now != leader:
+            changes += 1
+        leader = now
+    swap = cum[r["swap"] - 1] if r["swap"] else None
+    return {"cum": cum, "swap": swap, "maxl": maxl, "changes": changes}
+
+
+def strip_svg(r, f, w=304, h=34):
+    """One cell per rally, coloured by the side that won it. One label row above the cells (same style for all labels):
+    the longest run of each side (outlined), and the change of ends (tick with the score)."""
     seq, n = r["seq"], max(1, len(r["seq"]))
-    cw = (w - 8) / n
-    cells = "".join(f'<rect x="{4 + i * cw:.2f}" y="10" width="{max(.6, cw - .8):.2f}" height="10" rx="1" fill="{CA if s == "a" else CB}"/>' for i, s in enumerate(seq))
-    marks = ""
+    cw, y0, ch = (w - 4) / n, 14, 16
+    X = lambda i: 2 + i * cw  # noqa: E731
+    cells = "".join(f'<rect x="{X(i):.2f}" y="{y0}" width="{max(.6, cw - .9):.2f}" height="{ch}" rx="1.5" fill="{CA if s == "a" else CB}"/>' for i, s in enumerate(seq))
+    labels, marks = [], ""
     rs = runs_of(seq)
     for side in "ab":
         mine = [x for x in rs if x[0] == side]
-        if not mine:
-            continue
-        best = max(mine, key=lambda x: x[2])
-        if best[2] < 3:
-            continue
-        x0, x1 = 4 + best[1] * cw - .6, 4 + (best[1] + best[2]) * cw - .2
-        marks += (f'<rect x="{x0:.2f}" y="8.5" width="{x1 - x0:.2f}" height="13" rx="2" fill="none" stroke="#0E1430" stroke-width="1.3"/>'
-                  f'<text x="{(x0 + x1) / 2:.2f}" y="7" font-size="8" font-weight="800" text-anchor="middle" fill="{CA if side == "a" else CB}">{best[2]}</text>')
-    return f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}">{cells}{marks}</svg>'
+        best = max(mine, key=lambda x: x[2]) if mine else None
+        if best and best[2] >= 3:
+            x0, x1 = X(best[1]) - .7, X(best[1] + best[2]) - .1
+            marks += f'<rect x="{x0:.2f}" y="{y0 - 1.5}" width="{x1 - x0:.2f}" height="{ch + 3}" rx="2.5" fill="none" stroke="#0E1430" stroke-width="1.4"/>'
+            labels.append(((x0 + x1) / 2, str(best[2]), CA if side == "a" else CB))
+    if r["swap"]:
+        xs = X(r["swap"]) - .45
+        marks += f'<line x1="{xs:.2f}" y1="{y0 - 3}" x2="{xs:.2f}" y2="{y0 + ch + 3}" stroke="#0E1430" stroke-width="1.6"/>'
+        labels.append((xs, f"↔{f['swap'][0]}–{f['swap'][1]}", "#3B4266"))
+    labels.sort()
+    placed, right = [], -99.0
+    for x, t, c in labels:  # one row, left to right; a label that would touch the previous one moves right
+        hw = len(t) * 2.75 + 1
+        x = max(x, right + 4 + hw, hw)
+        placed.append([x, t, c, hw])
+        right = x + hw
+    if placed and right > w:  # pushed past the end: slide the whole row back, keeping the gaps
+        shift = right - w
+        for q in placed:
+            q[0] -= shift
+    txt = "".join(f'<text x="{x:.1f}" y="10" font-size="9" font-weight="800" text-anchor="middle" fill="{c}">{t}</text>' for x, t, c, _ in placed)
+    return f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}">{cells}{marks}{txt}</svg>'
 
 
 def load(args):
@@ -260,9 +279,10 @@ def match_page(mm, date, day):
                      f'<td colspan="2" class="nd">{"vắng · đánh sau" if p["absent"] else "chưa đấu"}</td><td class="pl">{e(nb)}</td><td colspan="2"></td></tr>')
             continue
         sa, sb = p["sc"]["a"], p["sc"]["b"]
+        pf = pair_facts(p)
         rows += (f'<tr><td class="pc"><b>Cặp {i+1}</b><span>{p["seeds"][0]}–{p["seeds"][1]}</span></td><td class="pl{" w" if sa > sb else ""}">{e(na)}</td>'
                  f'<td class="sc{" wa" if sa > sb else ""}">{sa}</td><td class="sc{" wb" if sb > sa else ""}">{sb}</td><td class="pl{" w" if sb > sa else ""}">{e(nb)}</td>'
-                 f'<td class="fl">{flow_svg(p, h=60)}{strip_svg(p)}</td><td class="tm">{mmss(p["ms"])}<small>{p["n"]} pha</small></td></tr>')
+                 f'<td class="fw">{strip_svg(p, pf)}<div class="facts"><span>Dẫn xa nhất <b style="color:{CA}">+{pf["maxl"]["a"]}</b> / <b style="color:{CB}">+{pf["maxl"]["b"]}</b></span><span>Đổi người dẫn <b>{pf["changes"]}</b> lần</span></div></td><td class="tm">{mmss(p["ms"])}<small>{p["n"]} pha</small></td></tr>')
     # top runs of the match, with the score before -> after
     top = []
     for i, p in enumerate(mm["pairs"]):
@@ -293,7 +313,7 @@ def match_page(mm, date, day):
     tile = lambda lbl, s: f'<div class="sv"><small>{lbl}</small><b style="color:{CA}">{s["a"]}</b><i>–</i><b style="color:{CB}">{s["b"]}</b></div>'  # noqa: E731
     return (f'<section class="page rp">{header(f"BÁO CÁO NGÀY {day} · {e(mm['m']['round']).upper()} · {e(date)}", f"{e(mm['m']['code'])} · {e(a)} {mm['ta']}–{mm['tb']} {e(b)}", status_line(mm) + f" · cặp thắng {mm['pa']}–{mm['pb']} · {mm['n']} pha bóng · {mmss(mm['ms'])}")}'
             f'<div class="mp"><div class="lt"><table class="rt2"><thead><tr><th>Cặp</th><th style="background:{CA}">{e(a)}</th><th colspan="2">Điểm</th><th style="background:{CB}">{e(b)}</th>'
-            f'<th>Diễn biến · ▲ {e(a)} dẫn · ▼ {e(b)} · ô = 1 pha, khung = chuỗi dài nhất</th><th>Thời gian</th></tr></thead><tbody>{rows}</tbody></table>'
+            f'<th>Chuỗi điểm · khung = dài nhất · ↔ đổi sân</th><th>Thời gian</th></tr></thead><tbody>{rows}</tbody></table>'
             f'<div class="box"><div class="bt">TOP CHUỖI ĐIỂM (TỪ 4 ĐIỂM LIÊN TIẾP)</div><div class="rus">{runs_html}</div></div></div>'
             f'<div class="rt"><div class="box"><div class="bt">TẤN CÔNG / HỖ TRỢ TỪNG VĐV</div><div class="lg"><span><i style="background:#0E1430"></i>Tấn công = tự ghi điểm</span><span><i style="background:#0E1430;opacity:.35"></i>Hỗ trợ = đồng đội ghi</span></div>{pbars}</div>'
             f'<div class="box"><div class="bt">GIAO CẦU & CHUỖI ĐIỂM</div><div class="svs">{tile("Thắng khi giao", srv)}{tile("Bẻ giao", brk)}{tile("Chuỗi dài nhất", run)}</div></div></div></div>{FOOTER}</section>')

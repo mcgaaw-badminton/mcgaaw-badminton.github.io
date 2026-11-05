@@ -40,7 +40,7 @@
 .rt2 td { height: auto; padding: 4px 6px }
 .rt2 td.pc { width: 64px } .rt2 td.pl { width: auto; font-size: 12px; line-height: 1.35 } .rt2 td.pl.w { color: #0E1430 } .rt2 td.pl:not(.w) { color: #7D84A3 }
 .rt2 td.sc { width: 44px; font-size: 20px; font-weight: 800; color: #7D84A3 } .rt2 td.sc.wa { color: #1D2BD9 } .rt2 td.sc.wb { color: #B5440F }
-.rt2 td.fl { width: 312px; padding: 2px 4px } .rt2 td.fl svg { display: block }
+.rt2 td.fw { width: 312px } .rt2 td.fw svg { display: block }
 .rt2 td.tm { width: 64px; font-size: 13px; font-weight: 800 } .rt2 td.tm small { display: block; font-size: 10.5px; font-weight: 400; color: #7D84A3 }
 .rt2 tr.off td { height: 54px; background: #FBFBFE } .rt2 td.nd { font-size: 11.5px; color: #7D84A3; font-style: italic }
 .rt { display: flex; flex-direction: column; gap: 12px }
@@ -56,3 +56,5 @@
 .rl { display: grid; place-items: center; height: 20px; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 800 } .ru small { font-size: 11px; font-weight: 400; color: #3B4266 }
 .lt { display: flex; flex-direction: column; gap: 12px }
 .rus { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 16px }
+.facts { display: flex; justify-content: space-between; gap: 8px; padding: 3px 2px 0; font-size: 10.5px; color: #3B4266; white-space: nowrap } .facts b { font-weight: 800; color: #0E1430 }
+.rt2 td.fw { padding: 6px 4px }
