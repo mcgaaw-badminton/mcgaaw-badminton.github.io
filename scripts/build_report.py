@@ -1,7 +1,11 @@
-"""Match-day report (A4 landscape PDF, same template as the match sheets) from the referees' rally logs.
+"""Reports (A4 landscape PDF, same template as the match sheets) from the referees' rally logs. Two kinds:
+  day  (default) — one match day: results, every pair's rally strip, attack/support, serve stats.
+  goat           — the whole tournament so far: the leader of each stat (GOAT) + a table of all players.
 
 Usage (from the workspace root):
-    python scripts/build_report.py                      # latest match day that has referee data
+    python scripts/build_report.py                      # day report: latest match day that has referee data
+    python scripts/build_report.py goat                 # GOAT report over every finished pair so far
+    python scripts/build_report.py goat --closed-only   # GOAT over closed ("Chốt") matches only
     python scripts/build_report.py --matches T1 T2      # chosen matches
     python scripts/build_report.py --offline            # use the cached JSON in output/report/<date>/
     python scripts/build_report.py --dry-run            # print what would be built, write nothing
@@ -319,13 +323,127 @@ def match_page(mm, date, day):
             f'<div class="box"><div class="bt">GIAO CẦU & CHUỖI ĐIỂM</div><div class="svs">{tile("Thắng khi giao", srv)}{tile("Bẻ giao", brk)}{tile("Chuỗi dài nhất", run)}</div></div></div></div>{FOOTER}</section>')
 
 
+def goat_main(args):
+    """GOAT report: every finished pair on the referee sheet (or closed matches only), per player totals."""
+    teams_cfg, sched, site = read(paths.TEAMS_JSON), read(paths.SCHEDULE_JSON), read(paths.SITE_JSON)
+    pairs, api = teams_cfg["pairs"], (site.get("eggs") or {}).get("api_url", "")
+    store = paths.OUTPUT / "report" / "goat"
+
+    def get(q, f):
+        if args.offline:
+            return read(store / f)
+        with urllib.request.urlopen(api + "?ref=" + q, timeout=25) as r:
+            return json.loads(r.read().decode("utf-8"))
+    raw_all = get("all", "all.json")
+    finals = raw_all.get("finals") or {}
+    codes = [m["code"] for m in sched["matches"] if m["code"] in (raw_all.get("matches") or {}) and (finals.get(m["code"]) or not args.closed_only)]
+    if not codes:
+        sys.exit("[ERROR] no referee data yet")
+    data = {c: get(c, f"{c}.json") for c in codes}
+    for m in sched["matches"]:  # standings (heat) exactly as on the site: last Chốt of each match
+        f = finals.get(m["code"])
+        if not m.get("result") and f and len(f.get("pairs") or []) == len(pairs):
+            m["result"] = {"pairs": f["pairs"], "players": f.get("players") or {}}
+    errs = validate(sched, teams_cfg)
+    if errs:
+        sys.exit("[ERROR] " + "; ".join(errs))
+    st = stats(teams_cfg, resolve_matches(sched, teams_cfg, site["branches"]), site.get("placements", {}))
+    heat = {p["id"]: p["heat"] for p in st["players"]}
+    teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
+    ms = {m["code"]: m for m in sched["matches"]}
+    P = {f"{t}-{i + 1}": {"id": f"{t}-{i + 1}", "name": n, "team": t, "seed": i + 1, "matches": set(), "pairs": 0, "won": 0, "pf": 0, "pa": 0,
+                          "atk": 0, "sup": 0, "run": 0} for t, mem in teams_cfg["teams"].items() for i, n in enumerate(mem)}
+    for c in codes:
+        mm = match_model(ms[c], teams, pairs, data[c].get("pairs") or {}, finals.get(c))
+        for p in mm["pairs"]:
+            if not p["played"]:
+                continue
+            for side, o in (("a", "b"), ("b", "a")):
+                for i in (0, 1):
+                    q = P[f"{ms[c][side]}-{p['seeds'][i]}"]
+                    q["matches"].add(c); q["pairs"] += 1; q["won"] += p["sc"][side] > p["sc"][o]
+                    q["pf"] += p["sc"][side]; q["pa"] += p["sc"][o]
+                    q["atk"] += p["atk"].get((side, i), 0); q["sup"] += p["sup"].get((side, i), 0)
+                    q["run"] = max(q["run"], p["run"][side])
+    for q in P.values():
+        q["n"], q["diff"], q["heat"] = len(q["matches"]), q["pf"] - q["pa"], heat.get(q["id"], 0)
+        q["rate"] = round(100 * q["won"] / q["pairs"]) if q["pairs"] else None
+        q["eff"] = round(100 * q["atk"] / q["pf"]) if q["pf"] else None
+    played = [q for q in P.values() if q["pairs"]]
+    asof = max((ms[c]["date"] for c in codes), key=lambda d: d.split("/")[::-1])
+    cats = [("Hiệu số cao nhất", "diff", lambda q: q["diff"], lambda q: f'{q["diff"]:+d}', 1),
+            ("Tấn công tốt nhất", "atk", lambda q: q["atk"], lambda q: f'{q["atk"]} điểm', 1),
+            ("Hỗ trợ tốt nhất", "sup", lambda q: q["sup"], lambda q: f'{q["sup"]} điểm', 1),
+            ("Hiệu suất ghi điểm", "eff", lambda q: q["eff"] or 0, lambda q: f'{q["eff"]}%', 2),
+            ("Tỉ lệ thắng cặp", "rate", lambda q: (q["rate"] or 0, q["diff"]), lambda q: f'{q["rate"]}%', 2),
+            ("Thủng lưới ít nhất", "pa", lambda q: -q["pa"] / q["pairs"], lambda q: f'{q["pa"] / q["pairs"]:.1f}/cặp', 2),
+            ("Chuỗi điểm dài nhất", "run", lambda q: q["run"], lambda q: f'{q["run"]} điểm', 1),
+            ("Nóng nhất (nhiệt độ)", "heat", lambda q: q["heat"], lambda q: f'{q["heat"]:.1f}°', 1)]
+    tag = lambda q: f'Đội {q["team"]} · seed {q["seed"]} · {q["n"]} trận · {q["pairs"]} cặp'  # noqa: E731
+    cards = ""
+    for title, key, val, fmt, minp in cats:
+        pool = sorted([q for q in played if q["pairs"] >= minp], key=lambda q: (val(q), q["pairs"]), reverse=True)
+        if not pool:
+            continue
+        top, rest = pool[0], pool[1:3]
+        tie = [q for q in pool[1:] if val(q) == val(top)]
+        cards += (f'<div class="gc"><div class="gt">{e(title)}</div><div class="g1"><span class="crown">GOAT</span><b>{fmt(top)}</b></div>'
+                  f'<div class="gn">{e(top["name"])}</div><div class="gs">{e(tag(top))}</div>'
+                  + (f'<div class="gtie">Đồng hạng: {e(", ".join(given(q["name"]) for q in tie))}</div>' if tie else '')
+                  + "".join(f'<div class="g2"><span>{k + 2}</span><em>{e(q["name"])}</em><b>{fmt(q)}</b></div>' for k, q in enumerate(rest))
+                  + (f'<div class="gmin">Tối thiểu {minp} cặp</div>' if minp > 1 else '') + '</div>')
+    rows = ""
+    for k, q in enumerate(sorted(P.values(), key=lambda q: (q["pairs"] > 0, q["diff"], q["atk"]), reverse=True)):
+        if not q["pairs"]:
+            rows += (f'<tr class="off"><td>{k + 1}</td><td class="nm2">{e(q["name"])}</td><td>Đội {q["team"]}</td><td>{q["seed"]}</td>'
+                     f'<td colspan="10">chưa ra sân</td><td>{q["heat"]:.1f}°</td></tr>')
+            continue
+        rows += (f'<tr><td>{k + 1}</td><td class="nm2">{e(q["name"])}</td><td>Đội {q["team"]}</td><td>{q["seed"]}</td><td>{q["n"]}</td><td>{q["pairs"]}</td>'
+                 f'<td>{q["won"]}–{q["pairs"] - q["won"]}</td><td>{q["pf"]}</td><td>{q["pa"]}</td><td class="b">{q["diff"]:+d}</td><td class="b">{q["atk"]}</td><td>{q["sup"]}</td>'
+                 f'<td>{"" if q["eff"] is None else str(q["eff"]) + "%"}</td><td>{q["run"] or ""}</td><td>{q["heat"]:.1f}°</td></tr>')
+    scope = "mọi cặp đã đấu xong (gồm cả trận chưa chốt)" if not args.closed_only else "các trận đã chốt"
+    sub = f'{len(codes)} lượt trận ({", ".join(codes)}) · {sum(q["pairs"] for q in P.values()) // 4} cặp · {len(played)}/30 VĐV đã ra sân · tính {scope}'
+    p1 = (f'<section class="page rp">{header(f"BÁO CÁO GOAT · TOÀN GIẢI · TÍNH ĐẾN {e(asof)}", "GOAT các chỉ số", e(sub))}'
+          f'<div class="goat">{cards}</div><p class="gnote">Hiệu số = điểm đội ghi − điểm đội thua khi VĐV ra sân · Tấn công = tự ghi điểm · Hỗ trợ = đồng đội ghi · '
+          f'Hiệu suất = tấn công / điểm đội ghi · Nhiệt độ theo BXH (trận đã chốt).</p>{FOOTER}</section>')
+    p2 = (f'<section class="page rp">{header(f"BÁO CÁO GOAT · TOÀN GIẢI · TÍNH ĐẾN {e(asof)}", "Bảng chỉ số 30 VĐV", "Xếp theo hiệu số · VĐV chưa ra sân ở cuối")}'
+          f'<table class="gtab"><thead><tr><th>#</th><th>VĐV</th><th>Đội</th><th>Seed</th><th>Trận</th><th>Cặp</th><th>T–B</th><th>Ghi</th><th>Thua</th><th>Hiệu số</th>'
+          f'<th>Tấn công</th><th>Hỗ trợ</th><th>Hiệu suất</th><th>Chuỗi</th><th>Nhiệt độ</th></tr></thead><tbody>{rows}</tbody></table>{FOOTER}</section>')
+    stem = "Bao_cao_GOAT_" + asof.replace("/", "-")
+    pdf, page_html = paths.OUTPUT / f"{stem}.pdf", paths.BUILD / f"{stem}.html"
+    print(f"[GOAT] {len(codes)} matches · {len(played)} players with pairs · " + " · ".join(
+        f"{t}: {max(played, key=lambda q: (v(q), q['pairs']))['name']}" for t, _, v, _, _ in cats[:3]))
+    if args.dry_run:
+        print(f"[DRY-RUN] would write {store}/*.json, {page_html} and {pdf}")
+        print(f"[OUTPUT] {pdf}")
+        return
+    store.mkdir(parents=True, exist_ok=True)
+    (store / "all.json").write_text(json.dumps(raw_all, ensure_ascii=False), encoding="utf-8")
+    for c in codes:
+        (store / f"{c}.json").write_text(json.dumps(data[c], ensure_ascii=False), encoding="utf-8")
+    paths.BUILD.mkdir(parents=True, exist_ok=True)
+    css = [(paths.ASSETS / f).as_uri() for f in ("sheet.css", "report.css")]
+    page_html.write_text(f'<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>GOAT {e(asof)}</title>'
+                         + "".join(f'<link rel="stylesheet" href="{c}">' for c in css) + '</head><body>' + p1 + p2 + '</body></html>', encoding="utf-8")
+    subprocess.run(["node", str(paths.SCRIPTS / "render_pdf.mjs"), str(page_html), str(pdf)], check=True)
+    if args.publish:
+        import shutil
+        shutil.copy2(pdf, paths.DOWNLOADS_IN / pdf.name)
+        print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name}")
+    print(f"[OUTPUT] {pdf}")
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("kind", nargs="?", choices=["day", "goat"], default="day", help="day = one match day (default) · goat = whole tournament")
+    ap.add_argument("--closed-only", action="store_true", help="goat: only closed (Chốt) matches")
     ap.add_argument("--matches", nargs="*", default=[])
     ap.add_argument("--offline", action="store_true", help="use cached JSON in output/report/<date>/")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--publish", action="store_true", help="copy the PDF to downloads/ and write the site summary (output/report/<date>/summary.json)")
     args = ap.parse_args()
+    if args.kind == "goat":
+        return goat_main(args)
     teams_cfg, sched, pairs, codes, date, store, data, raw_all, finals, st = load(args)
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
     st["teams_cfg"] = [{"id": t, "name": v["name"]} for t, v in teams.items()]

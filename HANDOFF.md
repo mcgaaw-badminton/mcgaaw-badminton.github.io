@@ -11,6 +11,7 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - GitHub's scheduled builds are unreliable: on 04/11 only one run fired (00:50) out of the planned every-15-min evening runs. After a Chốt, a manual run (`gh workflow run` or any push) updates the site at once.
 - 2026-11-04 10:55: the user's T1 test was reset on the live sheet (pairs 1 and 4 re-sent blank with a newer `updated`, so phones pull the reset; rows stay in `referee`, history in `referee_log`). No finals exist.
 
+- Reports: the user's "xuất report" = both the day report and the GOAT report (`build_report.py goat`). GOAT 04/11: `output/Bao_cao_GOAT_04-11-2026.pdf` (not on the site yet).
 - Report published: `downloads/Bao_cao_04-11-2026.pdf` + `config/reports.json` → first hero slide on the site. Update the entry when T2 is closed (rerun build_report --publish).
 - Report: `output/Bao_cao_04-11-2026.pdf` (3 pages: day overview, T1, T2) from `scripts/build_report.py`; raw rally data cached in `output/report/2026-11-04/`.
 

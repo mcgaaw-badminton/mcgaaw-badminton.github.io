@@ -58,3 +58,18 @@
 .rus { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 16px }
 .facts { display: flex; justify-content: space-between; gap: 8px; padding: 3px 2px 0; font-size: 10.5px; color: #3B4266; white-space: nowrap } .facts b { font-weight: 800; color: #0E1430 }
 .rt2 td.fw { padding: 6px 4px }
+/* GOAT report */
+.goat { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
+.gc { background: #fff; border: 1.5px solid #CDD1E6; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px }
+.gt { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: #1D2BD9; text-transform: uppercase }
+.g1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px }
+.crown { padding: 2px 8px; border-radius: 6px; background: #F2C14E; color: #0E1430; font-size: 10px; font-weight: 800; letter-spacing: .14em }
+.g1 b { font-size: 26px; font-weight: 800; line-height: 1.2; color: #0E1430 }
+.gn { font-size: 14px; font-weight: 800; line-height: 1.3 } .gs { font-size: 10.5px; color: #3B4266 }
+.gtie { font-size: 10.5px; font-weight: 700; color: #B5440F }
+.g2 { display: grid; grid-template-columns: 14px 1fr auto; gap: 6px; align-items: baseline; padding-top: 3px; border-top: 1px solid #EEF0F8; font-size: 11.5px }
+.g2 span { font-weight: 800; color: #7D84A3 } .g2 em { font-style: normal; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .g2 b { font-weight: 800 }
+.gmin { font-size: 10px; color: #7D84A3; font-style: italic }
+.gnote { position: relative; margin: 0; font-size: 11px; font-style: italic; color: #3B4266 }
+.gtab td { height: auto; padding: 1px 6px; font-size: 10.5px; line-height: 1.35 } .gtab th { padding: 5px 6px; font-size: 10px }
+.gtab td.nm2 { text-align: left; font-weight: 700 } .gtab td.b { font-weight: 800 } .gtab tr.off td { color: #A3A9C2 } .gtab tr.off td[colspan] { font-style: italic }
