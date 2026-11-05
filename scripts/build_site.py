@@ -168,7 +168,7 @@ def main():
     build_id = f"{BUILT:%Y%m%d%H%M%S}-{commit}"
     data = {
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
-                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "protect": {"sitekey": (site.get("protect") or {}).get("turnstile_sitekey", "")}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
+                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0), "base": site.get("eggs", {}).get("flower_base", {})}, "protect": {"sitekey": (site.get("protect") or {}).get("turnstile_sitekey", "")}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs, "reports": reports_out, "goat": goat_out,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
@@ -249,11 +249,7 @@ def main():
                 f"<style>\n{css}</style>\n" + body.replace("{{LOGO}}", logo)
                 + "\n<script>window.SITE = " + json.dumps(pdata, ensure_ascii=False) + ";</script>\n"
                 + "".join("<script>\n" + (paths.ASSETS / "vendor" / f).read_text(encoding="utf-8") + "\n</script>\n" for f in VENDOR_JS)
-                + "<script>window.FX_INLINE = " + json.dumps({
-                    "fire": json.loads((paths.ASSETS / "fx" / "fire.json").read_text(encoding="utf-8")),
-                    "egg": "data:image/svg+xml;base64," + base64.b64encode((paths.ASSETS / "fx" / "egg.svg").read_bytes()).decode(),
-                    "splat": "data:image/svg+xml;base64," + base64.b64encode((paths.ASSETS / "fx" / "splat.svg").read_bytes()).decode(),
-                }) + ";</script>\n<script>\n" + js + "</script>\n")
+                + "<script>\n" + js + "</script>\n")
         paths.SITE_PREVIEW.write_text(prev, encoding="utf-8")
         print(f"[PREVIEW] {paths.SITE_PREVIEW}")
     print(f"[OUTPUT] {out / 'index.html'}")
@@ -293,7 +289,7 @@ def referee_results(site, sched, n_pairs):
     return used
 
 
-VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "lottie_light.min.js", "robot-heads.min.js")
+VENDOR_JS = ("gsap.min.js", "confetti.browser.js", "robot-heads.min.js", "flower-heads.js")
 
 
 def git_head():

@@ -564,27 +564,64 @@ a.doc:hover .go { transform: translateX(4px); color: var(--brand-text) }
 .pick-hint, .hint, .seed-legend, .g-item .cap, .lb-fig figcaption, .board-empty, .pairs.tbd { font-style: italic }
 .hint::before, .seed-legend .seed-tag, .seed-legend .fem, .seed-legend .champ { font-style: normal }
 
-/* ---------- rotten eggs ---------- */
+/* ---------- flowers (ex rotten eggs; class names kept) ---------- */
 .prow { grid-template-columns: 28px 40px minmax(0, 1fr) auto auto }
-.egg-btn { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 6px 10px 6px 8px; border: 1px solid transparent; border-radius: 999px; background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--glass-hi), 0 1px 3px rgba(12, 20, 48, .08); color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; transition: transform .15s var(--spring), border-color .25s }
+.egg-btn { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 6px 10px 6px 7px; border: 1px solid transparent; border-radius: 999px; background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--glass-hi), 0 1px 3px rgba(12, 20, 48, .08); color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; transition: transform .15s var(--spring), border-color .25s }
 .egg-btn:active { transform: scale(.92) }
-@media (hover: hover) and (pointer: fine) { .egg-btn:hover { border-color: var(--lose) } }
+@media (hover: hover) and (pointer: fine) { .egg-btn:hover { border-color: var(--rose-text) } }
 .egg-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
-.egg-i { width: 20px; height: 20px; flex-shrink: 0; pointer-events: none; user-select: none }
+.egg-i { width: 22px; height: 22px; flex-shrink: 0; pointer-events: none; user-select: none }
 .egg-n { min-width: 1.6em; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: left }
-.egg-btn.small { min-height: 32px; padding: 4px 8px 4px 6px }
+.egg-btn.small { min-height: 32px; padding: 4px 8px 4px 5px }
 .egg-btn.empty { animation: shake .4s }
 @keyframes shake { 25% { transform: translateX(-3px) } 75% { transform: translateX(3px) } }
-/* Lottie flame grows with the egg count (levels at 1 / 10 / 50 / 200) */
-.egg-fire { display: inline-grid; place-items: center; width: 0; height: 22px; overflow: visible; transform-origin: 50% 85%; transition: width .3s var(--ease) }
-.egg-fire .flame-l { display: block; width: var(--fw, 0); height: var(--fw, 0); margin-top: calc(var(--fw, 0px) * -.25) }
-.egg-fire .flame-l svg { display: block }
-.egg-fire.lv1 { width: 16px; --fw: 18px } .egg-fire.lv2 { width: 20px; --fw: 24px } .egg-fire.lv3 { width: 24px; --fw: 30px } .egg-fire.lv4 { width: 28px; --fw: 36px }
-.egg-fire.lv3 .flame-l, .egg-fire.lv4 .flame-l { filter: drop-shadow(0 0 6px rgba(255, 106, 0, .55)) }
-.egg-fire.lv4 .flame-l { filter: drop-shadow(0 0 10px rgba(255, 80, 0, .75)) }
-.egg-fly { position: fixed; z-index: 95; left: 0; top: 0; width: 26px; height: 26px; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 6px rgba(12, 20, 48, .25)) }
-.egg-splat { position: fixed; z-index: 94; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; will-change: transform, opacity }
-.egg-plus { position: fixed; z-index: 96; left: 0; top: 0; font-size: 15px; font-weight: 800; color: #E2560B; text-shadow: 0 1px 0 #fff; pointer-events: none }
+.fl-bq { display: inline-flex; align-items: center; gap: 1px; font-size: 12px; font-weight: 800; color: var(--gold-text); background: var(--gold-soft); padding: 1px 7px 1px 2px; border-radius: 999px; font-variant-numeric: tabular-nums }
+.fl-bq.none { display: none }
+.fl-bq svg { width: 20px; height: 20px }
+.egg-fly { position: fixed; z-index: 95; left: 0; top: 0; width: 32px; height: 32px; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 6px rgba(12, 20, 48, .25)) }
+.egg-plus { position: fixed; z-index: 96; left: 0; top: 0; font-size: 15px; font-weight: 800; color: var(--rose-text); text-shadow: 0 1px 0 var(--bg); pointer-events: none }
+.bq-pop { position: fixed; z-index: 97; left: 0; top: 0; width: 140px; pointer-events: none }
+.bq-pop svg { display: block; overflow: visible }
+.bq-tag { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 13px; font-weight: 800; color: var(--gold-text); background: var(--glass-strong); border: 1px solid var(--glass-border); padding: 2px 10px; border-radius: 999px; box-shadow: var(--shadow) }
+/* mute switch (mascot bubble + streak screen) */
+.mute-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer }
+.mute-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.mute-btn .spk { fill: currentColor; stroke: none } .mute-btn .off { display: none }
+.mute-btn[aria-pressed="true"] .wav { display: none } .mute-btn[aria-pressed="true"] .off { display: inline }
+.mute-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
+.ms-mute { margin-left: auto } .ms-mute + .ms-close { margin-left: 0 }
+/* streak: dimmed screen, robot + big flower side by side; sizes (--fl, --bot) come from the viewport */
+html.sk-open { overflow: hidden }
+.sk-ov { position: fixed; inset: 0; z-index: 110; background: rgba(6, 9, 22, .8); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #EEF0F8; padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); touch-action: manipulation; user-select: none; -webkit-user-select: none }
+.sk-ov.locked { background: rgba(40, 4, 10, .86); animation: sk-red 1s ease-in-out infinite alternate }
+@keyframes sk-red { from { box-shadow: inset 0 0 0 0 rgba(255, 40, 60, 0) } to { box-shadow: inset 0 0 120px 20px rgba(255, 40, 60, .45) } }
+.sk-x, .sk-mute { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .08); color: #fff; cursor: pointer; display: grid; place-items: center }
+.sk-x { right: max(14px, env(safe-area-inset-right, 0px)) } .sk-mute { left: max(14px, env(safe-area-inset-left, 0px)) }
+.sk-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round }
+.sk-who { font-size: 13px; color: #AEB5D3; letter-spacing: .06em; text-transform: uppercase; font-weight: 700 }
+.sk-name { font-size: 22px; font-weight: 800; text-align: center; text-wrap: balance }
+.sk-say { min-height: 3.2em; max-width: min(420px, calc(100vw - 32px)); text-align: center; font-weight: 700; font-size: clamp(14px, 3.8vw, 17px); background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .14); border-radius: 16px; padding: 8px 14px; display: grid; place-items: center }
+.sk-say:empty { visibility: hidden }
+.sk-say.pop { animation: pop .4s var(--spring) }
+.locked .sk-say { background: rgba(255, 60, 80, .2); border-color: rgba(255, 120, 130, .45); color: #FFD9D9 }
+.sk-stage { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: clamp(12px, 4vw, 40px); margin: 8px 0; width: 100% }
+.sk-bot { width: var(--bot); height: var(--bot); display: grid; place-items: center; transform-origin: 50% 70%; position: relative }
+.sk-bot-in { filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .4)) }
+.locked .sk-bot-in { filter: drop-shadow(0 0 30px rgba(255, 60, 80, .7)) }
+.sk-fw { position: relative; display: grid; place-items: center }
+.sk-bq { position: absolute; bottom: 92%; left: 50%; margin-left: -55px; width: 110px; pointer-events: none }
+.sk-btn { position: relative; width: var(--fl); height: var(--fl); border-radius: 50%; border: 0; background: radial-gradient(circle, rgba(255, 255, 255, .14), rgba(255, 255, 255, .03) 70%); cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent }
+.sk-btn:focus-visible { outline: 3px solid #FF8FB1; outline-offset: 4px }
+.sk-btn:disabled { cursor: not-allowed; filter: grayscale(.85) brightness(.7) }
+.sk-btn .fh { width: 66%; height: 66% }
+.sk-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg) }
+.sk-ring circle { fill: none; stroke: rgba(255, 255, 255, .12); stroke-width: 6 } .sk-ring .on { stroke: #FF8FB1; stroke-linecap: round; stroke-dasharray: 339.3; stroke-dashoffset: 339.3; transition: stroke-dashoffset .2s }
+.sk-n { font-size: 15px; color: #AEB5D3 } .sk-n b { font-size: 34px; color: #fff; font-variant-numeric: tabular-nums; margin-right: 4px; vertical-align: -4px }
+.sk-hint { font-size: 12.5px; color: #8A92B5 }
+.sk-lock { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); padding: 8px 16px; border-radius: 999px; background: rgba(255, 60, 80, .18); border: 1px solid rgba(255, 120, 130, .4); color: #FFD9D9; font-weight: 700; white-space: nowrap } .sk-lock b { font-size: 20px; font-variant-numeric: tabular-nums }
+.locked .sk-name, .locked .sk-who, .locked .sk-n, .locked .sk-hint, .locked .sk-x { opacity: 0 }
+@media (max-height: 520px) { .sk-who, .sk-hint { display: none } .sk-name { font-size: 18px } .sk-n b { font-size: 26px } .sk-ov { gap: 2px } .sk-say { min-height: 0 } }
+@media (prefers-reduced-motion: reduce) { .sk-ov.locked { animation: none } }
 @media (max-width: 560px) {
   .prow { grid-template-columns: 22px 34px minmax(0, 1fr) auto; row-gap: 6px }
   .prow .egg-btn { grid-column: 3 / -1; justify-self: start; min-height: 36px }
@@ -615,9 +652,9 @@ body:has(#pFocus:not([hidden])) .mascot { bottom: calc(92px + env(safe-area-inse
 
 .egg-say { display: none; font-size: 13px; font-weight: 700 }
 .eggs-mode .egg-say { display: inline }
-.eggs-mode .egg-btn .egg-n, .eggs-mode .egg-btn .egg-fire { display: none }
+.eggs-mode .egg-btn .egg-n, .eggs-mode .egg-btn .fl-bq { display: none }
 .egg-main { display: inline-flex; align-items: center; gap: 4px }
-.egg-main .egg-fire { height: 26px }
+.egg-main .fl-bq svg { width: 22px; height: 22px }
 @media (max-width: 560px) {
   .pfocus { flex-wrap: wrap; row-gap: 6px; border-radius: 22px; padding: 10px 10px 10px 16px }
   .pf-txt { flex: 1 1 calc(100% - 70px); order: 1 }

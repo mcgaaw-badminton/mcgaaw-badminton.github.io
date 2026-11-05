@@ -1,7 +1,7 @@
 # Third-party files (served from the site, no CDN)
-- `gsap.min.js` — GSAP 3.15.0, GreenSock Standard "no charge" license (https://gsap.com/standard-license). Egg flight, splat and flame tweens.
-- `confetti.browser.js` — canvas-confetti 1.9.4, ISC license (Kiril Vatev). Shell shards, yolk drops and fire embers.
-- `lottie_light.min.js` — lottie-web 5.13.0 (light SVG player), MIT license (Airbnb). Plays `assets/fx/fire.json`.
+- `gsap.min.js` — GSAP 3.15.0, GreenSock Standard "no charge" license (https://gsap.com/standard-license). Flower flight, bloom, bouquet and streak tweens.
+- `confetti.browser.js` — canvas-confetti 1.9.4, ISC license (Kiril Vatev). Petal bursts and petal showers (shapeFromPath).
+- `flower-heads.js` — FlowerHeads, the tournament's own seeded flower generator (no third-party code): random flowers, bouquets and posies as inline SVG.
 - `robot-heads.min.js` — robot-heads by Fayaz Ahmed (https://github.com/fayazara/robot-heads), MIT License. The library's renderer bundled without React through `scripts/robot-heads-vanilla.ts` (esbuild, IIFE global `RobotHeads`). The mascot.
 
 # assets/fx

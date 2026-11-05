@@ -64,10 +64,11 @@
   function femTag() { return '<span class="fem">' + HEART.replace('aria-label="Nữ" role="img"', 'aria-hidden="true"') + 'Nữ</span>'; }
 
   var FXI = window.FX_INLINE || {};
-  var EGG_IMG = FXI.egg || 'assets/fx/egg.svg', SPLAT_IMG = FXI.splat || 'assets/fx/splat.svg';
-  var EGG_SVG = '<img class="egg-i" src="' + EGG_IMG + '" alt="" aria-hidden="true" draggable="false">';
-  var FLAME_SVG = '<span class="flame-l" aria-hidden="true"></span>';
-  /* ---------- rotten eggs: shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
+  /* flowers (v1.22.0, replaced the rotten eggs; ids, counts and the Apps Script board stay the same) */
+  var FH = window.FlowerHeads || null;
+  function hseed(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; }
+  function flowerIcon(id, size) { return FH ? FH.svg(hseed(id), { size: size || 20 }).replace('class="fh"', 'class="fh egg-i"').replace('role="img" aria-label="Hoa"', 'aria-hidden="true"') : ''; }
+  /* ---------- flowers (ex rotten eggs): shared counter per player (Google Sheet behind an Apps Script web app; local-only when not configured) ---------- */
   /* referees' official scores (Apps Script ?ref=all), shown on the match cards while a match is played and until the build after the referee's "Chốt"
      puts the result into the standings. Only matches without a result in the build are touched. */
   var REF = (function () {
@@ -118,7 +119,7 @@
     function challenge() {
       if (asking || !SITEKEY) return; asking = true;
       var ov = document.createElement('div'); ov.className = 'ts-ov';
-      ov.innerHTML = '<div class="ts-card glass" role="dialog" aria-modal="true"><b>Xác nhận bạn không phải máy</b><small>Đang có nhiều lượt ném trứng. Xác nhận một lần để ném tiếp.</small><div class="ts-box"></div><button type="button" class="ts-x">Để sau</button></div>';
+      ov.innerHTML = '<div class="ts-card glass" role="dialog" aria-modal="true"><b>Xác nhận bạn không phải máy</b><small>Đang có rất nhiều lượt tặng hoa. Xác nhận một lần để tặng tiếp.</small><div class="ts-box"></div><button type="button" class="ts-x">Để sau</button></div>';
       document.body.appendChild(ov);
       function done() { asking = false; ov.remove(); }
       ov.querySelector('.ts-x').onclick = done;
@@ -184,86 +185,260 @@
     }
     return { get: get, hit: hit, left: left, limit: limit, on: function (f) { subs.push(f); }, state: function () { return state; } };
   })();
-  function eggLevel(n) { return n >= 200 ? 4 : n >= 50 ? 3 : n >= 10 ? 2 : n >= 1 ? 1 : 0; }
+  /* bouquets count only flowers given after the switch: base = each player's egg total then (config/site.json eggs.flower_base) */
+  var FBASE = (S.meta && S.meta.eggs && S.meta.eggs.base) || {};
+  function fresh(id) { return Math.max(0, EGG.get(id) - (FBASE[id] || 0)); }
+  function bqOf(id) { return Math.floor(fresh(id) / 10); }
+  function bqInner(id) { var b = bqOf(id); return b && FH ? FH.posy(hseed(id + 'b'), { size: 20 }).replace('role="img" aria-label="Bó hoa"', 'aria-hidden="true"') + '×' + b : ''; }
+  function bqChip(id) { var b = bqOf(id); return '<span class="fl-bq' + (b ? '' : ' none') + '" data-egg-f="' + esc(id) + '" data-b="' + b + '" title="' + b + ' bó hoa (10 bông = 1 bó)">' + bqInner(id) + '</span>'; }
   function eggBtn(id, name, cls) {
     var n = EGG.get(id);
-    return '<button type="button" class="egg-btn' + (cls ? ' ' + cls : '') + '" data-egg="' + esc(id) + '" aria-label="Ném trứng thối vào ' + esc(name) + ' (đã có ' + n + ')">' +
-      EGG_SVG + '<span class="egg-say">Ném</span><b class="egg-n" data-egg-n="' + esc(id) + '">' + n + '</b><span class="egg-fire lv' + eggLevel(n) + '" data-egg-f="' + esc(id) + '">' + FLAME_SVG + '</span></button>';
+    return '<button type="button" class="egg-btn' + (cls ? ' ' + cls : '') + '" data-egg="' + esc(id) + '" aria-label="Tặng hoa cho ' + esc(name) + ' (đã có ' + n + ' bông)">' +
+      flowerIcon(id, 22) + '<span class="egg-say">Tặng</span><b class="egg-n" data-egg-n="' + esc(id) + '">' + n + '</b>' + bqChip(id) + '</button>';
   }
-  /* animated Noto fire (Lottie) in every flame that has at least one egg; players are created/destroyed as rows render */
-  var FIRE = (function () {
-    var data = FXI.fire || null, live = [], want = !!window.lottie && !reduce;
-    if (want && !data) fetch('assets/fx/fire.json').then(function (r) { return r.json(); }).then(function (d) { data = d; sync(); }).catch(function () {});
-    function sync() {
-      live = live.filter(function (x) { if (document.body.contains(x.el) && !x.el.closest('.lv0')) return true; x.anim.destroy(); x.el.removeAttribute('data-on'); return false; });
-      if (!want || !data) return;
-      document.querySelectorAll('.egg-fire:not(.lv0) .flame-l:not([data-on])').forEach(function (el) {
-        if (!el.offsetParent) return;
-        el.setAttribute('data-on', '1');
-        live.push({ el: el, anim: lottie.loadAnimation({ container: el, renderer: 'svg', loop: true, autoplay: true, animationData: data, rendererSettings: { preserveAspectRatio: 'xMidYMid meet' } }) });
-      });
-    }
-    return { sync: sync };
-  })();
   function refreshEggs() {
     document.querySelectorAll('[data-egg-n]').forEach(function (el) { var n = EGG.get(el.dataset.eggN); if (el.textContent !== String(n)) el.textContent = n; });
-    document.querySelectorAll('[data-egg-f]').forEach(function (el) { el.className = 'egg-fire lv' + eggLevel(EGG.get(el.dataset.eggF)); });
-    FIRE.sync();
+    document.querySelectorAll('[data-egg-f]').forEach(function (el) { var id = el.dataset.eggF, b = bqOf(id); if (el.dataset.b === String(b)) return; el.dataset.b = b; el.classList.toggle('none', !b); el.title = b + ' bó hoa (10 bông = 1 bó)'; el.innerHTML = bqInner(id); });
   }
   EGG.on(refreshEggs);
-  if (window.MutationObserver) { var fireMo; new MutationObserver(function () { clearTimeout(fireMo); fireMo = setTimeout(FIRE.sync, 60); }).observe(document.body, { childList: true, subtree: true }); }
 
-  /* throw: GSAP flies a Noto egg in an arc from the mascot, the fried-egg splat squashes onto the button,
-     canvas-confetti scatters shell + yolk, and the Lottie flame flares and spits embers (more at higher levels) */
+  /* throw a flower: a random FlowerHeads flower (seeded generator, assets/vendor/flower-heads.js) flies in a GSAP arc from the mascot,
+     opens on the button and bursts into petals in its own colours (canvas-confetti). Every 10 new flowers for a player = 1 bouquet
+     (counted from the egg total at the switch, meta.eggs.base). 3 quick taps on one player = streak: the page dims, the robot and a big
+     flower stand side by side; 50 in one streak → the robot grows, gets angry and locks flowers for 10 s. Sounds are generated (Web Audio),
+     the robot can read its lines (browser voice, vi-VN only); one mute button silences both (localStorage gcl-mute). */
   var G = window.gsap, boom = window.confetti && !reduce ? confetti.create(null, { resize: true, useWorker: true, disableForReducedMotion: true }) : null;
+  var PETAL = window.confetti && confetti.shapeFromPath ? [confetti.shapeFromPath({ path: 'M0 0 C5 -7 15 -7 20 0 C15 7 5 7 0 0 Z' }), confetti.shapeFromPath({ path: 'M0 0 C3 -9 13 -10 18 -2 C14 6 5 7 0 0 Z' })] : ['circle'];
+  var TEAMC = { 1: ['#2F45F0', '#C9D1FF'], 2: ['#B0285E', '#F6C9DA'], 3: ['#157A4A', '#BFE6D2'], 4: ['#B8924A', '#F1E2BF'], 5: ['#6A3FC2', '#DCCDF6'], 6: ['#1F7A8C', '#C2E6EC'] };
   var flying = 0;
-  function burst(x, y, lvl) {
+  function petals(x, y, n, cols) { if (boom) boom({ particleCount: n, spread: 360, startVelocity: 14, gravity: .55, decay: .9, ticks: 120, scalar: 1.1, shapes: PETAL, colors: cols, origin: { x: x / innerWidth, y: y / innerHeight }, zIndex: 120, disableForReducedMotion: true }); }
+  function shower(n) {
     if (!boom) return;
-    var o = { x: x / innerWidth, y: y / innerHeight };
-    boom({ origin: o, particleCount: 10, spread: 80, startVelocity: 16, gravity: 1.3, ticks: 55, scalar: .55, shapes: ['square'], colors: ['#FFFFFF', '#F3EBD3', '#E3D6B0'], disableForReducedMotion: true });
-    boom({ origin: o, particleCount: 8, spread: 60, startVelocity: 12, gravity: 1.5, ticks: 60, scalar: .7, shapes: ['circle'], colors: ['#FFC21A', '#FFA800', '#FFD54A'], disableForReducedMotion: true });
-    if (lvl) boom({ origin: { x: o.x + 18 / innerWidth, y: o.y }, particleCount: 4 + lvl * 5, angle: 90, spread: 40 + lvl * 8, startVelocity: 6 + lvl * 2, gravity: -.35, decay: .9, drift: 0, ticks: 40 + lvl * 8, scalar: .45, shapes: ['circle'], colors: ['#FF5A00', '#FF8A00', '#FFC400', '#FF2D00'], disableForReducedMotion: true });
+    for (var i = 0; i < 4; i++) setTimeout(function () { boom({ particleCount: n, angle: 270, spread: 160, startVelocity: 6, gravity: .32, decay: .96, ticks: 420, scalar: 1.25, drift: Math.random() * 1.2 - .6, shapes: PETAL, colors: ['#FF8FB1', '#FFD1DE', '#FFC531', '#9B7BE0', '#FFFFFF', '#E0245E'], origin: { x: Math.random(), y: -.05 }, zIndex: 120, disableForReducedMotion: true }); }, i * 180);
   }
-  function throwFx(btn) {
-    var icon = btn.querySelector('.egg-i') || btn, r = icon.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
-    var lvl = eggLevel(EGG.get(btn.dataset.egg));
+
+  /* ---------- sound + voice, one mute switch ---------- */
+  var AUD = (function () {
+    var muted = (function () { try { return localStorage.getItem('gcl-mute') === '1'; } catch (e) { return false; } })(), ac = null, vi = null, subs = [];
+    function ctx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+    function tone(f, t0, d, type, vol) {
+      var a = ctx(); if (!a) return; var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + t0;
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .15, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + .05);
+    }
+    var FX = {
+      pop: function () { tone(880 + Math.random() * 220, 0, .09, 'triangle', .06); },
+      bq: function () { [1046.5, 1318.5, 1568].forEach(function (f, i) { tone(f, i * .09, .5, 'sine', .14); tone(f * 2, i * .09, .25, 'sine', .035); }); },
+      angry: function () { tone(110, 0, .5, 'sawtooth', .11); tone(116, 0, .5, 'sawtooth', .09); tone(82, .45, .6, 'sawtooth', .11); tone(87, .45, .6, 'square', .05); }
+    };
+    function pickVoice() { if (window.speechSynthesis) vi = speechSynthesis.getVoices().filter(function (v) { return /^vi/i.test(v.lang); })[0] || null; }
+    if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+    return {
+      fx: function (k) { if (!muted && FX[k]) try { FX[k](); } catch (e) {} },
+      talk: function (t) {
+        if (muted || !vi || !t) return;
+        try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.voice = vi; u.lang = vi.lang; u.rate = 1.05; u.pitch = 1.25; speechSynthesis.speak(u); } catch (e) {}
+      },
+      muted: function () { return muted; },
+      toggle: function () {
+        muted = !muted; try { localStorage.setItem('gcl-mute', muted ? '1' : '0'); } catch (e) {}
+        if (muted && window.speechSynthesis) speechSynthesis.cancel();
+        subs.forEach(function (f) { f(muted); });
+      },
+      on: function (f) { subs.push(f); }
+    };
+  })();
+  var MUTE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wav" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9l5 6M21 9l-5 6"/></svg>';
+  function muteBtn(cls) { return '<button type="button" class="mute-btn ' + (cls || '') + '" aria-pressed="' + AUD.muted() + '" aria-label="Tắt / bật tiếng robot">' + MUTE_SVG + '</button>'; }
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.mute-btn'); if (!b) return; e.stopPropagation(); AUD.toggle(); });
+  var mm = $('msMute'); if (mm) mm.setAttribute('aria-pressed', AUD.muted());
+  AUD.on(function (m) { document.querySelectorAll('.mute-btn').forEach(function (b) { b.setAttribute('aria-pressed', m); }); if (!m) AUD.fx('pop'); });
+
+  /* ---------- robot lines ---------- */
+  var LINES = {
+    first: ['Bông đầu tiên cho {name}! Thêm {left} bông nữa là thành một bó.', 'Mở hàng rồi! {name} nhận bông hoa đầu tiên của bạn.'],
+    near: ['Còn 1 bông nữa là {name} có bó hoa!', 'Một bông nữa thôi, gói bó cho {name} nào.'],
+    bq: ['Ting! Bó hoa thứ {b} cho {name}.', '{name} nhận bó thứ {b}. Fan cứng đây rồi!', '10 bông gói thành bó thứ {b} cho {name}.'],
+    over: ['{name} vừa vượt {other} về hoa: {a} vs {c}.', 'Đảo chiều! {name} ({a}) qua mặt {other} ({c}).'],
+    tie: ['{name} và {other} đang hòa, {a} bông mỗi người. Ai phá thế hòa?'],
+    focus: ['Bạn tặng {name} {mine} bông rồi đó. Chia cho đồng đội khác chút nhé?', '{name} nhận đủ rồi, ngó qua mấy bạn ít hoa xem.'],
+    fan: ['Bạn đã tặng {total} bông, đúng là fan cứng của giải.'],
+    streak: ['Chuỗi {a} bông cho {name}! Tay nhanh ghê.', '{name} vừa nhận một trận mưa hoa: {a} bông liền tay.'],
+    lock: ['Đủ rồi đó! 50 bông liền tay, hết hoa cho cả giải luôn. Khóa 10 giây!', 'Dừng tay! Vườn hoa trụi lủi rồi. Nghỉ 10 giây cho hoa mọc lại!'],
+    unlock: ['Hết giận rồi. Tặng tiếp nhưng nhẹ tay thôi nha.', 'Hoa mọc lại rồi, mời tặng tiếp.'],
+    locked: ['Còn đang khóa mà, đợi {s} giây nữa!']
+  };
+  function line(k, v) { var a = LINES[k], t = a[Math.floor(Math.random() * a.length)]; return t.replace(/\{(\w+)\}/g, function (_, x) { return v && v[x] !== undefined ? v[x] : ''; }); }
+  var saidAt = {};
+  function once(key, gap) { var t = Date.now(); if (saidAt[key] && t - saidAt[key] < gap) return false; saidAt[key] = t; return true; }
+  function say(k, v, mood) { var t = line(k, v); if (window.mascotSay) mascotSay(t, mood); AUD.talk(t); return t; }
+
+  var mine = {}, mineTotal = 0, PLAYERS = (S.stats && S.stats.players) || [];
+  function nameOf(id) { var p = PLAYERS.filter(function (x) { return x.id === id; })[0]; return p ? p.name : ''; }
+  function teamOf(id) { return +String(id).split('-')[0] || 1; }
+  /* what the robot says after one flower lands (one line at most, combo first) */
+  function react(id, before) {
+    var n = EGG.get(id), v = { name: nameOf(id), a: n, b: bqOf(id), left: 10 - fresh(id) % 10, mine: mine[id], total: mineTotal };
+    var others = PLAYERS.filter(function (p) { return p.id !== id; }).map(function (p) { return { id: p.id, name: p.name, n: EGG.get(p.id) }; });
+    var passed = others.filter(function (o) { return before !== undefined && before <= o.n && n > o.n; }).sort(function (a, b) { return b.n - a.n; })[0];
+    var tied = others.filter(function (o) { return o.n === n && n > 0; })[0];
+    if (fresh(id) > 0 && fresh(id) % 10 === 0) return say('bq', v, 'happy');
+    if (mineTotal === 1) return say('first', v, 'happy');
+    if (passed && once('over', 4000)) { v.other = passed.name; v.c = passed.n; return say('over', v, 'happy'); }
+    if (tied && once('tie', 6000)) { v.other = tied.name; return say('tie', v); }
+    if (mine[id] === 20 && once('focus' + id, 60000)) return say('focus', v);
+    if (mineTotal === 50) return say('fan', v, 'happy');
+    if (fresh(id) % 10 === 9 && once('near', 4000)) return say('near', v);
+    if (window.mascotMood) mascotMood('happy', 1000);
+  }
+  function mascotBody() { var ms = document.querySelector('.mascot:not(.away)'); return ms && ms.offsetParent !== null ? ms.querySelector('.ms-body') : null; }
+  function bqPop(anchor, id) {
+    var r = anchor.getBoundingClientRect(), el = document.createElement('div'); el.className = 'bq-pop';
+    el.style.left = Math.min(innerWidth - 150, Math.max(8, r.left + r.width / 2 - 70)) + 'px'; el.style.top = Math.max(8, r.top - 170) + 'px';
+    el.innerHTML = (FH ? FH.bouquet(Math.random(), { size: 140, wrap: TEAMC[teamOf(id)] }) : '') + '<b class="bq-tag">Bó thứ ' + bqOf(id) + '</b>';
+    document.body.appendChild(el);
+    if (!G || reduce) { setTimeout(function () { el.remove(); }, 1600); return; }
+    var tl = G.timeline({ onComplete: function () { el.remove(); } });
+    tl.fromTo(el, { scale: .3, y: 60, rotation: -15, opacity: 0 }, { scale: 1, y: 0, rotation: 0, opacity: 1, duration: .6, ease: 'elastic.out(1,.55)' });
+    el.querySelectorAll('.fh-b').forEach(function (g, i) { tl.fromTo(g, { opacity: 0, scale: .2, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: .35, ease: 'back.out(3)' }, .2 + i * .07); });
+    tl.to(el, { y: -40, opacity: 0, scale: .85, duration: .5, ease: 'power2.in' }, '+=1');
+  }
+  function throwFx(btn, before) {
+    var id = btn.dataset.egg, icon = btn.querySelector('.egg-i') || btn, r = icon.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
+    var seed = Math.random(), info = FH ? FH.head(seed) : { colors: ['#FF8FB1', '#FFD1DE', '#FFC531'] };
     var land = function () {
-      var fl = btn.querySelector('.egg-fire');
+      AUD.fx('pop');
+      var combo = fresh(id) > 0 && fresh(id) % 10 === 0;
+      petals(tx, ty, combo ? 24 : 10, info.colors);
       if (G) {
-        G.fromTo(btn, { scale: .86 }, { scale: 1, duration: .5, ease: 'elastic.out(1.1,.45)', clearProps: 'transform' });
-        if (fl) G.fromTo(fl, { scale: 1.8, y: -4 }, { scale: 1, y: 0, duration: .6, ease: 'elastic.out(1,.4)', clearProps: 'transform' });
-        var sp = document.createElement('img'); sp.src = SPLAT_IMG; sp.className = 'egg-splat'; sp.alt = ''; document.body.appendChild(sp);
-        G.set(sp, { x: tx - 20, y: ty - 20, rotation: Math.random() * 360 });
-        G.timeline({ onComplete: function () { sp.remove(); } })
-          .fromTo(sp, { scaleX: .2, scaleY: .2, opacity: 1 }, { scaleX: 1.25, scaleY: .9, duration: .12, ease: 'power3.out' })
-          .to(sp, { scaleX: 1, scaleY: 1, duration: .35, ease: 'elastic.out(1,.5)' })
-          .to(sp, { y: '+=14', opacity: 0, duration: .5, ease: 'power1.in' }, '+=.15');
+        var nb = document.querySelector('.egg-btn[data-egg="' + id + '"]') || btn;
+        G.fromTo(nb, { scale: .86 }, { scale: 1, duration: .5, ease: 'elastic.out(1.1,.45)', clearProps: 'transform' });
         var plus = document.createElement('span'); plus.className = 'egg-plus'; plus.textContent = '+1'; document.body.appendChild(plus);
         G.fromTo(plus, { x: tx + 10, y: ty - 10, opacity: 1, scale: .6 }, { y: ty - 54, scale: 1.1, opacity: 0, duration: .9, ease: 'power2.out', onComplete: function () { plus.remove(); } });
       }
-      burst(tx, ty, lvl);
+      if (combo) { AUD.fx('bq'); bqPop(btn, id); shower(14); }
+      react(id, before);
     };
-    var ms = document.querySelector('.mascot:not(.away)'), mb = ms && ms.offsetParent !== null && ms.querySelector('.ms-body');
-    if (mb && window.mascotMood) mascotMood('happy', 1400);
-    if (!G || reduce || flying > 12) return land();
+    var mb = mascotBody();
+    if (!G || reduce || flying > 12 || !FH) return land();
     var mr = mb && mb.getBoundingClientRect();
     var sx = mr ? mr.left + mr.width / 2 : tx + (Math.random() * 160 - 80), sy = mr ? mr.top + 16 : innerHeight + 30;
-    var egg = document.createElement('img'); egg.src = EGG_IMG; egg.className = 'egg-fly'; egg.alt = ''; document.body.appendChild(egg);
-    var peak = Math.min(sy, ty) - 70 - Math.random() * 70, dur = .5 + Math.min(.35, Math.hypot(tx - sx, ty - sy) / 2000);
+    var el = document.createElement('div'); el.className = 'egg-fly'; document.body.appendChild(el);
+    var f = FH.mount(el, { seed: seed, size: 32, state: 'bud' });
+    var peak = Math.min(sy, ty) - 70 - Math.random() * 70, dur = .55 + Math.min(.35, Math.hypot(tx - sx, ty - sy) / 2000);
     flying++;
-    G.set(egg, { x: sx - 13, y: sy - 13, rotation: -30, scale: .7 });
-    G.timeline({ onComplete: function () { egg.remove(); flying--; land(); } })
-      .to(egg, { x: tx - 13, duration: dur, ease: 'none' }, 0)
-      .to(egg, { y: peak - 13, duration: dur * .45, ease: 'power2.out' }, 0)
-      .to(egg, { y: ty - 13, duration: dur * .55, ease: 'power2.in' }, dur * .45)
-      .to(egg, { rotation: 420 + Math.random() * 180, scale: 1.05, duration: dur, ease: 'none' }, 0)
-      .to(egg, { scaleX: 1.35, scaleY: .6, duration: .06 }, dur - .06);
+    G.set(el, { x: sx - 16, y: sy - 16, rotation: -40, scale: .6 });
+    G.timeline({ onComplete: function () {
+        flying--; land(); f.setState('bloom');
+        G.timeline({ onComplete: function () { el.remove(); } }).to(el, { scale: 1.7, duration: .4, ease: 'back.out(2)' }).to(el, { scale: 2, opacity: 0, y: '-=12', duration: .35 }, '+=.15');
+      } })
+      .to(el, { x: tx - 16, duration: dur, ease: 'none' }, 0)
+      .to(el, { y: peak - 16, duration: dur * .45, ease: 'power2.out' }, 0)
+      .to(el, { y: ty - 16, duration: dur * .55, ease: 'power2.in' }, dur * .45)
+      .to(el, { rotation: 300 + Math.random() * 120, scale: 1, duration: dur, ease: 'power1.out' }, 0);
   }
+  function give(id) {
+    var before = EGG.get(id);
+    if (!EGG.hit(id)) return null;
+    mine[id] = (mine[id] || 0) + 1; mineTotal++;
+    return before;
+  }
+
+  /* ---------- streak ---------- */
+  var STREAK_START = 3, STREAK_GAP = 1500, STREAK_IDLE = 3000, STREAK_MAX = 50, LOCK_S = 10;
+  var taps = {}, SK = null, lockUntil = 0;
+  function quick(id) { var t = Date.now(); taps[id] = (taps[id] || []).filter(function (x) { return t - x < STREAK_GAP; }); taps[id].push(t); return taps[id].length >= STREAK_START; }
+  function skSize() {
+    if (!SK) return; var W = innerWidth, H = innerHeight;
+    var fl = Math.round(Math.max(120, Math.min(W * .48, H * .34, 260))), bot = Math.round(Math.max(90, Math.min(W * .34, H * .26, 200)));
+    if (fl + bot + 40 > W - 32) { var k = (W - 72) / (fl + bot); fl = Math.round(fl * k); bot = Math.round(bot * k); }
+    SK.botPx = bot; SK.ov.style.setProperty('--fl', fl + 'px'); SK.ov.style.setProperty('--bot', bot + 'px');
+  }
+  function skSay(t, m) {
+    if (!SK) return; var b = SK.ov.querySelector('.sk-say'); b.textContent = t; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    if (SK.bot && m) { SK.bot.setState(m); clearTimeout(SK.mt); SK.mt = setTimeout(function () { if (SK && SK.bot && !SK.locked) SK.bot.setState('happy'); }, 1600); }
+  }
+  function skFlower() { if (FH) SK.fl = FH.mount(SK.ov.querySelector('.sk-f'), { seed: Math.random(), size: 120, state: 'bloom' }); }
+  function skRing() { SK.ov.querySelector('.sk-ring .on').style.strokeDashoffset = (339.3 * (1 - (fresh(SK.id) % 10) / 10)).toFixed(1); }
+  function openStreak(id, already) {
+    var ov = document.createElement('div'); ov.className = 'sk-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Chuỗi hoa cho ' + nameOf(id));
+    ov.innerHTML = muteBtn('sk-mute') + '<button type="button" class="sk-x" aria-label="Thoát chuỗi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '<div class="sk-who">Tặng hoa cho</div><b class="sk-name">' + esc(nameOf(id)) + '</b><div class="sk-say" aria-live="polite"></div>' +
+      '<div class="sk-stage"><div class="sk-bot"><div class="sk-bot-in"></div></div><div class="sk-fw"><button type="button" class="sk-btn" aria-label="Tặng thêm 1 bông"><svg class="sk-ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><circle class="on" cx="60" cy="60" r="54"/></svg><span class="sk-f"></span></button></div></div>' +
+      '<div class="sk-n"><b>' + already + '</b> bông trong chuỗi</div><div class="sk-hint">Chạm liên tục vào bông hoa · dừng 3 giây để kết thúc</div>';
+    document.body.appendChild(ov); document.documentElement.classList.add('sk-open');
+    SK = { id: id, n: already, ov: ov, idle: null };
+    skSize(); addEventListener('resize', skSize);
+    SK.bot = window.RobotHeads ? RobotHeads.mount(ov.querySelector('.sk-bot-in'), { shape: 'rectangle', size: SK.botPx, color: '#22337F', trimColor: '#D9C08A', screenColor: '#E9EDFF', seed: .42, label: 'Robot của giải' }) : null;
+    if (SK.bot) SK.bot.setState('happy');
+    skFlower(); skRing(); skSay('Bấm tiếp đi, đủ 10 bông là thành bó!');
+    SK.idle = setTimeout(closeStreak, STREAK_IDLE);
+    ov.querySelector('.sk-btn').addEventListener('pointerdown', function (e) { e.preventDefault(); skTap(); });
+    ov.querySelector('.sk-btn').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skTap(); } });
+    ov.querySelector('.sk-x').onclick = closeStreak;
+    if (G && !reduce) { G.fromTo(ov, { opacity: 0 }, { opacity: 1, duration: .25 }); G.fromTo(ov.querySelector('.sk-stage'), { scale: .4 }, { scale: 1, duration: .6, ease: 'elastic.out(1,.5)' }); }
+    ov.querySelector('.sk-btn').focus({ preventScroll: true });
+  }
+  function skTap() {
+    if (!SK || SK.locked) return;
+    if (give(SK.id) === null) return;
+    clearTimeout(SK.idle); SK.idle = setTimeout(closeStreak, STREAK_IDLE);
+    SK.n++;
+    var r = SK.ov.querySelector('.sk-btn').getBoundingClientRect();
+    AUD.fx('pop'); if (SK.fl) petals(r.left + r.width / 2, r.top + r.height / 2, 12, SK.fl.colors);
+    SK.ov.querySelector('.sk-n b').textContent = SK.n; skRing();
+    if (G && !reduce) { G.fromTo(SK.ov.querySelector('.sk-btn'), { scale: .9 }, { scale: 1, duration: .35, ease: 'back.out(3)' }); G.fromTo(SK.ov.querySelector('.sk-bot-in'), { y: 0 }, { y: -10, duration: .12, yoyo: true, repeat: 1, ease: 'power1.out' }); }
+    if (SK.bot && SK.n % 5 === 0 && SK.n < STREAK_MAX && SK.bot.poke) SK.bot.poke();
+    skFlower();
+    if (fresh(SK.id) % 10 === 0) {
+      AUD.fx('bq'); shower(10);
+      var t = line('bq', { name: nameOf(SK.id), b: bqOf(SK.id) }); skSay(t, 'speaking'); AUD.talk(t);
+      var pop = document.createElement('div'); pop.className = 'sk-bq'; pop.innerHTML = FH ? FH.bouquet(Math.random(), { size: 110, wrap: TEAMC[teamOf(SK.id)] }) : '';
+      SK.ov.querySelector('.sk-fw').appendChild(pop);
+      if (G && !reduce) G.timeline({ onComplete: function () { pop.remove(); } }).fromTo(pop, { opacity: 0, y: 40, scale: .4 }, { opacity: 1, y: 0, scale: 1, duration: .55, ease: 'elastic.out(1,.55)' }).to(pop, { opacity: 0, y: -30, duration: .4 }, '+=.5');
+      else setTimeout(function () { pop.remove(); }, 1200);
+    } else if (SK.n === 25) skSay('25 bông rồi! Tay ai mà nhanh vậy?', 'speaking');
+    else if (SK.n === STREAK_MAX - 5) skSay('Còn 5 bông nữa là tôi giận đó nha…', 'thinking');
+    if (SK.n >= STREAK_MAX) angry();
+  }
+  function closeStreak() {
+    if (!SK || SK.locked) return; var s = SK; SK = null; clearTimeout(s.idle); clearTimeout(s.mt);
+    removeEventListener('resize', skSize); document.documentElement.classList.remove('sk-open');
+    var end = function () { s.ov.remove(); };
+    if (G && !reduce) G.to(s.ov, { opacity: 0, duration: .3, onComplete: end }); else end();
+    if (s.n >= 10) say('streak', { name: nameOf(s.id), a: s.n }, 'happy');
+  }
+  function angry() {
+    SK.locked = true; clearTimeout(SK.idle); clearTimeout(SK.mt); lockUntil = Date.now() + LOCK_S * 1000;
+    var ov = SK.ov, bot = ov.querySelector('.sk-bot'); ov.classList.add('locked'); AUD.fx('angry');
+    ov.querySelector('.sk-btn').disabled = true;
+    if (SK.bot) { SK.bot.setState('error'); setTimeout(function () { if (SK && SK.locked && SK.bot) SK.bot.setState('error'); }, 450); }
+    var t = line('lock'); skSay(t); AUD.talk(t);
+    var cnt = document.createElement('div'); cnt.className = 'sk-lock'; ov.appendChild(cnt);
+    if (G && !reduce) {
+      var r = bot.getBoundingClientRect(), k = Math.min(1.9, (innerWidth - 32) / r.width, innerHeight * .45 / r.height);
+      G.to(bot, { x: innerWidth / 2 - (r.left + r.width / 2), scale: k, duration: .6, ease: 'back.out(1.7)', onComplete: function () { G.to(bot, { rotation: 4, duration: .07, repeat: 11, yoyo: true, ease: 'none', onComplete: function () { G.set(bot, { rotation: 0 }); } }); } });
+      G.to(ov.querySelector('.sk-fw'), { opacity: .15, scale: .8, duration: .4 });
+    }
+    (function tick() {
+      var left = Math.ceil((lockUntil - Date.now()) / 1000);
+      if (left > 0) { cnt.innerHTML = 'Khóa hoa <b>' + left + '</b> giây'; setTimeout(tick, 250); return; }
+      if (SK.bot) SK.bot.setState('happy');
+      var u = line('unlock'); skSay(u); AUD.talk(u);
+      var done = function () { SK.locked = false; closeStreak(); };
+      if (G && !reduce) { G.to(bot, { x: 0, scale: 1, duration: .5, ease: 'power2.inOut' }); G.to(ov.querySelector('.sk-fw'), { opacity: 1, scale: 1, duration: .4 }); setTimeout(done, 1400); } else done();
+    })();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && SK) closeStreak(); });
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('.egg-btn'); if (!b) return;
     e.stopPropagation();
-    if (!EGG.hit(b.dataset.egg)) { b.classList.add('empty'); setTimeout(function () { b.classList.remove('empty'); }, 600); if (window.mascotSay) mascotSay('Hôm nay anh đã hết ' + EGG.limit + ' quả trứng rồi, mai ném tiếp nhé!'); return; }
-    throwFx(b);
+    var id = b.dataset.egg;
+    if (Date.now() < lockUntil) { b.classList.add('empty'); setTimeout(function () { b.classList.remove('empty'); }, 600); if (once('locked', 1500)) say('locked', { s: Math.ceil((lockUntil - Date.now()) / 1000) }, 'error'); return; }
+    var before = give(id);
+    if (before === null) { b.classList.add('empty'); setTimeout(function () { b.classList.remove('empty'); }, 600); if (window.mascotSay) mascotSay('Hôm nay bạn đã tặng hết ' + EGG.limit + ' bông rồi, mai tặng tiếp nhé!'); return; }
+    if (quick(id) && !SK) { taps[id] = []; throwFx(b, before); openStreak(id, STREAK_START); return; }
+    throwFx(b, before);
   });
 
   /* ---------- show/hide blocks (member lists) ---------- */
@@ -647,7 +822,7 @@
       ['Hỗ trợ', function (q) { return q.sup; }, function (q) { return q.sup; }, true],
       ['Hiệu suất', function (q) { return q.eff == null ? -1 : q.eff; }, function (q) { return q.eff == null ? '–' : q.eff + '%'; }, true],
       ['Chuỗi dài nhất', function (q) { return q.run; }, function (q) { return q.run || '–'; }, true],
-      ['Trứng thối', function (q) { return q.eggs; }, function (q) { return q.eggs; }, null]];
+      ['Hoa', function (q) { return q.eggs; }, function (q) { return q.eggs; }, null]];
     var box = document.createElement('div'); box.className = 'pm'; box.hidden = true;
     box.innerHTML = '<div class="pm-card glass" role="dialog" aria-modal="true" aria-labelledby="pmTitle"><button type="button" class="pm-x" aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="pm-in"></div></div>';
     document.body.appendChild(box);
@@ -717,7 +892,7 @@
     var STATUS = { champ: ['Vô địch', 'champ'], runner: ['Á quân', 'win'], win: ['Nhánh thắng', 'win'], lose: ['Nhánh thua', 'lose'], out: ['Đã dừng', 'out'] };
     var METRICS = [
       ['heat', 'Nhiệt độ', function (p) { return p.heat; }, function (p) { return p.heat.toFixed(1) + '°'; }],
-      ['eggs', 'Trứng thối', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
+      ['eggs', 'Hoa', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
       ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
       ['pf', 'Điểm ghi', function (p) { return p.pf; }, function (p) { return p.pf; }],
       ['atk', 'Tấn công', function (p) { return p.atk || 0; }, function (p) { return p.atk || 0; }],
@@ -808,7 +983,7 @@
       function row(p, i) {
         var main = M[3](p), sub = '';
         if (state.metric === 'eggs') {
-          main = '<span class="egg-main"><span data-egg-n="' + esc(p.id) + '">' + EGG.get(p.id) + '</span><span class="egg-fire lv' + eggLevel(EGG.get(p.id)) + '" data-egg-f="' + esc(p.id) + '">' + FLAME_SVG + '</span></span>';
+          main = '<span class="egg-main"><span data-egg-n="' + esc(p.id) + '">' + EGG.get(p.id) + '</span>' + bqChip(p.id) + '</span>';
           sub = '<small>' + p.heat.toFixed(1) + '° nhiệt độ</small>';
         } else if (state.metric === 'heat') {
           var w = Math.max(4, Math.min(100, (p.heat - 20) / 25 * 100));
@@ -825,7 +1000,7 @@
           '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
       }
       note.textContent = state.metric === 'eggs'
-        ? 'Bấm nút quả trứng ở mỗi dòng để ném trứng thối, bấm liên tục để ném nhiều quả. Trứng càng nhiều lửa càng cháy to. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
+        ? 'Bấm nút bông hoa ở mỗi dòng để tặng hoa, mỗi lần ra một bông khác nhau. 10 bông mới gói thành 1 bó. Bấm liền 3 lần để vào chuỗi hoa. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
         : state.metric === 'heat'
         ? 'Nhiệt độ 20°–45°: lúc đầu tính theo seed; sau mỗi trận, tỉ lệ thắng cặp và hiệu số điểm của chính VĐV dần thay thế điểm khởi đầu. Mũi tên so với trước trận gần nhất.'
         : 'Chỉ số tính từ điểm từng cặp đã nhập. ' + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
@@ -892,7 +1067,7 @@
     }
     var lastDone = S.matches.filter(function (m) { return m.result; }).slice(-1)[0];
     if (lastDone) msgs.push(['Kết quả mới: ' + lastDone.code + ' ' + sideName(lastDone.a) + ' ' + lastDone.result.a + '–' + lastDone.result.b + ' ' + sideName(lastDone.b) + '.', 'Xem BXH', '#bxh']);
-    msgs.push(['Thấy ai đánh hay quá? Vào BXH ném trứng thối cho lửa cháy to lên!', 'Ném trứng', '#bxh', 'eggs']);
+    msgs.push(['Thấy ai đánh hay? Vào BXH tặng hoa, đủ 10 bông là thành một bó!', 'Tặng hoa', '#bxh', 'eggs']);
     msgs.push(['Chạm vào tên VĐV trong lịch để xem cặp đấu và nhiệt độ của người đó.', 'Mở lịch', '#lich']);
     var i = 0, cycle;
     function show(k) {
@@ -901,7 +1076,7 @@
       bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
       mood('speaking', Math.min(4200, 900 + m[0].length * 45));
     }
-    window.mascotSay = function (t) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; mood('speaking', 2500); clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
+    window.mascotSay = function (t, m) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); mood(m || 'speaking', 2500); clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
     function start() { clearTimeout(cycle); show(i); cycle = setTimeout(function next() { bubble.hidden = true; cycle = setTimeout(function () { i++; show(i); cycle = setTimeout(next, 9000); }, 20000); }, 9000); }
     function away(on) {
       root.classList.toggle('away', on); save(on ? 'away' : 'on');
@@ -918,7 +1093,7 @@
       bubble.hidden = true;
       if (act.dataset.eggs) { var t = document.querySelector('#bxhTabs [data-tab="player"]'); if (t) t.click(); var c = document.querySelector('#bxhBar .chip[data-v="eggs"]'); if (c) c.click(); }
     });
-    /* react to the page: thinking while the egg board loads, error if it is offline, happy on every throw */
+    /* react to the page: error if the flower board is offline, happy on every flower */
     var lastEgg = EGG.state();
     EGG.on(function () {
       var st = EGG.state(); if (st === lastEgg) return; lastEgg = st;

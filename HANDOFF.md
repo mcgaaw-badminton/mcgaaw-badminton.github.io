@@ -2,7 +2,7 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-05, v1.21.0)
+## Current state (2026-11-05, v1.22.0)
 - Live site: https://mcgaaw-badminton.github.io · referee page: `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys).
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — deployed version 4 = `scripts/apps_script/eggs.gs` (history log + Chốt).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs, referee, referee_log, referee_final, referee_draft.
@@ -31,6 +31,6 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - PROTECTION (user asked for all 5 layers, 2026-11-05): site v1.21.0 is live; `scripts/apps_script/eggs.gs` (cache, rate limit, Turnstile, PIN) is committed but NOT yet deployed (Chrome was offline) → deploy it (version 5) and verify; it adds UrlFetchApp, so the owner must run `authorize()` once and click Allow. User steps still to do: Turnstile widget (send the site key; put the secret in Script properties), REF_PIN in Script properties, domain + Cloudflare (purchase is the user's).
 - Trust (deferred by the user on 2026-11-04, "tạm thời không cần"): the Apps Script endpoint is public; anyone could POST a fake "Chốt". Proposal kept: server checks the Chốt against the `referee` rows and/or a referee PIN.
 - Other phones only learn "Đã chốt" from their own press (status is per phone); could pull `finals` from `?ref=all`.
-- FLOWERS (2026-11-05, review v4, NOT deployed): eggs → flowers. Existing egg counts carry over as flower counts; bouquets (10 = 1) count only flowers given after the switch (per-player base = egg count at switch). Every flower is random from our seeded generator `scripts/flower_draft/flower-heads.js`; no picker buttons on the site. Streak: 3 taps within 1.5 s → dim overlay with the robot (robot-heads, animated) and a big flower button side by side, sized from the viewport (tested 360×640, 390×844, 844×390, 768×1024, 1440×900); 3 s idle ends it. 50 in one streak → robot grows, 'error' face, red pulse, flowers locked 10 s. Draft code `scripts/flower_draft/streak-draft.js`. Web Audio sounds, behaviour-based robot lines, optional vi-VN voice. No other client anti-spam. Review https://claude.ai/artifact/U8nAatUj5msPfGZX12ei34.
+- FLOWERS shipped in v1.22.0 (rules in BASEMENT §6 "Flowers"). Egg totals snapshotted into `config/site.json` eggs.flower_base at 11:00 on 2026-11-05 (bouquets count from there). Robot ideas list (live scores, profile, compare, BXH, reports, schedule, theme, offline, Turnstile, referee page) offered; the user has not picked any yet. `scripts/flower_draft/` holds the review drafts only.
 - Intro animation (dev only): storyboard v2 https://claude.ai/artifact/MsioXD6SSReWoKH1qY1VZ2 awaits approval.
 - Older questions still open: referee PIN; tap targets/font scale on the main page.
