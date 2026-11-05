@@ -140,6 +140,7 @@ def main():
             gallery.append({"album": key, "title": title, "items": items})
 
     # documents: downloads/* only (copy a match-sheet PDF there to publish it)
+    reports = (read_json(paths.CONFIG / "reports.json").get("reports") if (paths.CONFIG / "reports.json").exists() else []) or []
     docs = []
     doc_files = [p for p in sorted(paths.DOWNLOADS_IN.glob("*")) if p.is_file() and p.name != "README.md"] \
         if paths.DOWNLOADS_IN.exists() else []
@@ -147,7 +148,15 @@ def main():
         if not dry:
             (out / "docs").mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, out / "docs" / f.name)
-        docs.append({"label": re.sub(r"[_]+", " ", f.stem), "href": f"docs/{f.name}"})
+        label = next((r["label"] for r in reports if r.get("file") == f.name), re.sub(r"[_]+", " ", f.stem))
+        docs.append({"label": label, "href": f"docs/{f.name}"})
+    # newest match-day report (config/reports.json) = first hero slide, linked to its PDF
+    rep = next((r for r in sorted(reports, key=lambda r: r["date"].split("/")[::-1], reverse=True)
+                if any(d["href"] == f"docs/{r['file']}" for d in docs)), None)
+    if rep:
+        slides.insert(0, {"eyebrow": rep["eyebrow"], "title": rep["title"], "sub": rep["sub"], "stats": rep.get("stats", []),
+                          "cta": {"label": "Xem báo cáo (PDF)", "href": f"docs/{rep['file']}"}, "cta2": {"label": "Bảng xếp hạng", "href": "#bxh"}, "report": True})
+        print(f"[REPORT] hero slide: {rep['label']}")
 
     dates = [m["date"] for m in matches]
     commit = (os.environ.get("GITHUB_SHA") or git_head())[:7] or "local"

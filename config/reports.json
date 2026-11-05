@@ -1,0 +1,32 @@
+{
+ "_note": "Match-day reports shown on the site: the newest one becomes the first hero slide; its PDF must be in downloads/. Generate with: python scripts/build_report.py --publish, then copy output/report/<date>/summary.json here.",
+ "reports": [
+  {
+   "date": "04/11/2026",
+   "day": 1,
+   "file": "Bao_cao_04-11-2026.pdf",
+   "label": "Báo cáo ngày 1 · 04/11/2026",
+   "eyebrow": "Báo cáo ngày 1 · Thứ 4 · 04/11/2026",
+   "title": "Đội 2 thắng trắng 5–0",
+   "sub": "T1: Đội 2 thắng Đội 1 155–88 · T2: Đội 4 dẫn 91–73, còn 2 cặp đánh sau.",
+   "stats": [
+    {
+     "v": "155–88",
+     "k": "T1 · Đội 2 thắng 5–0 cặp"
+    },
+    {
+     "v": "91–73",
+     "k": "T2 · Đội 4 dẫn, chờ 2 cặp"
+    },
+    {
+     "v": "9 điểm",
+     "k": "Chuỗi dài nhất · Đội 2"
+    },
+    {
+     "v": "31–29",
+     "k": "Sát nút nhất · T2 · cặp 4"
+    }
+   ]
+  }
+ ]
+}

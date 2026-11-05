@@ -204,6 +204,9 @@ def status_line(mm):
     return f'<span class="wait">Chưa chốt · đã đấu {mm["played"]}/5 cặp' + (f' · vắng cặp {", ".join(map(str, absent))} (đánh sau)' if absent else (f' · còn {left} cặp' if left else '')) + '</span>'
 
 
+HL = []  # highlights of the last overview, reused for the site summary
+
+
 def overview(models, date, day, st):
     cards = ""
     for mm in models:
@@ -237,6 +240,7 @@ def overview(models, date, day, st):
           ("Cặp đánh lâu nhất", f'{longest[0]["m"]["code"]} · cặp {longest[1]+1}', mmss(longest[2]["ms"])),
           ("Chuỗi điểm dài nhất", f'{runs[0]["m"]["code"]} · cặp {runs[1]+1} · {e(tn(runs[0], runs[3]))}', f'{runs[2]["run"][runs[3]]} điểm'),
           ("Tấn công nhiều nhất", f'{e(atk[1][1])} · {e(tn(atk[0], atk[1][0]))}', f'{atk[2][0]} điểm')]
+    HL[:] = hl
     hls = "".join(f'<div class="hi"><small>{t}</small><b>{v}</b><span>{d}</span></div>' for t, d, v in hl)
     top = sorted([p for p in st["players"] if p["played"]], key=lambda p: -p["heat"])[:5]  # only players with a closed match
     heat = "".join(f'<div class="ht"><span class="rk">{n+1}</span><span class="hn">{e(p["name"])}<small>{e(next(t["name"] for t in st["teams_cfg"] if t["id"] == p["team"]) if "teams_cfg" in st else "")}</small></span>'
@@ -300,6 +304,7 @@ def main():
     ap.add_argument("--matches", nargs="*", default=[])
     ap.add_argument("--offline", action="store_true", help="use cached JSON in output/report/<date>/")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--publish", action="store_true", help="copy the PDF to downloads/ and write the site summary (output/report/<date>/summary.json)")
     args = ap.parse_args()
     teams_cfg, sched, pairs, codes, date, store, data, raw_all, finals, st = load(args)
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
@@ -327,7 +332,37 @@ def main():
            + overview(models, date, day, st) + "".join(match_page(mm, date, day) for mm in models) + "</body></html>")
     page_html.write_text(doc, encoding="utf-8")
     subprocess.run(["node", str(paths.SCRIPTS / "render_pdf.mjs"), str(page_html), str(pdf)], check=True)
+    if args.publish:
+        import shutil
+        shutil.copy2(pdf, paths.DOWNLOADS_IN / pdf.name)
+        summ = summary(models, date, day, pdf.name)
+        (store / "summary.json").write_text(json.dumps(summ, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name} · summary {store / 'summary.json'} (copy it into config/reports.json)")
     print(f"[OUTPUT] {pdf}")
+
+
+def summary(models, date, day, file):
+    """Hero-slide summary for config/reports.json: results line, 4 numbers, link to the PDF."""
+    def res(mm):
+        a, b = mm["A"]["name"], mm["B"]["name"]
+        if mm["final"]:
+            w, l, tw, tl, pw, pl = (a, b, mm["ta"], mm["tb"], mm["pa"], mm["pb"]) if mm["ta"] > mm["tb"] or (mm["ta"] == mm["tb"] and mm["pa"] > mm["pb"]) \
+                else (b, a, mm["tb"], mm["ta"], mm["pb"], mm["pa"])
+            return f"{w} thắng {l} {tw}–{tl}", {"v": f"{tw}–{tl}", "k": f"{mm['m']['code']} · {w} thắng {pw}–{pl} cặp"}
+        lead = a if mm["ta"] >= mm["tb"] else b
+        left = 5 - mm["played"]
+        return (f"{lead} dẫn {max(mm['ta'], mm['tb'])}–{min(mm['ta'], mm['tb'])}, còn {left} cặp đánh sau",
+                {"v": f"{max(mm['ta'], mm['tb'])}–{min(mm['ta'], mm['tb'])}", "k": f"{mm['m']['code']} · {lead} dẫn, chờ {left} cặp"})
+    lines, tiles = zip(*(res(mm) for mm in models))
+    pick = {t: (d, v) for t, d, v in HL}
+    tiles = list(tiles)[:2] + [{"v": pick["Chuỗi điểm dài nhất"][1], "k": "Chuỗi dài nhất · " + pick["Chuỗi điểm dài nhất"][0].split(" · ")[-1]},
+                               {"v": pick["Sát nút nhất"][1], "k": "Sát nút nhất · " + pick["Sát nút nhất"][0]}]
+    finals = [mm for mm in models if mm["final"]]
+    return {"date": date, "day": day, "file": file, "label": f"Báo cáo ngày {day} · {date}",
+            "eyebrow": f"Báo cáo ngày {day} · Thứ 4 · {date}",
+            "title": (res(finals[0])[0].split(" thắng ")[0] + " thắng " + (f"trắng {finals[0]['pb'] if finals[0]['tb'] > finals[0]['ta'] else finals[0]['pa']}–0" if 0 in (finals[0]['pa'], finals[0]['pb']) else res(finals[0])[1]["v"])) if finals else f"Ngày {day}: {len(models)} lượt trận",
+            "sub": " · ".join(f"{mm['m']['code']}: {line}" for mm, line in zip(models, lines)) + ".",
+            "stats": tiles}
 
 
 if __name__ == "__main__":

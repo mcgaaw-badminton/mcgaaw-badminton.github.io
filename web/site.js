@@ -305,10 +305,12 @@
       ? '<div class="slide-bg"><img src="' + esc(s.src) + '" alt=""' + (i ? ' loading="lazy"' : '') + '></div>'
       : '<div class="court"><div class="court-lines"></div></div>';
     var h = i === 0 ? 'h1' : 'h2';
-    return '<article class="slide' + (i ? '' : ' on') + '" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' / ' + slides.length + '">' + bg +
+    return '<article class="slide' + (i ? '' : ' on') + (s.report ? ' report' : '') + '" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' / ' + slides.length + '">' + bg +
       '<div class="slide-in">' + (s.eyebrow ? '<p class="chip-gold glass-dark">' + esc(s.eyebrow) + '</p>' : '') +
       (s.title ? '<' + h + '>' + esc(s.title) + '</' + h + '>' : '') + (s.sub ? '<p class="sub">' + esc(s.sub) + '</p>' : '') +
-      (s.cta ? '<a class="cta" href="' + esc(s.cta.href) + '">' + esc(s.cta.label) + ARROW + '</a>' : '') + '</div></article>';
+      (s.stats && s.stats.length ? '<div class="rstats">' + s.stats.map(function (x) { return '<div class="rs glass-dark"><b>' + esc(x.v) + '</b><small>' + esc(x.k) + '</small></div>'; }).join('') + '</div>' : '') +
+      (s.cta ? '<div class="ctas"><a class="cta" href="' + esc(s.cta.href) + '"' + (/\.pdf$/i.test(s.cta.href) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(s.cta.label) + ARROW + '</a>' +
+        (s.cta2 ? '<a class="cta alt" href="' + esc(s.cta2.href) + '">' + esc(s.cta2.label) + '</a>' : '') + '</div>' : '') + '</div></article>';
   }).join('');
   dotsEl.innerHTML = slides.map(function (s, i) { return '<button type="button" role="tab" aria-label="Slide ' + (i + 1) + '" aria-selected="' + !i + '" data-i="' + i + '"></button>'; }).join('');
   var slideEls = slidesEl.children, dotEls = dotsEl.children;
