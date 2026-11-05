@@ -282,7 +282,7 @@
         navLinks.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id); });
       });
     }, { rootMargin: '-40% 0px -55% 0px' });
-    ['home', 'lich', 'so-do', 'bxh', 'doi', 'the-le', 'thu-vien', 'tai-lieu'].forEach(function (id) { var el = $(id); if (el) io.observe(el); });
+    ['home', 'ket-qua', 'lich', 'so-do', 'bxh', 'doi', 'the-le', 'thu-vien', 'tai-lieu'].forEach(function (id) { var el = $(id); if (el) io.observe(el); });
   }
 
   /* ---------- island ---------- */
@@ -862,6 +862,45 @@
     }
   });
   swipe(lb, function () { showLb(lbIndex + 1); }, function () { showLb(lbIndex - 1); });
+
+  /* ---------- "Kết quả": match-day reports (newest first) and the GOAT of every stat, both linked to their PDF ---------- */
+  (function () {
+    var body = $('kqBody'), tabs = $('kqTabs'); if (!body || !tabs) return;
+    var reps = S.reports || [], goat = S.goat, tab = 'day';
+    function pdf(href, label) { return '<a class="cta kq-pdf" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label) + ARROW + '</a>'; }
+    function results(r) {  // the day's matches as they stand in the build (closed result, or "chờ chốt")
+      return S.matches.filter(function (m) { return m.date === r.date && m.a.team && m.b.team; }).map(function (m) {
+        var a = sideName(m.a), b = sideName(m.b), res = m.result;
+        return '<div class="kq-m"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span class="kq-t ta' + (m.winner === 'a' ? ' win' : '') + '">' + esc(a) + '</span>' +
+          '<b>' + (res ? res.a + '–' + res.b : '–') + '</b><span class="kq-t tb' + (m.winner === 'b' ? ' win' : '') + '">' + esc(b) + '</span>' +
+          '<small>' + (res ? 'Đã chốt · cặp ' + res.pa + '–' + res.pb : 'Chờ chốt') + '</small></div>';
+      }).join('');
+    }
+    function day() {
+      if (!reps.length) return '<p class="board-empty">Báo cáo đầu tiên sẽ có sau ngày thi đấu 1.</p>';
+      return reps.map(function (r, i) {
+        return '<article class="kq-card glass' + (i ? ' old' : '') + '"><p class="eyebrow">' + esc(r.eyebrow) + '</p><h3>' + esc(r.title) + '</h3>' +
+          '<div class="kq-ms">' + results(r) + '</div>' +
+          '<div class="kq-stats">' + (r.stats || []).map(function (x) { return '<div><b>' + esc(x.v) + '</b><small>' + esc(x.k) + '</small></div>'; }).join('') + '</div>' +
+          pdf(r.href, 'Báo cáo ngày ' + r.day + ' (PDF)') + '</article>';
+      }).join('');
+    }
+    function goatHtml() {
+      if (!goat) return '<p class="board-empty">Báo cáo GOAT sẽ có sau ngày thi đấu đầu tiên.</p>';
+      return '<p class="kq-scope">' + esc(goat.scope) + '</p><div class="kq-goat">' + goat.cats.map(function (c) {
+        return '<div class="kq-g glass"><p class="kq-gt">' + esc(c.title) + '</p><div class="kq-g1"><span class="crown">GOAT</span><b>' + esc(c.value) + '</b></div>' +
+          '<p class="kq-gn">' + esc(c.name) + '</p><small>' + esc(c.tag) + '</small>' + (c.tie && c.tie.length ? '<small class="kq-tie">Đồng hạng: ' + esc(c.tie.join(', ')) + '</small>' : '') +
+          '<ol start="2">' + c.rest.map(function (x) { return '<li><span>' + esc(x[0]) + '</span><b>' + esc(x[1]) + '</b></li>'; }).join('') + '</ol>' +
+          (c.min > 1 ? '<small class="kq-min">Tối thiểu ' + c.min + ' cặp</small>' : '') + '</div>';
+      }).join('') + '</div>' + pdf(goat.href, 'Báo cáo GOAT (PDF)');
+    }
+    function render() { body.innerHTML = tab === 'day' ? day() : goatHtml(); $('kqEyebrow').textContent = tab === 'day' ? 'Báo cáo sau mỗi ngày thi đấu' : 'Toàn giải · ' + (goat ? 'tính đến ' + goat.asof : 'chưa có dữ liệu'); }
+    tabs.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab;
+      tabs.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-selected', x === b); }); render();
+    });
+    render();
+  })();
 
   /* ---------- docs + footer ---------- */
   var DOC = '<span class="doc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>';

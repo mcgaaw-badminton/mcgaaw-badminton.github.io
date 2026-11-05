@@ -140,7 +140,8 @@ def main():
             gallery.append({"album": key, "title": title, "items": items})
 
     # documents: downloads/* only (copy a match-sheet PDF there to publish it)
-    reports = (read_json(paths.CONFIG / "reports.json").get("reports") if (paths.CONFIG / "reports.json").exists() else []) or []
+    rep_cfg = read_json(paths.CONFIG / "reports.json") if (paths.CONFIG / "reports.json").exists() else {}
+    reports, goat = rep_cfg.get("reports") or [], rep_cfg.get("goat")
     docs = []
     doc_files = [p for p in sorted(paths.DOWNLOADS_IN.glob("*")) if p.is_file() and p.name != "README.md"] \
         if paths.DOWNLOADS_IN.exists() else []
@@ -148,7 +149,7 @@ def main():
         if not dry:
             (out / "docs").mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, out / "docs" / f.name)
-        label = next((r["label"] for r in reports if r.get("file") == f.name), re.sub(r"[_]+", " ", f.stem))
+        label = next((r["label"] for r in reports + ([goat] if goat else []) if r.get("file") == f.name), re.sub(r"[_]+", " ", f.stem))
         docs.append({"label": label, "href": f"docs/{f.name}"})
     # newest match-day report (config/reports.json) = first hero slide, linked to its PDF
     rep = next((r for r in sorted(reports, key=lambda r: r["date"].split("/")[::-1], reverse=True)
@@ -157,6 +158,10 @@ def main():
         slides.insert(0, {"eyebrow": rep["eyebrow"], "title": rep["title"], "sub": rep["sub"], "stats": rep.get("stats", []),
                           "cta": {"label": "Xem báo cáo (PDF)", "href": f"docs/{rep['file']}"}, "cta2": {"label": "Bảng xếp hạng", "href": "#bxh"}, "report": True})
         print(f"[REPORT] hero slide: {rep['label']}")
+    # "Kết quả" section: every published day report (newest first) + the latest GOAT summary
+    have = {d["href"] for d in docs}
+    reports_out = [dict(r, href=f"docs/{r['file']}") for r in sorted(reports, key=lambda r: r["date"].split("/")[::-1], reverse=True) if f"docs/{r['file']}" in have]
+    goat_out = dict(goat, href=f"docs/{goat['file']}") if goat and f"docs/{goat['file']}" in have else None
 
     dates = [m["date"] for m in matches]
     commit = (os.environ.get("GITHUB_SHA") or git_head())[:7] or "local"
@@ -165,7 +170,7 @@ def main():
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
                  "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
-        "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs,
+        "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs, "reports": reports_out, "goat": goat_out,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
     }
     data["meta"]["build"] = {"id": build_id, "version": site.get("version", "1.0.0"), "commit": commit,

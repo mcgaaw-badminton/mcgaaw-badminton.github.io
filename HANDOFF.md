@@ -2,7 +2,7 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-05, v1.18.0)
+## Current state (2026-11-05, v1.19.0)
 - Live site: https://mcgaaw-badminton.github.io · referee page: `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys).
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — deployed version 4 = `scripts/apps_script/eggs.gs` (history log + Chốt).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs, referee, referee_log, referee_final, referee_draft.
@@ -11,7 +11,8 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - GitHub's scheduled builds are unreliable: on 04/11 only one run fired (00:50) out of the planned every-15-min evening runs. After a Chốt, a manual run (`gh workflow run` or any push) updates the site at once.
 - 2026-11-04 10:55: the user's T1 test was reset on the live sheet (pairs 1 and 4 re-sent blank with a newer `updated`, so phones pull the reset; rows stay in `referee`, history in `referee_log`). No finals exist.
 
-- Reports: the user's "xuất report" = both the day report and the GOAT report (`build_report.py goat`). GOAT 04/11: `output/Bao_cao_GOAT_04-11-2026.pdf` (not on the site yet).
+- Reports: the user's "xuất report" = both the day report and the GOAT report (`build_report.py goat`). GOAT 04/11 published (`downloads/Bao_cao_GOAT_04-11-2026.pdf`, `config/reports.json` goat) and shown in the site's Kết quả › GOAT tab.
+- After each match day: `build_report.py --publish` + `build_report.py goat --publish`, copy both summaries into `config/reports.json`, rebuild, push.
 - Report published: `downloads/Bao_cao_04-11-2026.pdf` + `config/reports.json` → first hero slide on the site. Update the entry when T2 is closed (rerun build_report --publish).
 - Report: `output/Bao_cao_04-11-2026.pdf` (3 pages: day overview, T1, T2) from `scripts/build_report.py`; raw rally data cached in `output/report/2026-11-04/`.
 

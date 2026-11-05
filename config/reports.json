@@ -1,5 +1,5 @@
 {
- "_note": "Match-day reports shown on the site: the newest one becomes the first hero slide; its PDF must be in downloads/. Generate with: python scripts/build_report.py --publish, then copy output/report/<date>/summary.json here.",
+ "_note": "Match-day reports shown on the site: the newest one becomes the first hero slide; its PDF must be in downloads/. Generate with: python scripts/build_report.py --publish, then copy output/report/<date>/summary.json here. \"goat\": the latest GOAT summary (python scripts/build_report.py goat --publish, then copy output/report/goat/summary.json here).",
  "reports": [
   {
    "date": "04/11/2026",
@@ -28,5 +28,159 @@
     }
    ]
   }
- ]
+ ],
+ "goat": {
+  "asof": "04/11/2026",
+  "file": "Bao_cao_GOAT_04-11-2026.pdf",
+  "label": "Báo cáo GOAT · tính đến 04/11/2026",
+  "scope": "2 lượt trận (T1, T2) · 8 cặp · 18/30 VĐV đã ra sân · tính mọi cặp đã đấu xong (gồm cả trận chưa chốt)",
+  "cats": [
+   {
+    "title": "Hiệu số cao nhất",
+    "value": "+42",
+    "name": "Lữ Thị Trang",
+    "tag": "Đội 2 · seed 3 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Đoàn Anh Kiệt",
+      "+36"
+     ],
+     [
+      "Nguyễn Thị Diệp Sương",
+      "+28"
+     ]
+    ],
+    "min": 1
+   },
+   {
+    "title": "Tấn công tốt nhất",
+    "value": "35 điểm",
+    "name": "Nguyễn Thị Diệp Sương",
+    "tag": "Đội 2 · seed 5 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Đoàn Anh Kiệt",
+      "34 điểm"
+     ],
+     [
+      "Nguyễn Duy Hiệu",
+      "32 điểm"
+     ]
+    ],
+    "min": 1
+   },
+   {
+    "title": "Hỗ trợ tốt nhất",
+    "value": "42 điểm",
+    "name": "Đỗ Sơn Tây",
+    "tag": "Đội 4 · seed 5 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Lữ Thị Trang",
+      "35 điểm"
+     ],
+     [
+      "Nguyễn Ngọc Bảo Kha",
+      "33 điểm"
+     ]
+    ],
+    "min": 1
+   },
+   {
+    "title": "Hiệu suất ghi điểm",
+    "value": "67%",
+    "name": "Nguyễn Duy Hiệu",
+    "tag": "Đội 1 · seed 2 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Nguyễn Thị Diệp Sương",
+      "56%"
+     ],
+     [
+      "Nguyễn Thanh Thiên Minh",
+      "55%"
+     ]
+    ],
+    "min": 2
+   },
+   {
+    "title": "Tỉ lệ thắng cặp",
+    "value": "100%",
+    "name": "Lữ Thị Trang",
+    "tag": "Đội 2 · seed 3 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Đoàn Anh Kiệt",
+      "100%"
+     ],
+     [
+      "Nguyễn Thị Diệp Sương",
+      "100%"
+     ]
+    ],
+    "min": 2
+   },
+   {
+    "title": "Thủng lưới ít nhất",
+    "value": "10.0/cặp",
+    "name": "Lữ Thị Trang",
+    "tag": "Đội 2 · seed 3 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Đoàn Anh Kiệt",
+      "13.0/cặp"
+     ],
+     [
+      "Nguyễn Thị Diệp Sương",
+      "17.0/cặp"
+     ]
+    ],
+    "min": 2
+   },
+   {
+    "title": "Chuỗi điểm dài nhất",
+    "value": "9 điểm",
+    "name": "Đoàn Anh Kiệt",
+    "tag": "Đội 2 · seed 1 · 1 trận · 2 cặp",
+    "tie": [
+     "Lữ Thị Trang"
+    ],
+    "rest": [
+     [
+      "Lữ Thị Trang",
+      "9 điểm"
+     ],
+     [
+      "Nguyễn Ngọc Bảo Kha",
+      "8 điểm"
+     ]
+    ],
+    "min": 1
+   },
+   {
+    "title": "Nóng nhất (nhiệt độ)",
+    "value": "44.6°",
+    "name": "Đoàn Anh Kiệt",
+    "tag": "Đội 2 · seed 1 · 1 trận · 2 cặp",
+    "tie": [],
+    "rest": [
+     [
+      "Nguyễn Chí Toàn",
+      "43.3°"
+     ],
+     [
+      "Phạm Công Quân",
+      "42.4°"
+     ]
+    ],
+    "min": 1
+   }
+  ]
+ }
 }

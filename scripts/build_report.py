@@ -380,13 +380,15 @@ def goat_main(args):
             ("Chuỗi điểm dài nhất", "run", lambda q: q["run"], lambda q: f'{q["run"]} điểm', 1),
             ("Nóng nhất (nhiệt độ)", "heat", lambda q: q["heat"], lambda q: f'{q["heat"]:.1f}°', 1)]
     tag = lambda q: f'Đội {q["team"]} · seed {q["seed"]} · {q["n"]} trận · {q["pairs"]} cặp'  # noqa: E731
-    cards = ""
+    cards, gsum = "", []
     for title, key, val, fmt, minp in cats:
         pool = sorted([q for q in played if q["pairs"] >= minp], key=lambda q: (val(q), q["pairs"]), reverse=True)
         if not pool:
             continue
         top, rest = pool[0], pool[1:3]
         tie = [q for q in pool[1:] if val(q) == val(top)]
+        gsum.append({"title": title, "value": fmt(top), "name": top["name"], "tag": tag(top), "tie": [q["name"] for q in tie],
+                     "rest": [[q["name"], fmt(q)] for q in rest], "min": minp})
         cards += (f'<div class="gc"><div class="gt">{e(title)}</div><div class="g1"><span class="crown">GOAT</span><b>{fmt(top)}</b></div>'
                   f'<div class="gn">{e(top["name"])}</div><div class="gs">{e(tag(top))}</div>'
                   + (f'<div class="gtie">Đồng hạng: {e(", ".join(given(q["name"]) for q in tie))}</div>' if tie else '')
@@ -429,7 +431,9 @@ def goat_main(args):
     if args.publish:
         import shutil
         shutil.copy2(pdf, paths.DOWNLOADS_IN / pdf.name)
-        print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name}")
+        summ = {"asof": asof, "file": pdf.name, "label": f"Báo cáo GOAT · tính đến {asof}", "scope": sub, "cats": gsum}
+        (store / "summary.json").write_text(json.dumps(summ, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name} · summary {store / 'summary.json'} (copy it into config/reports.json \"goat\")")
     print(f"[OUTPUT] {pdf}")
 
 
