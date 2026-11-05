@@ -352,7 +352,7 @@ def goat_main(args):
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
     ms = {m["code"]: m for m in sched["matches"]}
     P = {f"{t}-{i + 1}": {"id": f"{t}-{i + 1}", "name": n, "team": t, "seed": i + 1, "matches": set(), "pairs": 0, "won": 0, "pf": 0, "pa": 0,
-                          "atk": 0, "sup": 0, "run": 0} for t, mem in teams_cfg["teams"].items() for i, n in enumerate(mem)}
+                          "atk": 0, "sup": 0, "run": 0, "log": []} for t, mem in teams_cfg["teams"].items() for i, n in enumerate(mem)}
     for c in codes:
         mm = match_model(ms[c], teams, pairs, data[c].get("pairs") or {}, finals.get(c))
         for p in mm["pairs"]:
@@ -362,6 +362,9 @@ def goat_main(args):
                 for i in (0, 1):
                     q = P[f"{ms[c][side]}-{p['seeds'][i]}"]
                     q["matches"].add(c); q["pairs"] += 1; q["won"] += p["sc"][side] > p["sc"][o]
+                    q["log"].append({"c": c, "k": mm["pairs"].index(p) + 1, "mate": given(p["names"][side][1 - i]), "opp": " · ".join(given(x) for x in p["names"][o]),
+                                     "s": [p["sc"][side], p["sc"][o]], "atk": p["atk"].get((side, i), 0), "sup": p["sup"].get((side, i), 0), "run": p["run"][side],
+                                     "closed": bool(finals.get(c))})
                     q["pf"] += p["sc"][side]; q["pa"] += p["sc"][o]
                     q["atk"] += p["atk"].get((side, i), 0); q["sup"] += p["sup"].get((side, i), 0)
                     q["run"] = max(q["run"], p["run"][side])
@@ -387,8 +390,8 @@ def goat_main(args):
             continue
         top, rest = pool[0], pool[1:3]
         tie = [q for q in pool[1:] if val(q) == val(top)]
-        gsum.append({"title": title, "value": fmt(top), "name": top["name"], "tag": tag(top), "tie": [q["name"] for q in tie],
-                     "rest": [[q["name"], fmt(q)] for q in rest], "min": minp})
+        gsum.append({"title": title, "value": fmt(top), "id": top["id"], "name": top["name"], "tag": tag(top), "tie": [q["name"] for q in tie],
+                     "tie_ids": [q["id"] for q in tie], "rest": [[q["name"], fmt(q), q["id"]] for q in rest], "min": minp})
         cards += (f'<div class="gc"><div class="gt">{e(title)}</div><div class="g1"><span class="crown">GOAT</span><b>{fmt(top)}</b></div>'
                   f'<div class="gn">{e(top["name"])}</div><div class="gs">{e(tag(top))}</div>'
                   + (f'<div class="gtie">Đồng hạng: {e(", ".join(given(q["name"]) for q in tie))}</div>' if tie else '')
@@ -431,7 +434,8 @@ def goat_main(args):
     if args.publish:
         import shutil
         shutil.copy2(pdf, paths.DOWNLOADS_IN / pdf.name)
-        summ = {"asof": asof, "file": pdf.name, "label": f"Báo cáo GOAT · tính đến {asof}", "scope": sub, "cats": gsum}
+        prof = {q["id"]: {k: q[k] for k in ("n", "pairs", "won", "pf", "pa", "diff", "atk", "sup", "eff", "rate", "run", "log")} for q in P.values()}
+        summ = {"asof": asof, "file": pdf.name, "label": f"Báo cáo GOAT · tính đến {asof}", "scope": sub, "cats": gsum, "players": prof}
         (store / "summary.json").write_text(json.dumps(summ, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name} · summary {store / 'summary.json'} (copy it into config/reports.json \"goat\")")
     print(f"[OUTPUT] {pdf}")
