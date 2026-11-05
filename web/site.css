@@ -804,3 +804,41 @@ html.pm-open { overflow: hidden }
 .ts-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 20px; border-radius: 20px; background: var(--bg); text-align: center; max-width: 360px }
 .ts-card small { color: var(--muted) } .ts-box { min-height: 66px }
 .ts-x { border: 0; background: none; color: var(--brand-text); font: inherit; font-weight: 700; cursor: pointer; padding: 6px 10px }
+
+/* ---------- phones: quieter BXH and mascot (v1.22.1) ---------- */
+.ph-tools, .ms-ph { display: none }
+.flt { display: contents }
+.flt-tgl { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 12px; background: rgba(127, 127, 127, .12); color: inherit; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer }
+.flt-tgl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round }
+.flt-tgl b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px }
+.flt-tgl[aria-expanded="true"] { background: var(--brand-soft); color: var(--brand-text) }
+.m-scroll { display: contents }
+@media (max-width: 560px) {
+  #bxhBar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 8px }
+  .m-scroll { display: block; grid-column: 1 / -1; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin: 0 -8px; padding: 0 8px; mask-image: linear-gradient(90deg, #000 85%, transparent) }
+  .m-scroll::-webkit-scrollbar { display: none }
+  .m-scroll .chipset { flex-wrap: nowrap; width: max-content }
+  .m-scroll .chip { min-height: 34px; padding: 6px 12px; white-space: nowrap }
+  .ph-tools { display: block; grid-column: 2 }
+  #bxhBar .cmp-tgl { grid-column: 3; min-height: 36px; padding: 0 12px }
+  .flt { display: none; grid-column: 1 / -1; grid-row: 3; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px; border-radius: 14px; background: rgba(127, 127, 127, .07) }
+  .flt.open { display: flex }
+  .flt .chipset { flex-wrap: wrap }
+  .flt .filters-r { margin-left: 0; justify-content: space-between }
+  /* rows: one line each — no avatar, name + team, value, flower button */
+  .prow, .prow.cmp-on { grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 8px; padding: 9px 4px }
+  .prow.cmp-on { grid-template-columns: 22px 22px minmax(0, 1fr) auto auto }
+  .prow .av { display: none }
+  .prow .egg-btn { grid-column: auto; justify-self: end; min-height: 36px; padding: 6px }
+  .prow .egg-btn .egg-say, .prow .egg-btn .egg-n, .prow .egg-btn .fl-bq { display: none }
+  .prow .who small .fem, .prow .who small .champ { display: none }
+  .val small { display: none }
+  .eggs-mode .val small { display: none }
+  .val b { font-size: 18px }
+  /* mascot: no text bubble on phones; mute + hide sit on the robot */
+  .ms-bubble { display: none !important }
+  .ms-ph { display: flex; gap: 4px; pointer-events: auto; align-self: flex-end }
+  .mascot.away .ms-ph { display: none }
+  .ms-ph .mute-btn, .ms-hide { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--glass-strong); box-shadow: var(--shadow); color: var(--muted); display: grid; place-items: center; cursor: pointer }
+  .ms-hide svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round }
+}

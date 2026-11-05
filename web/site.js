@@ -251,7 +251,7 @@
   var MUTE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wav" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9l5 6M21 9l-5 6"/></svg>';
   function muteBtn(cls) { return '<button type="button" class="mute-btn ' + (cls || '') + '" aria-pressed="' + AUD.muted() + '" aria-label="Tắt / bật tiếng robot">' + MUTE_SVG + '</button>'; }
   document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.mute-btn'); if (!b) return; e.stopPropagation(); AUD.toggle(); });
-  var mm = $('msMute'); if (mm) mm.setAttribute('aria-pressed', AUD.muted());
+  document.querySelectorAll('.mute-btn').forEach(function (b) { b.setAttribute('aria-pressed', AUD.muted()); });
   AUD.on(function (m) { document.querySelectorAll('.mute-btn').forEach(function (b) { b.setAttribute('aria-pressed', m); }); if (!m) AUD.fx('pop'); });
 
   /* ---------- robot lines ---------- */
@@ -959,11 +959,15 @@
 
     function renderPlayer() {
       /* seed filter as chips: one seed, all, or "Chia nhóm" = a separate ranking for each seed 1–5 */
-      bar.innerHTML = chips('Chỉ số', METRICS.map(function (m) { return [m[0], m[1]]; }), state.metric) +
+      /* phones (≤560 px): metrics scroll in one row; seed / team / women sit behind one "Lọc" button (BASEMENT §6) */
+      var nf = (state.pSeed ? 1 : 0) + (state.pTeam ? 1 : 0) + (state.pFem ? 1 : 0);
+      bar.innerHTML = '<div class="m-scroll">' + chips('Chỉ số', METRICS.map(function (m) { return [m[0], m[1]]; }), state.metric) + '</div>' +
+        '<div class="ph-tools"><button type="button" class="flt-tgl" id="bxhFlt" aria-expanded="' + !!state.fOpen + '" aria-controls="bxhFltBox"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Lọc' + (nf ? ' <b>' + nf + '</b>' : '') + '</button></div>' +
+        '<div class="flt' + (state.fOpen ? ' open' : '') + '" id="bxhFltBox">' +
         chips('Hạt giống', [['', 'Tất cả'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['group', 'Chia nhóm']], state.pSeed, 'seed', 'Hạt giống') +
         '<div class="filters-r"><label class="sr" for="bxhPTeam">Lọc theo đội</label><select class="sel" id="bxhPTeam">' + teamOpts(state.pTeam) + '</select>' +
-        '<label class="tgl"><input type="checkbox" id="bxhPFem"' + (state.pFem ? ' checked' : '') + '>Chỉ VĐV nữ</label>' +
-        '<button type="button" class="cmp-tgl" id="bxhCmp" aria-pressed="' + CMP.on + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>So sánh</button></div>';
+        '<label class="tgl"><input type="checkbox" id="bxhPFem"' + (state.pFem ? ' checked' : '') + '>Chỉ VĐV nữ</label></div></div>' +
+        '<button type="button" class="cmp-tgl" id="bxhCmp" aria-pressed="' + CMP.on + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>So sánh</button>';
       var M = METRICS.filter(function (m) { return m[0] === state.metric; })[0];
       var grouped = state.pSeed === 'group';
       var list = ST.players.filter(function (p) {
@@ -1020,6 +1024,7 @@
     CMP.render = render;
     bar.addEventListener('click', function (e) {
       if (e.target.closest('#bxhCmp')) { CMP.on = !CMP.on; if (!CMP.on) CMP.ids = []; return render(); }
+      if (e.target.closest('#bxhFlt')) { state.fOpen = !state.fOpen; return render(); }
       var c = e.target.closest('.chip'); if (!c) return;
       if (state.tab === 'team') state.teamFilter = c.dataset.v;
       else if (state.tab === 'match') state.matchFilter = c.dataset.v;
@@ -1050,7 +1055,7 @@
   (function () {
     var root = $('mascot'); if (!root) return;
     var bubble = $('msBubble'), text = $('msText'), act = $('msAct');
-    var phone = window.matchMedia && matchMedia('(max-width: 900px)').matches;
+    var phone = window.matchMedia && matchMedia('(max-width: 900px)').matches, quiet = window.matchMedia && matchMedia('(max-width: 560px)').matches;  // phones: no text bubble, face + voice only
     var bot = window.RobotHeads ? RobotHeads.mount($('msRobot'), { shape: 'rectangle', size: phone ? 64 : 112, color: '#22337F', trimColor: '#D9C08A', screenColor: '#E9EDFF', seed: .42, label: 'Robot của giải' }) : null;
     var base = 'idle', moodT;
     function mood(m, ms) { if (!bot) return; clearTimeout(moodT); bot.setState(m); if (ms) moodT = setTimeout(function () { bot.setState(base); }, ms); }
@@ -1073,10 +1078,10 @@
     function show(k) {
       var m = msgs[k % msgs.length]; text.textContent = m[0];
       act.textContent = m[1]; act.setAttribute('href', m[2]); act.dataset.eggs = m[3] || '';
-      bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+      if (!quiet) { bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); }
       mood('speaking', Math.min(4200, 900 + m[0].length * 45));
     }
-    window.mascotSay = function (t, m) { if (root.classList.contains('away')) return; text.textContent = t; act.hidden = true; bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); mood(m || 'speaking', 2500); clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
+    window.mascotSay = function (t, m) { if (root.classList.contains('away')) return; mood(m || 'speaking', 2500); if (quiet) return; text.textContent = t; act.hidden = true; bubble.hidden = false; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); clearTimeout(cycle); cycle = setTimeout(function () { act.hidden = false; bubble.hidden = true; }, 4000); };
     function start() { clearTimeout(cycle); show(i); cycle = setTimeout(function next() { bubble.hidden = true; cycle = setTimeout(function () { i++; show(i); cycle = setTimeout(next, 9000); }, 20000); }, 9000); }
     function away(on) {
       root.classList.toggle('away', on); save(on ? 'away' : 'on');
@@ -1089,6 +1094,7 @@
       i++; start();
     });
     $('msClose').addEventListener('click', function () { away(true); });
+    if ($('msHide')) $('msHide').addEventListener('click', function () { away(true); });
     act.addEventListener('click', function () {
       bubble.hidden = true;
       if (act.dataset.eggs) { var t = document.querySelector('#bxhTabs [data-tab="player"]'); if (t) t.click(); var c = document.querySelector('#bxhBar .chip[data-v="eggs"]'); if (c) c.click(); }
