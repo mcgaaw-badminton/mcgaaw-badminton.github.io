@@ -82,4 +82,5 @@ Giai cau long MCGAAW/
 - Once: `cd scripts && npm install` (needs Node 18+ and Chrome or Edge installed).
 - Match sheets: `python scripts/build_sheets.py --days 1 2` · `--matches T5 T6` · add `--dry-run` to preview.
 - Website: `python scripts/build_site.py` (add `--preview` for the single-file preview, `--dry-run` to check). Optional `pip install pillow` for resized photos and thumbnails.
+- Match-day report: `python scripts/build_report.py` (latest day with referee data; `--matches T1 T2`, `--offline` reuses `output/report/<date>/*.json`, `--dry-run`) → `output/Bao_cao_<dd-mm-yyyy>.pdf`, sheet template + `assets/report.css`.
 - After a result: add `"result"` to that match in `config/schedule.json`, then rebuild the site and the next day's sheets.

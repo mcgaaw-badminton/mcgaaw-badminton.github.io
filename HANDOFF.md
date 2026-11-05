@@ -11,6 +11,8 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - GitHub's scheduled builds are unreliable: on 04/11 only one run fired (00:50) out of the planned every-15-min evening runs. After a Chốt, a manual run (`gh workflow run` or any push) updates the site at once.
 - 2026-11-04 10:55: the user's T1 test was reset on the live sheet (pairs 1 and 4 re-sent blank with a newer `updated`, so phones pull the reset; rows stay in `referee`, history in `referee_log`). No finals exist.
 
+- Report: `output/Bao_cao_04-11-2026.pdf` (3 pages: day overview, T1, T2) from `scripts/build_report.py`; raw rally data cached in `output/report/2026-11-04/`.
+
 ## How to change things safely
 - Data (names, seeds, dates, results) → `config/*.json`, then `python scripts/build_site.py`.
 - Referee page → `web/ref.*`; then run `scripts/tests/referee_*.py` (mocked API, no real data touched). All must end with `errors []`.
