@@ -131,10 +131,29 @@
     store();
     if (API && MODE === 'live' && needsSend(pr)) { queue[i] = true; showSync('wait', 'Đang gửi…'); clearTimeout(timer); timer = setTimeout(flush, 400); }
   }
+  /* referee PIN (asked only when the sheet requires one; kept on this phone) and Cloudflare Turnstile for "Chốt" (when configured) */
+  var SITEKEY = (S.meta && S.meta.protect && S.meta.protect.sitekey) || '';
+  function refPin() { try { return localStorage.getItem('gcl-ref-pin') || ''; } catch (e) { return ''; } }
+  var pinAsked = false;
+  function askPin() {
+    if (pinAsked) return; pinAsked = true;
+    sheet('Nhập mã PIN trọng tài', '<p>Bảng tính yêu cầu mã PIN để lưu điểm. Hỏi ban tổ chức nếu chưa có. Mã được nhớ trên máy này.</p><input id="pinIn" class="pin-in" type="password" inputmode="numeric" autocomplete="off" aria-label="Mã PIN">', [
+      ['Lưu mã và gửi lại', function () { var v = ($('pinIn').value || '').trim(); try { localStorage.setItem('gcl-ref-pin', v); } catch (e) {} pinAsked = false; closeSheet(); retryAll(); }, 'pri'],
+      ['Để sau', function () { pinAsked = false; closeSheet(); }]]);
+    setTimeout(function () { var x = $('pinIn'); if (x) x.focus(); }, 50);
+  }
+  function verify(cb) {  // run the Turnstile check, then cb(token); no site key = no check
+    if (!SITEKEY) return cb('');
+    sheet('Xác minh trước khi chốt', '<p>Bước kiểm tra chống gửi kết quả giả.</p><div id="tsBox" class="ts-box"></div>', [['Hủy', closeSheet]]);
+    function render() { window.turnstile.render($('tsBox'), { sitekey: SITEKEY, callback: function (t) { closeSheet(); cb(t); } }); }
+    if (window.turnstile) return render();
+    var sc = document.createElement('script'); sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; sc.async = true; sc.onload = render;
+    sc.onerror = function () { closeSheet(); cb(''); }; document.head.appendChild(sc);
+  }
   function reportId(i) { var pr = ST.pairs[i]; if (!pr.report) { pr.report = M.code + '-' + (i + 1) + '-' + Date.now().toString(36).toUpperCase().slice(-5); store(); } return pr.report; }
   function payload(i) {
     var pr = ST.pairs[i], r = replay(pr);
-    return { _ref: 1, draft: MODE === 'demo', report: reportId(i), match: M.code, pair: i + 1, updated: pr.updated, a: r.sc.a, b: r.sc.b, done: pr.done, seeds: PAIRS[i].join('-'),
+    return { _ref: 1, pin: refPin(), draft: MODE === 'demo', report: reportId(i), match: M.code, pair: i + 1, updated: pr.updated, a: r.sc.a, b: r.sc.b, done: pr.done, seeds: PAIRS[i].join('-'),
       teamA: teamName('a'), teamB: teamName('b'),
       state: { setup: pr.setup, log: pr.log, ms: tMs(pr), manualEnd: pr.manualEnd, absent: !!pr.absent, names: players('a', i).concat(players('b', i)), stats: pairStats(pr, i) } };
   }
@@ -143,6 +162,7 @@
     return fetch(API, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' } })
       .then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
       .then(function (d) {
+        if (d && d.error === 'pin') { askPin(); throw new Error('pin'); }
         if (!d || d.ok !== true) throw new Error('not saved');
         if (d.a !== undefined && (d.a !== body.a || d.b !== body.b || d.n !== body.state.log.length)) throw new Error('echo mismatch');
         if (M && M.code === code) { ST.pairs[i].sent = Math.max(ST.pairs[i].sent, ver); store(); } return ver; });
@@ -429,16 +449,16 @@
     d.pairs.forEach(function (p) { ta += p[0]; tb += p[1]; if (p[0] > p[1]) pa++; else pb++; });
     var w = ta !== tb ? (ta > tb ? 'a' : 'b') : pa > pb ? 'a' : 'b';
     sheet('Chốt ' + M.code + '?', '<p><b>' + esc(teamName(w)) + ' thắng</b> · tổng ' + ta + '–' + tb + ' · cặp ' + pa + '–' + pb + '.</p><p class="muted">Lịch và bảng xếp hạng trên web chính dùng bản chốt này. Sửa điểm sau đó thì phải chốt lại.</p>', [
-      ['Chốt và gửi', function () { closeSheet(); sendFinal(d); }, 'pri'], ['Chưa, xem lại', closeSheet]]);
+      ['Chốt và gửi', function () { closeSheet(); verify(function (tok) { sendFinal(d, tok); }); }, 'pri'], ['Chưa, xem lại', closeSheet]]);
   }
-  function sendFinal(d) {
+  function sendFinal(d, tok) {
     var code = M.code, report = code + '-F' + Date.now().toString(36).toUpperCase().slice(-5), sig = JSON.stringify(d);
     ST.final = { state: 'sending', report: report, sig: sig }; store(); renderSide();
     var unsentNow = unsent();
     (unsentNow ? Promise.reject(new Error('unsent')) : fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ _ref: 1, final: true, match: code, report: report, pairs: d.pairs, players: d.players, teamA: teamName('a'), teamB: teamName('b') }) })
+      body: JSON.stringify({ _ref: 1, final: true, pin: refPin(), ts: tok || '', match: code, report: report, pairs: d.pairs, players: d.players, teamA: teamName('a'), teamB: teamName('b') }) })
       .then(function (r) { return r.json(); })
-      .then(function (x) { if (!x || x.ok !== true || x.report !== report) throw new Error('not saved'); return fetch(API + '?ref=all').then(function (r) { return r.json(); }); })
+      .then(function (x) { if (x && x.error === 'pin') askPin(); if (!x || x.ok !== true || x.report !== report) throw new Error('not saved'); return fetch(API + '?ref=all').then(function (r) { return r.json(); }); })
       .then(function (all) { var f = all && all.finals && all.finals[code]; if (!f || f.report !== report) throw new Error('not read back'); }))
       .then(function () { if (M && M.code === code) { ST.final = { state: 'ok', report: report, sig: sig, at: Date.now() }; store(); } })
       .catch(function () { if (M && M.code === code) { if (unsentNow) retryAll(); ST.final = { state: 'err', report: report, sig: sig }; store(); } })

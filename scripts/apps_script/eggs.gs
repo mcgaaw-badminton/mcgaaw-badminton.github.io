@@ -24,8 +24,42 @@ function sheet_() {
 function totals_(rows) { const o = {}; rows.forEach(r => { o[r[0]] = Number(r[3]) || 0; }); return o; }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
+/* ---------- protection ----------
+   1. cache: referee reads (?ref=all 15 s, ?ref=T1 10 s) and egg totals (5 s) are served from CacheService; every write clears them.
+   2. rate: all egg POSTs are counted per minute; above HARD_PER_MIN they are refused ("busy", the page retries later).
+   3. Turnstile: when the Script Property TURNSTILE_SECRET is set, egg POSTs above SOFT_PER_MIN need a solved challenge
+      (then a 30-min pass), and every referee "Chốt" needs one. Run authorize() once in the editor after setting it.
+   4. PIN: when the Script Property REF_PIN is set, every referee write (pair saves, drafts, Chốt) must carry it. */
+const SOFT_PER_MIN = 600, HARD_PER_MIN = 1500;
+function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
+function bump_() {
+  const c = CacheService.getScriptCache(), k = 'rate:' + Math.floor(Date.now() / 60000), n = Number(c.get(k) || 0) + 1;
+  c.put(k, String(n), 120);
+  return n;
+}
+function turnstileOk_(token) {
+  const secret = prop_('TURNSTILE_SECRET');
+  if (!secret) return true;
+  if (!token) return false;
+  try {
+    const r = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'post', payload: { secret: secret, response: String(token) }, muteHttpExceptions: true });
+    return JSON.parse(r.getContentText()).success === true;
+  } catch (err) { return false; }
+}
+function passOk_(p) { return !!p && CacheService.getScriptCache().get('pass:' + p) === '1'; }
+function newPass_() { const p = Utilities.getUuid(); CacheService.getScriptCache().put('pass:' + p, '1', 1800); return p; }
+function authorize() { UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'post', payload: {}, muteHttpExceptions: true }); }  // run once: grants the external-request permission
+function text_(s) { return ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.JSON); }
+function dropRefCache_(match) { CacheService.getScriptCache().removeAll(['ref:all', 'ref:' + match]); }
+
 function doGet(e) {
-  if (e && e.parameter && e.parameter.ref) return json_(refGet_(String(e.parameter.ref)));
+  if (e && e.parameter && e.parameter.ref) {
+    const ref = String(e.parameter.ref), c = CacheService.getScriptCache(), key = 'ref:' + ref, hit = c.get(key);
+    if (hit) return text_(hit);
+    const out = JSON.stringify(refGet_(ref));
+    if (out.length < 95000) c.put(key, out, ref === 'all' ? 15 : 10);
+    return text_(out);
+  }
   const cache = CacheService.getScriptCache(), hit = cache.get('eggs');
   if (hit) return json_(JSON.parse(hit));
   const sh = sheet_(), o = totals_(sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues());
@@ -37,6 +71,13 @@ function doPost(e) {
   let add = {};
   try { add = JSON.parse(e.postData.contents); } catch (err) { return json_({ error: 'bad json' }); }
   if (add && add._ref) return json_(refPut_(add));
+  const rate = bump_();
+  if (rate > HARD_PER_MIN) return json_({ error: 'busy' });
+  let pass = '';
+  if (rate > SOFT_PER_MIN && prop_('TURNSTILE_SECRET') && !passOk_(add._pass)) {
+    if (!turnstileOk_(add._ts)) return json_({ error: 'captcha' });
+    pass = newPass_();
+  }
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -45,6 +86,7 @@ function doPost(e) {
     sh.getRange(2, 4, rows.length, 1).setValues(rows.map(r => [r[3]]));
     const o = totals_(rows);
     CacheService.getScriptCache().put('eggs', JSON.stringify(o), 5);
+    if (pass) o._pass = pass;
     return json_(o);
   } finally { lock.releaseLock(); }
 }
@@ -108,6 +150,7 @@ function refGet_(match) {
 function refFinal_(b) {  // "Chốt": the match result the standings will use, appended so every submission stays on record
   const match = String(b.match || ''), report = String(b.report || '').slice(0, 40);
   if (!/^T\d{1,2}$/.test(match)) return { error: 'bad key' };
+  if (!turnstileOk_(b.ts)) return { error: 'captcha' };
   const pairs = b.pairs, players = b.players || {};
   if (!Array.isArray(pairs) || pairs.length !== 5 || pairs.some(p => !Array.isArray(p) || p.length !== 2 || p.some(x => !(Number(x) >= 0)))) return { error: 'bad pairs' };
   let a = 0, bb = 0, pa = 0, pb = 0;
@@ -118,9 +161,12 @@ function refFinal_(b) {  // "Chốt": the match result the standings will use, a
     const sh = namedSheet_('referee_final', FINAL_HEAD);
     sh.getRange(sh.getLastRow() + 1, 1, 1, FINAL_HEAD.length).setValues([[new Date().toISOString(), match, report, String(b.teamA || ''), String(b.teamB || ''), a, bb, pa, pb, JSON.stringify(pairs), JSON.stringify(players).slice(0, 45000)]]);
   } finally { lock.releaseLock(); }
+  dropRefCache_(match);
   return { ok: true, final: true, match: match, report: report, a: a, b: bb };
 }
 function refPut_(b) {
+  const pin = prop_('REF_PIN');
+  if (pin && String(b.pin || '') !== pin) return { error: 'pin' };
   if (b.final) return refFinal_(b);
   const match = String(b.match || ''), pair = Number(b.pair), updated = Number(b.updated) || 0;
   if (!/^T\d{1,2}$/.test(match) || !(pair >= 1 && pair <= 5)) return { error: 'bad key' };
@@ -145,6 +191,7 @@ function refPut_(b) {
     sh.getRange(row, 1, 1, REF_HEAD.length).setValues([[match, String(pair), String(b.seeds || ''), String(b.teamA || ''), String(b.teamB || ''), a, bb, b.done ? 'x' : '', updated, state, report, Number(st.ms) || 0]]);
     const lg = namedSheet_('referee_log', LOG_HEAD);  // history: every official save, newest at the bottom
     lg.getRange(lg.getLastRow() + 1, 1, 1, LOG_HEAD.length).setValues([[new Date().toISOString(), match, String(pair), a, bb, b.done ? 'x' : '', n, report, updated]]);
+    dropRefCache_(match);
     return echo;
   } finally { lock.releaseLock(); }
 }

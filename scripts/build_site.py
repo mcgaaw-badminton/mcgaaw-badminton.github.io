@@ -168,11 +168,15 @@ def main():
     build_id = f"{BUILT:%Y%m%d%H%M%S}-{commit}"
     data = {
         "meta": {"title": site["title"], "matchTime": site.get("match_time", ""), "venue": site.get("venue", ""),
-                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
+                 "updated": BUILT.strftime("%d/%m/%Y %H:%M"), "eggs": {"api": site.get("eggs", {}).get("api_url", ""), "limit": site.get("eggs", {}).get("daily_limit", 0)}, "protect": {"sitekey": (site.get("protect") or {}).get("turnstile_sitekey", "")}, "firstDate": dates[0][:5], "lastDate": dates[-1]},
         "rules": sched["rules"], "pairs": teams_cfg["pairs"], "teams": teams, "champions": teams_cfg.get("past_champions", []), "matches": matches,
         "bracket": site["bracket"], "slides": slides, "gallery": gallery, "docs": docs, "reports": reports_out, "goat": goat_out,
         "stats": stats(teams_cfg, matches, site.get("placements", {})),
     }
+    domain = (site.get("protect") or {}).get("custom_domain", "").strip()
+    if domain and not dry:  # GitHub Pages custom domain (Cloudflare in front): the CNAME file must ship with every build
+        (out / "CNAME").write_text(domain + "\n", encoding="utf-8")
+        print(f"[SITE] custom domain: {domain}")
     data["meta"]["build"] = {"id": build_id, "version": site.get("version", "1.0.0"), "commit": commit,
                              "builtAt": BUILT.isoformat(timespec="seconds"),
                              "dataHash": hashlib.sha1(json.dumps([matches, teams], ensure_ascii=False).encode()).hexdigest()[:8]}

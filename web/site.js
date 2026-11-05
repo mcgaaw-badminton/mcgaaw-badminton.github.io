@@ -112,7 +112,20 @@
     function get(id) { return (counts[id] || 0) + (pending[id] || 0) + (inflight[id] || 0); }
     function usedToday() { var d = ls(DKEY); return d && d.day === new Date().toDateString() ? d.n : 0; }
     function left() { return limit ? Math.max(0, limit - usedToday()) : Infinity; }
-    var seq = 0, applied = 0;
+    var seq = 0, applied = 0, TS = '', PASS = '', asking = false;
+    var SITEKEY = (S.meta && S.meta.protect && S.meta.protect.sitekey) || '';
+    /* busy server: it may ask for a Cloudflare Turnstile check (only when it is configured); one check gives a 30-min pass */
+    function challenge() {
+      if (asking || !SITEKEY) return; asking = true;
+      var ov = document.createElement('div'); ov.className = 'ts-ov';
+      ov.innerHTML = '<div class="ts-card glass" role="dialog" aria-modal="true"><b>Xác nhận bạn không phải máy</b><small>Đang có nhiều lượt ném trứng. Xác nhận một lần để ném tiếp.</small><div class="ts-box"></div><button type="button" class="ts-x">Để sau</button></div>';
+      document.body.appendChild(ov);
+      function done() { asking = false; ov.remove(); }
+      ov.querySelector('.ts-x').onclick = done;
+      function render() { window.turnstile.render(ov.querySelector('.ts-box'), { sitekey: SITEKEY, callback: function (t) { TS = t; done(); clearTimeout(timer); flush(); } }); }
+      if (window.turnstile) return render();
+      var sc = document.createElement('script'); sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; sc.async = true; sc.onload = render; sc.onerror = done; document.head.appendChild(sc);
+    }
     function take(d, n) {
       if (!d || typeof d !== 'object' || d.error) return;
       if (n !== undefined) { if (n < applied || Object.keys(inflight).length) return; applied = n; }  // never let an older read undo newer throws
@@ -132,12 +145,18 @@
       var batch = pending; pending = {};
       var ids = Object.keys(batch); if (!ids.length) return;
       if (!api) { ids.forEach(function (id) { counts[id] = (counts[id] || 0) + batch[id]; }); ls(LKEY, counts); emit(); return; }
-      var body = JSON.stringify(batch);
+      var extra = {}; if (TS) extra._ts = TS; if (PASS) extra._pass = PASS;
+      var body = JSON.stringify(Object.assign({}, batch, extra));
       if (beacon) { try { navigator.sendBeacon(api, new Blob([body], { type: 'text/plain' })); } catch (e) {} return; }
       inflight = batch;
       fetch(api, { method: 'POST', body: body, headers: { 'Content-Type': 'text/plain;charset=utf-8' } })
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (d) { if (!d || d.error) throw new Error('bad'); inflight = {}; applied = ++seq; take(d); setTimeout(flush, 0); })
+        .then(function (d) {
+          if (d && d.error === 'captcha') { TS = ''; challenge(); throw new Error('captcha'); }
+          if (!d || d.error) throw new Error('bad');
+          if (d._pass) PASS = d._pass; TS = '';
+          inflight = {}; applied = ++seq; take(d); setTimeout(flush, 0);
+        })
         .catch(function () {  // keep the throws and retry a little later
           ids.forEach(function (id) { pending[id] = (pending[id] || 0) + batch[id]; }); inflight = {};
           clearTimeout(timer); timer = setTimeout(flush, 5000);
