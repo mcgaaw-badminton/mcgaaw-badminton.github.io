@@ -616,9 +616,9 @@
     function sign(n) { return (n > 0 ? '+' : '') + n; }
     function dcls(n) { return n > 0 ? 'pos-n' : n < 0 ? 'neg-n' : ''; }
     function initials(name) { var w = name.trim().split(/\s+/); return (w.length > 2 ? w[w.length - 2][0] : '') + w[w.length - 1][0]; }
-    function chips(name, items, cur) {
-      return '<div class="chipset" role="group" aria-label="' + name + '">' + items.map(function (it) {
-        return '<button type="button" class="chip" data-v="' + it[0] + '" aria-pressed="' + (it[0] === cur) + '">' + esc(it[1]) + '</button>';
+    function chips(name, items, cur, key, label) {
+      return '<div class="chipset" role="group" aria-label="' + name + '">' + (label ? '<span class="chip-lbl">' + esc(label) + '</span>' : '') + items.map(function (it) {
+        return '<button type="button" class="chip"' + (key ? ' data-k="' + key + '"' : '') + ' data-v="' + it[0] + '" aria-pressed="' + (it[0] === cur) + '">' + esc(it[1]) + '</button>';
       }).join('') + '</div>';
     }
     function teamOpts(cur) {
@@ -671,18 +671,28 @@
     }
 
     function renderPlayer() {
-      var seedOpts = '<option value="">Mọi seed</option>' + [1, 2, 3, 4, 5].map(function (s) { return '<option value="' + s + '"' + (String(s) === state.pSeed ? ' selected' : '') + '>Seed ' + s + '</option>'; }).join('');
+      /* seed filter as chips: one seed, all, or "Chia nhóm" = a separate ranking for each seed 1–5 */
       bar.innerHTML = chips('Chỉ số', METRICS.map(function (m) { return [m[0], m[1]]; }), state.metric) +
+        chips('Hạt giống', [['', 'Tất cả'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['group', 'Chia nhóm']], state.pSeed, 'seed', 'Hạt giống') +
         '<div class="filters-r"><label class="sr" for="bxhPTeam">Lọc theo đội</label><select class="sel" id="bxhPTeam">' + teamOpts(state.pTeam) + '</select>' +
-        '<label class="sr" for="bxhPSeed">Lọc theo seed</label><select class="sel" id="bxhPSeed">' + seedOpts + '</select>' +
         '<label class="tgl"><input type="checkbox" id="bxhPFem"' + (state.pFem ? ' checked' : '') + '>Chỉ VĐV nữ</label></div>';
       var M = METRICS.filter(function (m) { return m[0] === state.metric; })[0];
+      var grouped = state.pSeed === 'group';
       var list = ST.players.filter(function (p) {
-        return (!state.pTeam || p.team === state.pTeam) && (!state.pSeed || String(p.seed) === state.pSeed) && (!state.pFem || p.female);
+        return (!state.pTeam || p.team === state.pTeam) && (grouped || !state.pSeed || String(p.seed) === state.pSeed) && (!state.pFem || p.female);
       }).sort(function (x, y) { return M[2](y) - M[2](x) || y.heat - x.heat || x.seed - y.seed; });
       if (!list.length) { body.innerHTML = '<p class="board-empty">Không có VĐV nào khớp bộ lọc.</p>'; return; }
-      var shown = state.showAll ? list : list.slice(0, 10);
-      body.innerHTML = '<ol class="plist' + (state.metric === 'eggs' ? ' eggs-mode' : '') + '">' + shown.map(function (p, i) {
+      var olCls = '<ol class="plist' + (state.metric === 'eggs' ? ' eggs-mode' : '') + '">';
+      if (grouped) {
+        body.innerHTML = [1, 2, 3, 4, 5].map(function (sd) {
+          var g = list.filter(function (p) { return p.seed === sd; });
+          return g.length ? '<h3 class="pgroup">Hạt giống ' + sd + '</h3>' + olCls + g.map(row).join('') + '</ol>' : '';
+        }).join('');
+      } else {
+        var shown = state.showAll ? list : list.slice(0, 10);
+        body.innerHTML = olCls + shown.map(row).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
+      }
+      function row(p, i) {
         var main = M[3](p), sub = '';
         if (state.metric === 'eggs') {
           main = '<span class="egg-main"><span data-egg-n="' + esc(p.id) + '">' + EGG.get(p.id) + '</span><span class="egg-fire lv' + eggLevel(EGG.get(p.id)) + '" data-egg-f="' + esc(p.id) + '">' + FLAME_SVG + '</span></span>';
@@ -697,7 +707,7 @@
         return '<li class="prow' + (i === 0 ? ' top' : '') + '"><span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
           '<span class="who"><b>' + esc(p.name) + '</b><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
-      }).join('') + '</ol>' + (list.length > 10 ? '<button type="button" class="more" id="bxhMore">' + (state.showAll ? 'Thu gọn' : 'Xem tất cả ' + list.length + ' VĐV') + '</button>' : '');
+      }
       note.textContent = state.metric === 'eggs'
         ? 'Bấm nút quả trứng ở mỗi dòng để ném trứng thối, bấm liên tục để ném nhiều quả. Trứng càng nhiều lửa càng cháy to. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
         : state.metric === 'heat'
@@ -719,6 +729,7 @@
       var c = e.target.closest('.chip'); if (!c) return;
       if (state.tab === 'team') state.teamFilter = c.dataset.v;
       else if (state.tab === 'match') state.matchFilter = c.dataset.v;
+      else if (c.dataset.k === 'seed') { state.pSeed = c.dataset.v; state.showAll = false; }
       else { state.metric = c.dataset.v; state.showAll = false; }
       render();
     });
@@ -726,7 +737,6 @@
       var t = e.target;
       if (t.id === 'bxhMatchTeam') state.matchTeam = t.value;
       if (t.id === 'bxhPTeam') state.pTeam = t.value;
-      if (t.id === 'bxhPSeed') state.pSeed = t.value;
       if (t.id === 'bxhPFem') state.pFem = t.checked;
       state.showAll = false;
       render();

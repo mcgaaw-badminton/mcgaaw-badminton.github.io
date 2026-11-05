@@ -644,3 +644,7 @@ body:has(#pFocus:not([hidden])) .mascot { bottom: calc(92px + env(safe-area-inse
 .ref-live span { padding: 2px 8px; border-radius: 8px; background: var(--glass-strong); color: var(--muted); font-weight: 600 }
 .ref-live span.d { color: var(--ink) }
 .ref-live small { flex-basis: 100%; color: var(--muted); font-style: italic }
+/* BXH › VĐV: seed chips (label + one seed / all / one ranking per seed) */
+.chip-lbl { align-self: center; padding: 0 4px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted) }
+.pgroup { margin: 18px 0 6px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.pgroup:first-child { margin-top: 4px }
