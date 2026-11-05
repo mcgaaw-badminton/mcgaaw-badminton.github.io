@@ -52,3 +52,7 @@
 .svs { display: flex; flex-direction: column; gap: 4px }
 .sv { display: grid; grid-template-columns: 1fr 26px 10px 26px; align-items: center; padding: 3px 0; border-top: 1px solid #EEF0F8 }
 .sv small { font-size: 11.5px; color: #3B4266 } .sv b { font-size: 16px; font-weight: 800; text-align: center } .sv i { font-style: normal; color: #7D84A3; text-align: center }
+.ru { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 2px 0; border-top: 1px solid #EEF0F8; font-size: 12px; font-weight: 700 }
+.rl { display: grid; place-items: center; height: 20px; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 800 } .ru small { font-size: 11px; font-weight: 400; color: #3B4266 }
+.lt { display: flex; flex-direction: column; gap: 12px }
+.rus { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 16px }

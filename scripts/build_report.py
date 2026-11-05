@@ -41,7 +41,7 @@ def replay(state):
     su, log = state.get("setup") or {}, state.get("log") or []
     srv = su.get("serve")
     sc, lead, srv_won, brk, run, best, swap = {"a": 0, "b": 0}, [0], {"a": 0, "b": 0}, {"a": 0, "b": 0}, [None, 0], {"a": 0, "b": 0}, None
-    atk, sup = {}, {}
+    atk, sup, seq = {}, {}, []
     for k, ev in enumerate(log):
         if max(sc.values()) >= TARGET:
             break
@@ -54,6 +54,7 @@ def replay(state):
             brk[w] += 1
             srv = w
         sc[w] += 1
+        seq.append(w)
         run = [w, run[1] + 1] if run[0] == w else [w, 1]
         best[w] = max(best[w], run[1])
         lead.append(sc["a"] - sc["b"])
@@ -63,7 +64,7 @@ def replay(state):
             atk[(w, p)] = atk.get((w, p), 0) + 1
             sup[(w, 1 - p)] = sup.get((w, 1 - p), 0) + 1
     return {"sc": sc, "lead": lead, "srv": srv_won, "brk": brk, "run": best, "swap": swap, "atk": atk, "sup": sup,
-            "n": len(lead) - 1, "ms": int(state.get("ms") or 0), "absent": bool(state.get("absent"))}
+            "seq": seq, "n": len(lead) - 1, "ms": int(state.get("ms") or 0), "absent": bool(state.get("absent"))}
 
 
 def mmss(ms):
@@ -85,6 +86,37 @@ def flow_svg(r, w=300, h=74):
     return (f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}"><line x1="4" y1="{h/2}" x2="{w-4}" y2="{h/2}" stroke="#CDD1E6"/>'
             f'<path d="{area_a}" fill="{CA}" opacity=".14"/><path d="{area_b}" fill="{CB}" opacity=".16"/>{sw}'
             f'<polyline points="{pts}" fill="none" stroke="#0E1430" stroke-width="1.6" stroke-linejoin="round"/></svg>')
+
+
+def runs_of(seq):
+    """Consecutive rallies won by the same side: [(side, start, length), ...]."""
+    out = []
+    for i, w in enumerate(seq):
+        if out and out[-1][0] == w:
+            out[-1][2] += 1
+        else:
+            out.append([w, i, 1])
+    return out
+
+
+def strip_svg(r, w=300, h=22):
+    """One cell per rally, coloured by the side that won it; each side's longest run outlined and labelled."""
+    seq, n = r["seq"], max(1, len(r["seq"]))
+    cw = (w - 8) / n
+    cells = "".join(f'<rect x="{4 + i * cw:.2f}" y="10" width="{max(.6, cw - .8):.2f}" height="10" rx="1" fill="{CA if s == "a" else CB}"/>' for i, s in enumerate(seq))
+    marks = ""
+    rs = runs_of(seq)
+    for side in "ab":
+        mine = [x for x in rs if x[0] == side]
+        if not mine:
+            continue
+        best = max(mine, key=lambda x: x[2])
+        if best[2] < 3:
+            continue
+        x0, x1 = 4 + best[1] * cw - .6, 4 + (best[1] + best[2]) * cw - .2
+        marks += (f'<rect x="{x0:.2f}" y="8.5" width="{x1 - x0:.2f}" height="13" rx="2" fill="none" stroke="#0E1430" stroke-width="1.3"/>'
+                  f'<text x="{(x0 + x1) / 2:.2f}" y="7" font-size="8" font-weight="800" text-anchor="middle" fill="{CA if side == "a" else CB}">{best[2]}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}">{cells}{marks}</svg>'
 
 
 def load(args):
@@ -226,7 +258,23 @@ def match_page(mm, date, day):
         sa, sb = p["sc"]["a"], p["sc"]["b"]
         rows += (f'<tr><td class="pc"><b>Cặp {i+1}</b><span>{p["seeds"][0]}–{p["seeds"][1]}</span></td><td class="pl{" w" if sa > sb else ""}">{e(na)}</td>'
                  f'<td class="sc{" wa" if sa > sb else ""}">{sa}</td><td class="sc{" wb" if sb > sa else ""}">{sb}</td><td class="pl{" w" if sb > sa else ""}">{e(nb)}</td>'
-                 f'<td class="fl">{flow_svg(p)}</td><td class="tm">{mmss(p["ms"])}<small>{p["n"]} pha</small></td></tr>')
+                 f'<td class="fl">{flow_svg(p, h=60)}{strip_svg(p)}</td><td class="tm">{mmss(p["ms"])}<small>{p["n"]} pha</small></td></tr>')
+    # top runs of the match, with the score before -> after
+    top = []
+    for i, p in enumerate(mm["pairs"]):
+        if not p["played"]:
+            continue
+        sa = sb = 0
+        cum = [(0, 0)]
+        for w in p["seq"]:
+            sa, sb = (sa + 1, sb) if w == "a" else (sa, sb + 1)
+            cum.append((sa, sb))
+        for side, st0, ln in runs_of(p["seq"]):
+            if ln >= 4:
+                top.append((ln, i, side, cum[st0], cum[st0 + ln]))
+    top.sort(key=lambda t: (-t[0], t[1]))
+    runs_html = "".join(f'<div class="ru"><span class="rl" style="background:{CA if sd == "a" else CB}">{ln}</span><span>{e(a if sd == "a" else b)} · cặp {i+1}</span>'
+                        f'<small>{f[0]}–{f[1]} → {t[0]}–{t[1]}</small></div>' for ln, i, sd, f, t in top[:6]) or '<p class="nd">Không có chuỗi từ 4 điểm.</p>'
     pl = [p for p in mm["pairs"] if p["played"]]
     srv = {s: sum(p["srv"][s] for p in pl) for s in "ab"}
     brk = {s: sum(p["brk"][s] for p in pl) for s in "ab"}
@@ -241,7 +289,8 @@ def match_page(mm, date, day):
     tile = lambda lbl, s: f'<div class="sv"><small>{lbl}</small><b style="color:{CA}">{s["a"]}</b><i>–</i><b style="color:{CB}">{s["b"]}</b></div>'  # noqa: E731
     return (f'<section class="page rp">{header(f"BÁO CÁO NGÀY {day} · {e(mm['m']['round']).upper()} · {e(date)}", f"{e(mm['m']['code'])} · {e(a)} {mm['ta']}–{mm['tb']} {e(b)}", status_line(mm) + f" · cặp thắng {mm['pa']}–{mm['pb']} · {mm['n']} pha bóng · {mmss(mm['ms'])}")}'
             f'<div class="mp"><div class="lt"><table class="rt2"><thead><tr><th>Cặp</th><th style="background:{CA}">{e(a)}</th><th colspan="2">Điểm</th><th style="background:{CB}">{e(b)}</th>'
-            f'<th>Diễn biến · ▲ {e(a)} dẫn · ▼ {e(b)} dẫn</th><th>Thời gian</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            f'<th>Diễn biến · ▲ {e(a)} dẫn · ▼ {e(b)} · ô = 1 pha, khung = chuỗi dài nhất</th><th>Thời gian</th></tr></thead><tbody>{rows}</tbody></table>'
+            f'<div class="box"><div class="bt">TOP CHUỖI ĐIỂM (TỪ 4 ĐIỂM LIÊN TIẾP)</div><div class="rus">{runs_html}</div></div></div>'
             f'<div class="rt"><div class="box"><div class="bt">TẤN CÔNG / HỖ TRỢ TỪNG VĐV</div><div class="lg"><span><i style="background:#0E1430"></i>Tấn công = tự ghi điểm</span><span><i style="background:#0E1430;opacity:.35"></i>Hỗ trợ = đồng đội ghi</span></div>{pbars}</div>'
             f'<div class="box"><div class="bt">GIAO CẦU & CHUỖI ĐIỂM</div><div class="svs">{tile("Thắng khi giao", srv)}{tile("Bẻ giao", brk)}{tile("Chuỗi dài nhất", run)}</div></div></div></div>{FOOTER}</section>')
 
