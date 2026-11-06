@@ -1,6 +1,6 @@
 {
   "_note": "Website settings. Slides: each entry may name an \"image\" file inside slides/ (leave out for the court-line background). Images in slides/ that no entry names are added as photo-only slides. match_time like \"18:00\" turns on the full countdown; leave empty while unknown. placements: final position of the team that loses each elimination match (the winner of the last one is 1st).",
-  "version": "1.22.1",
+  "version": "1.23.0",
   "eggs": {
     "_note": "Flower board (ex rotten eggs; same Apps Script web app scripts/apps_script/eggs.gs over the Google Sheet 'MCGAAW Cup — Trứng thối'). Empty api_url = each viewer only counts on their own device. daily_limit 0 = unlimited. flower_base = each player's egg total when eggs became flowers (2026-11-05): the old eggs still count as flowers, bouquets (10 = 1) count only flowers given after it.",
     "api_url": "https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec",

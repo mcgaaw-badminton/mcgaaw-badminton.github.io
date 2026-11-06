@@ -2,12 +2,12 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-05, v1.22.1)
+## Current state (2026-11-06, v1.23.0)
 - Live site: https://mcgaaw-badminton.github.io · referee page: `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys).
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — deployed version 4 = `scripts/apps_script/eggs.gs` (history log + Chốt).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs, referee, referee_log, referee_final, referee_draft.
 - Schedule: T1, T2 on 04/11/2026; T3 (+T4) on 11/11/2026.
-- Results: T1 Chốt #T1-F1NB36 (Đội 2 155–88, 5–0 pairs) is live in the standings. T2 not closed: pairs 1 and 3 unplayed (0–0); played pairs 25–31, 31–29, 17–31.
+- Results (both closed): T1 Chốt #T1-FUJF8B (re-closed 2026-11-05 08:07; same scores, Đội 2 155–88, 5–0). T2 Chốt #T2-FC2S83 posted 2026-11-06 at the user's request: pairs 1 and 3 absent and NOT played ([0, 0]), Đội 4 wins 91–73, pairs 2–1. Next: 11/11 T3 Đội 5–Đội 6 and T4 (semi) Đội 2–Đội 4; 18/11 T5 Đội 1–Đội 3. Day + GOAT reports re-published with T2 closed.
 - GitHub's scheduled builds are unreliable: on 04/11 only one run fired (00:50) out of the planned every-15-min evening runs. After a Chốt, a manual run (`gh workflow run` or any push) updates the site at once.
 - 2026-11-04 10:55: the user's T1 test was reset on the live sheet (pairs 1 and 4 re-sent blank with a newer `updated`, so phones pull the reset; rows stay in `referee`, history in `referee_log`). No finals exist.
 

@@ -645,12 +645,14 @@
       return '<div class="pair"><span class="no" title="Cặp ' + (i + 1) + '">' + p[0] + '–' + p[1] + '</span>' + side(A, p) + side(B, p, true) + '</div>';
     }).join('') + '</div>';
   }
+  /* absent pairs (null in result.pairs) were not played: shown as a note, they count for nobody */
+  function absentTxt(r) { var n = (r && r.pairs || []).filter(function (p) { return !p; }).length; return n ? ' · ' + n + ' cặp vắng' : ''; }
   function matchCard(m, i) {
     var st = ST[status(m)];
     var mid = m.result
       ? '<div class="score"><span class="' + (m.winner === 'a' ? '' : 'lo') + '">' + esc(m.result.a) + '</span><span class="lo">:</span><span class="' + (m.winner === 'b' ? '' : 'lo') + '">' + esc(m.result.b) + '</span></div>'
       : '<span class="x">VS</span>';
-    var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb : esc(m.round);
+    var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb + absentTxt(m.result) : esc(m.round);
     var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side r"><b>' + esc(sideName(m.b)) + '</b></span>';
     var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '" data-badge="' + esc(m.code) + '">' + st[0] + '</span></div>' +
       '<p class="ref-live" data-ref="' + esc(m.code) + '" hidden></p>';
@@ -950,7 +952,7 @@
       body.innerHTML = hl + (rows.length ? rows.map(function (m) {
         var r = m.result, cls = function (k) { return m.winner ? (m.winner === k ? 'won' : 'lo') : ''; };
         var sc = r ? r.a + ' : ' + r.b + '<small>cặp ' + r.pa + '–' + r.pb + '</small>' : '<small>' + (status(m) === 'wait' ? 'Chờ kết quả' : 'Chưa đấu') + '</small>';
-        var meta = r ? 'Cách biệt ' + Math.abs(r.a - r.b) + (r.pairs ? '' : ' · chưa có điểm từng cặp') : esc(m.round);
+        var meta = r ? 'Cách biệt ' + Math.abs(r.a - r.b) + (r.pairs ? absentTxt(r) : ' · chưa có điểm từng cặp') : esc(m.round);
         return '<div class="mrow"><div class="when"><span class="' + tagCls(m) + '">' + m.code + '</span><span>' + m.date.slice(0, 5) + '</span></div>' +
           '<div class="vs"><span class="' + cls('a') + '">' + esc(sideName(m.a)) + '</span><span class="sc">' + sc + '</span><span class="' + cls('b') + '">' + esc(sideName(m.b)) + '</span></div><div class="meta">' + meta + '</div></div>';
       }).join('') : '<p class="board-empty">Không có trận nào khớp bộ lọc.</p>');

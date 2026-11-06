@@ -8,7 +8,7 @@
    "label": "Báo cáo ngày 1 · 04/11/2026",
    "eyebrow": "Báo cáo ngày 1 · Thứ 4 · 04/11/2026",
    "title": "Đội 2 thắng trắng 5–0",
-   "sub": "T1: Đội 2 thắng Đội 1 155–88 · T2: Đội 4 dẫn 91–73, còn 2 cặp đánh sau.",
+   "sub": "T1: Đội 2 thắng Đội 1 155–88 · T2: Đội 4 thắng Đội 3 91–73.",
    "stats": [
     {
      "v": "155–88",
@@ -16,7 +16,7 @@
     },
     {
      "v": "91–73",
-     "k": "T2 · Đội 4 dẫn, chờ 2 cặp"
+     "k": "T2 · Đội 4 thắng 2–1 cặp"
     },
     {
      "v": "9 điểm",
@@ -204,13 +204,13 @@
     "rest": [
      [
       "Nguyễn Chí Toàn",
-      "43.3°",
+      "42.5°",
       "3-1"
      ],
      [
-      "Phạm Công Quân",
-      "42.4°",
-      "4-1"
+      "Trần Võ Toàn Phát",
+      "39.9°",
+      "2-2"
      ]
     ],
     "min": 1
@@ -672,7 +672,7 @@
       "atk": 23,
       "sup": 8,
       "run": 4,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -715,7 +715,7 @@
       "atk": 17,
       "sup": 8,
       "run": 7,
-      "closed": false
+      "closed": true
      },
      {
       "c": "T2",
@@ -729,7 +729,7 @@
       "atk": 8,
       "sup": 23,
       "run": 4,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -758,7 +758,7 @@
       "atk": 9,
       "sup": 8,
       "run": 3,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -787,7 +787,7 @@
       "atk": 8,
       "sup": 17,
       "run": 7,
-      "closed": false
+      "closed": true
      },
      {
       "c": "T2",
@@ -801,7 +801,7 @@
       "atk": 8,
       "sup": 9,
       "run": 3,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -830,7 +830,7 @@
       "atk": 17,
       "sup": 12,
       "run": 4,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -873,7 +873,7 @@
       "atk": 19,
       "sup": 12,
       "run": 6,
-      "closed": false
+      "closed": true
      },
      {
       "c": "T2",
@@ -887,7 +887,7 @@
       "atk": 12,
       "sup": 17,
       "run": 4,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -916,7 +916,7 @@
       "atk": 23,
       "sup": 8,
       "run": 6,
-      "closed": false
+      "closed": true
      }
     ]
    },
@@ -945,7 +945,7 @@
       "atk": 12,
       "sup": 19,
       "run": 6,
-      "closed": false
+      "closed": true
      },
      {
       "c": "T2",
@@ -959,7 +959,7 @@
       "atk": 8,
       "sup": 23,
       "run": 6,
-      "closed": false
+      "closed": true
      }
     ]
    },

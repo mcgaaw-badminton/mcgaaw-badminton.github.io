@@ -277,12 +277,13 @@ def referee_results(site, sched, n_pairs):
             continue
         f = finals.get(m["code"])
         if f and isinstance(f.get("pairs"), list) and len(f["pairs"]) == n_pairs:
-            m["result"] = {"pairs": [[int(x), int(y)] for x, y in f["pairs"]]}
+            # [0, 0] (or null) = absent pair, not played: kept as None, counts for nobody
+            m["result"] = {"pairs": [None if not p or (int(p[0]) == 0 and int(p[1]) == 0) else [int(p[0]), int(p[1])] for p in f["pairs"]]}
             pl = {k: [int(v[0]), int(v[1])] for k, v in (f.get("players") or {}).items() if isinstance(v, list) and len(v) == 2}
             if pl:
                 m["result"]["players"] = pl
             used.append(m["code"])
-            print(f"[REFEREE] {m['code']}: chốt #{f.get('report', '')} " + ", ".join(f"{x}-{y}" for x, y in f["pairs"]))
+            print(f"[REFEREE] {m['code']}: chốt #{f.get('report', '')} " + ", ".join("vắng" if not p or p == [0, 0] else f"{p[0]}-{p[1]}" for p in f["pairs"]))
         elif rows.get(m["code"]):
             n = sum(1 for p in rows[m["code"]].values() if p.get("done"))
             print(f"[REFEREE] {m['code']}: {n}/{n_pairs} pairs finished, not yet Chốt")

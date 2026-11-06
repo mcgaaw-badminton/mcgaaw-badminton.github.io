@@ -239,7 +239,7 @@ def overview(models, date, day, st):
         bars = ""
         for i, p in enumerate(mm["pairs"]):
             if not p["played"]:
-                bars += f'<div class="pb"><span class="pn">Cặp {i+1}</span><div class="bx none">{"vắng · đánh sau" if p["absent"] else "chưa đấu"}</div></div>'
+                bars += f'<div class="pb"><span class="pn">Cặp {i+1}</span><div class="bx none">{("vắng · không đấu" if mm["final"] else "vắng · đánh sau") if p["absent"] else "chưa đấu"}</div></div>'
                 continue
             sa, sb = p["sc"]["a"], p["sc"]["b"]
             bars += (f'<div class="pb"><span class="pn">Cặp {i+1}</span><div class="bx"><div class="ba"><i style="width:{sa/TARGET*100:.0f}%"></i><b>{sa}</b></div>'
@@ -280,7 +280,7 @@ def match_page(mm, date, day):
         na, nb = " · ".join(given(n) for n in p["names"]["a"]), " · ".join(given(n) for n in p["names"]["b"])
         if not p["played"]:
             rows += (f'<tr class="off"><td class="pc"><b>Cặp {i+1}</b><span>{p["seeds"][0]}–{p["seeds"][1]}</span></td><td class="pl">{e(na)}</td>'
-                     f'<td colspan="2" class="nd">{"vắng · đánh sau" if p["absent"] else "chưa đấu"}</td><td class="pl">{e(nb)}</td><td colspan="2"></td></tr>')
+                     f'<td colspan="2" class="nd">{("vắng · không đấu" if mm["final"] else "vắng · đánh sau") if p["absent"] else "chưa đấu"}</td><td class="pl">{e(nb)}</td><td colspan="2"></td></tr>')
             continue
         sa, sb = p["sc"]["a"], p["sc"]["b"]
         pf = pair_facts(p)

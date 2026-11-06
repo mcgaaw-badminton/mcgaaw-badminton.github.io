@@ -25,7 +25,8 @@ def _int(v, where, errors):
 
 def _check_result(code, r, n_pairs, errors):
     """Validate one result in place. With "pairs" (score of every pair, in pair order) the totals are derived;
-    totals typed as well must agree. Without "pairs", a/b/pa/pb are required (no player stats for that match)."""
+    totals typed as well must agree. Without "pairs", a/b/pa/pb are required (no player stats for that match).
+    A pair that was not played (absent, "vắng") is null or [0, 0]: it counts for nobody, and pa + pb = pairs played."""
     if "pairs" in r:
         ps = r["pairs"]
         if not isinstance(ps, list) or len(ps) != n_pairs:
@@ -33,6 +34,9 @@ def _check_result(code, r, n_pairs, errors):
             return
         clean = []
         for i, pr in enumerate(ps, 1):
+            if pr is None or (isinstance(pr, (list, tuple)) and len(pr) == 2 and pr[0] == 0 and pr[1] == 0):
+                clean.append(None)  # not played
+                continue
             if not isinstance(pr, (list, tuple)) or len(pr) != 2:
                 errors.append(f"{code}.result.pairs[{i}] = {pr!r}: phải là [điểm trái, điểm phải]")
                 return
@@ -44,8 +48,12 @@ def _check_result(code, r, n_pairs, errors):
                 errors.append(f"{code}.result.pairs[{i}] = {x}-{y}: một cặp không thể hòa")
                 return
             clean.append([x, y])
-        derived = {"a": sum(p[0] for p in clean), "b": sum(p[1] for p in clean),
-                   "pa": sum(p[0] > p[1] for p in clean), "pb": sum(p[1] > p[0] for p in clean)}
+        played = [p for p in clean if p]
+        if not played:
+            errors.append(f"{code}.result.pairs: không có cặp nào thi đấu")
+            return
+        derived = {"a": sum(p[0] for p in played), "b": sum(p[1] for p in played),
+                   "pa": sum(p[0] > p[1] for p in played), "pb": sum(p[1] > p[0] for p in played)}
         for f, v in derived.items():
             if f in r and _int(r[f], f"{code}.result.{f}", errors) not in (None, v):
                 errors.append(f"{code}.result.{f} = {r[f]} nhưng cộng từ pairs ra {v}")
@@ -57,8 +65,9 @@ def _check_result(code, r, n_pairs, errors):
                 errors.append(f"{code}.result.{f}: thiếu (hoặc nhập \"pairs\" để tự tính)")
             else:
                 r[f] = _int(r[f], f"{code}.result.{f}", errors)
-    if all(isinstance(r.get(f), int) for f in ("pa", "pb")) and r["pa"] + r["pb"] != n_pairs:
-        errors.append(f"{code}.result: pa + pb = {r['pa'] + r['pb']}, phải bằng {n_pairs} cặp")
+    n_played = n_pairs - sum(1 for p in (r.get("pairs") or []) if p is None)
+    if all(isinstance(r.get(f), int) for f in ("pa", "pb")) and r["pa"] + r["pb"] != n_played:
+        errors.append(f"{code}.result: pa + pb = {r['pa'] + r['pb']}, phải bằng {n_played} cặp đã đấu")
     if all(isinstance(r.get(f), int) for f in ("a", "b", "pa", "pb")) and r["a"] == r["b"] and r["pa"] == r["pb"]:
         errors.append(f"{code}.result: hòa cả tổng điểm lẫn số cặp thắng, chưa phân định được")
 
@@ -206,6 +215,8 @@ def stats(teams_cfg, matches, placements):
         if not ps:
             continue
         for k, (x, y) in enumerate(pairs):
+            if ps[k] is None:  # absent pair: not played, no stats
+                continue
             sa, sb = ps[k]
             for side, mine, theirs in (("a", sa, sb), ("b", sb, sa)):
                 for seed in (x, y):
@@ -267,6 +278,8 @@ def stats(teams_cfg, matches, placements):
         best = None
         for m in played:
             for k, sc in enumerate(m["result"].get("pairs") or []):
+                if sc is None:
+                    continue
                 tot = sc[0] + sc[1]
                 if best is None or tot > best["total"]:
                     best = {"code": m["code"], "pair": k, "total": tot, "score": sc}
