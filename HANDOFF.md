@@ -2,7 +2,7 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-06, v1.23.0)
+## Current state (2026-11-06, v1.23.1)
 - Live site: https://mcgaaw-badminton.github.io · referee page: `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys).
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — deployed version 4 = `scripts/apps_script/eggs.gs` (history log + Chốt).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs, referee, referee_log, referee_final, referee_draft.

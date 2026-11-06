@@ -51,6 +51,19 @@ function newPass_() { const p = Utilities.getUuid(); CacheService.getScriptCache
 function authorize() { UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'post', payload: {}, muteHttpExceptions: true }); }  // run once: grants the external-request permission
 function text_(s) { return ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.JSON); }
 function dropRefCache_(match) { CacheService.getScriptCache().removeAll(['ref:all', 'ref:' + match]); }
+function triggerDeploy_() {
+  const token = prop_('GH_TOKEN');
+  if (!token) return;
+  try {
+    UrlFetchApp.fetch('https://api.github.com/repos/mcgaaw-badminton/mcgaaw-badminton.github.io/actions/workflows/deploy.yml/dispatches', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'mcgaaw-badminton-apps-script' },
+      payload: JSON.stringify({ ref: 'main' }),
+      muteHttpExceptions: true
+    });
+  } catch (err) {}
+}
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.ref) {
@@ -162,6 +175,7 @@ function refFinal_(b) {  // "Chốt": the match result the standings will use, a
     sh.getRange(sh.getLastRow() + 1, 1, 1, FINAL_HEAD.length).setValues([[new Date().toISOString(), match, report, String(b.teamA || ''), String(b.teamB || ''), a, bb, pa, pb, JSON.stringify(pairs), JSON.stringify(players).slice(0, 45000)]]);
   } finally { lock.releaseLock(); }
   dropRefCache_(match);
+  triggerDeploy_();
   return { ok: true, final: true, match: match, report: report, a: a, b: bb };
 }
 function refPut_(b) {
