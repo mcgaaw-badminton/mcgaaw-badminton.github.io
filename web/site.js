@@ -833,7 +833,7 @@
       '#lich .pair:has(' + q + '){background:var(--brand-soft)}' +
       '#lich .match:has(' + q + ') .vs-toggle{box-shadow:0 0 0 2px var(--brand)}';
     var t = allNames[selP], codes = S.matches.filter(function (m) { return m.a.team === t.id || m.b.team === t.id; }).map(function (m) { return m.code; });
-    $('pFocusName').innerHTML = esc(selP) + (isChamp(selP) ? ' ' + champTag() : '');
+    $('pFocusName').innerHTML = '<span class="who-line">' + esc(selP) + GOAT_BADGES.get(selP) + (isChamp(selP) ? ' ' + champTag() : '') + '</span>';
     $('pFocusMeta').textContent = t.name + ' · seed ' + (t.members.indexOf(selP) + 1) + (codes.length ? ' · ' + codes.join(', ') : '');
     var st = pStats[selP];
     if (st) {
@@ -956,7 +956,7 @@
         '</div>' +
       '</div>';
 
-      open('<div class="pm-head"><span class="av">' + esc(ini(q.name)) + '</span><div><h3 id="pmTitle">' + esc(q.name) + '</h3><p class="pm-tags">' + tags(q) + '</p></div>' +
+      open('<div class="pm-head"><span class="av">' + esc(ini(q.name)) + '</span><div><h3 id="pmTitle" class="pm-title-line">' + esc(q.name) + GOAT_BADGES.get(q.name) + '</h3><p class="pm-tags">' + tags(q) + '</p></div>' +
         gaugeHtml + '</div>' +
         '<div class="pm-tiles">' + tiles + '</div>' + sugg +
         '<p class="pm-note">' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + ', gồm cặp của trận chưa chốt; nhiệt độ theo BXH.' : 'Chưa có dữ liệu trận.') + '</p>', 'prof');
@@ -999,7 +999,7 @@
           '<div class="vs-bar-list">' + rowsHtml + '</div>' +
         '</div>';
       }
-      var head = '<tr><th></th>' + qs.map(function (q) { return '<th><button type="button" class="pname" data-pid="' + esc(q.id) + '">' + esc(q.name.split(' ').slice(-2).join(' ')) + '</button><small>' + esc(teamById[q.team].name) + ' · seed ' + q.seed + '</small></th>'; }).join('') + '</tr>';
+      var head = '<tr><th></th>' + qs.map(function (q) { return '<th><div class="cmp-h-name"><button type="button" class="pname" data-pid="' + esc(q.id) + '">' + esc(q.name.split(' ').slice(-2).join(' ')) + '</button>' + GOAT_BADGES.get(q.name) + '</div><small>' + esc(teamById[q.team].name) + ' · seed ' + q.seed + '</small></th>'; }).join('') + '</tr>';
       var body = ROWS.map(function (r) {
         var vals = qs.map(r[1]), best = r[3] ? Math.max.apply(null, vals) : null, nBest = vals.filter(function (v) { return v === best; }).length;
         return '<tr><th>' + r[0] + '</th>' + qs.map(function (q, k) { return '<td class="' + (r[3] && vals[k] === best && nBest < qs.length ? 'best' : '') + '">' + esc(String(r[2](q))) + '</td>'; }).join('') + '</tr>';
@@ -1153,7 +1153,7 @@
         return '<li class="prow' + (i === 0 ? ' top' : '') + (CMP.on ? ' cmp-on' : '') + (picked ? ' picked' : '') + '">' +
           (CMP.on ? '<button type="button" class="cmp-pick" data-cmp="' + esc(p.id) + '" aria-pressed="' + picked + '" aria-label="Chọn ' + esc(p.name) + ' để so sánh"></button>' : '') +
           '<span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
-          '<span class="who"><button type="button" class="pname" data-pid="' + esc(p.id) + '">' + esc(p.name) + '</button><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
+          '<span class="who"><span class="who-line"><button type="button" class="pname" data-pid="' + esc(p.id) + '">' + esc(p.name) + '</button>' + GOAT_BADGES.get(p.name) + '</span><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
       }
       note.textContent = state.metric === 'eggs'
@@ -1340,7 +1340,7 @@
       if (!goat) return '<p class="board-empty">Báo cáo GOAT sẽ có sau ngày thi đấu đầu tiên.</p>';
       return '<p class="kq-scope">' + esc(goat.scope) + '</p><div class="kq-goat">' + goat.cats.map(function (c) {
         return '<div class="kq-g glass"><p class="kq-gt">' + esc(c.title) + '</p><div class="kq-g1"><span class="crown">GOAT</span><b>' + esc(c.value) + '</b></div>' +
-          '<p class="kq-gn"><button type="button" class="pname" data-pid="' + esc(c.id || '') + '">' + esc(c.name) + '</button></p><small>' + esc(c.tag) + '</small>' + (c.tie && c.tie.length ? '<small class="kq-tie">Đồng hạng: ' + esc(c.tie.join(', ')) + '</small>' : '') +
+          '<p class="kq-gn"><span class="who-line"><button type="button" class="pname" data-pid="' + esc(c.id || '') + '">' + esc(c.name) + '</button>' + GOAT_BADGES.get(c.name) + '</span></p><small>' + esc(c.tag) + '</small>' + (c.tie && c.tie.length ? '<small class="kq-tie">Đồng hạng: ' + esc(c.tie.join(', ')) + '</small>' : '') +
           '<ol start="2">' + c.rest.map(function (x) { return '<li><button type="button" class="pname" data-pid="' + esc(x[2] || '') + '">' + esc(x[0]) + '</button><b>' + esc(x[1]) + '</b></li>'; }).join('') + '</ol>' +
           (c.min > 1 ? '<small class="kq-min">Tối thiểu ' + c.min + ' cặp</small>' : '') + '</div>';
       }).join('') + '</div>' + pdf(goat.href, 'Báo cáo GOAT (PDF)');

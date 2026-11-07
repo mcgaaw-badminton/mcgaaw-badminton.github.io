@@ -1048,3 +1048,24 @@ html.pm-open { overflow: hidden }
     transition: none !important;
   }
 }
+
+
+.who-line, .pm-title-line, .cmp-h-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.who-line .pname {
+  display: inline-block;
+}
+.pm-head .pm-gauge-box {
+  margin-left: auto;
+}
+@media (max-width: 560px) {
+  .pm-head .pm-gauge-box {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 8px;
+  }
+}
