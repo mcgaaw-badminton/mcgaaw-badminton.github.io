@@ -113,8 +113,26 @@
     <div class="wrap">
       <div class="sec-head row rv">
         <div><p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p><h2>Sơ đồ thi đấu</h2></div>
+        <div class="bk-tools" id="bkTools">
+          <div class="bk-scale-group" role="group" aria-label="Chế độ thu phóng">
+            <button type="button" class="bk-btn on" id="bkBtn100" data-scale="100" aria-pressed="true" title="Xem kích thước chuẩn, cuộn tự do">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              <span>100% Cuộn</span>
+            </button>
+            <button type="button" class="bk-btn" id="bkBtnFit" data-scale="fit" aria-pressed="false" title="Thu nhỏ toàn cảnh vừa màn hình điện thoại">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M10 14L3 21M14 10l7-7"/></svg>
+              <span>Toàn cảnh</span>
+            </button>
+          </div>
+          <div class="bk-nav-tabs" id="bkNavTabs" role="tablist" aria-label="Chuyển nhanh vòng đấu">
+            <button type="button" class="bk-tab on" data-col="0" role="tab" aria-selected="true">Vòng 1</button>
+            <button type="button" class="bk-tab" data-col="1" role="tab" aria-selected="false">Bán kết</button>
+            <button type="button" class="bk-tab" data-col="2" role="tab" aria-selected="false">CK nhánh</button>
+            <button type="button" class="bk-tab" data-col="3" role="tab" aria-selected="false">Chung kết</button>
+          </div>
+        </div>
       </div>
-      <div class="bracket-scroll glass rv"><div class="bracket" id="bracket"></div></div>
+      <div class="bracket-scroll glass rv"><div class="bracket-scaler" id="bracketScaler"><div class="bracket" id="bracket"></div></div></div>
     </div>
   </section>
 

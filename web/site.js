@@ -814,7 +814,6 @@
 
   /* ---------- bracket path flow (chay mach anh sang tren so do) ---------- */
   function drawBracketFlow() {
-    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return;
     document.querySelectorAll('.b-grid[data-lane]').forEach(function (grid) {
       var svg = grid.querySelector('.b-flow-svg');
       if (!svg) return;
@@ -904,6 +903,101 @@
         scroller.scrollLeft = sLeft - (x - startX) * 1.25;
         scroller.scrollTop = sTop - (y - startY) * 1.25;
       });
+    });
+  })();
+
+  /* ---------- bracket scale controls & round tabs (thu phong toan canh & tab vong dau) ---------- */
+  (function () {
+    var scroller = document.querySelector('.bracket-scroll');
+    var scaler = document.getElementById('bracketScaler');
+    var bracket = document.getElementById('bracket');
+    var btn100 = document.getElementById('bkBtn100');
+    var btnFit = document.getElementById('bkBtnFit');
+    var tabs = document.querySelectorAll('.bk-tab');
+    if (!scroller || !scaler || !bracket) return;
+
+    var currentMode = '100';
+
+    function updateScale() {
+      if (currentMode !== 'fit') {
+        scroller.classList.remove('is-fit');
+        scaler.style.removeProperty('--bk-scale');
+        scaler.style.removeProperty('transform');
+        scaler.style.removeProperty('width');
+        scroller.style.removeProperty('height');
+        setTimeout(drawBracketFlow, 100);
+        return;
+      }
+      var pad = (window.innerWidth <= 560 ? 24 : 40);
+      var containerW = scroller.clientWidth - pad;
+      var origW = bracket.scrollWidth || 1200;
+      var scale = Math.min(1, Math.max(0.26, containerW / origW));
+      scroller.classList.add('is-fit');
+      scaler.style.setProperty('--bk-scale', scale.toFixed(4));
+      scaler.style.transform = 'scale(' + scale.toFixed(4) + ')';
+      scaler.style.width = origW + 'px';
+      var origH = bracket.offsetHeight;
+      scroller.style.height = Math.round(origH * scale + 48) + 'px';
+      scroller.scrollLeft = 0;
+      setTimeout(drawBracketFlow, 120);
+    }
+
+    if (btn100) {
+      btn100.addEventListener('click', function () {
+        currentMode = '100';
+        btn100.classList.add('on'); btn100.setAttribute('aria-pressed', 'true');
+        if (btnFit) { btnFit.classList.remove('on'); btnFit.setAttribute('aria-pressed', 'false'); }
+        updateScale();
+      });
+    }
+
+    if (btnFit) {
+      btnFit.addEventListener('click', function () {
+        currentMode = 'fit';
+        btnFit.classList.add('on'); btnFit.setAttribute('aria-pressed', 'true');
+        if (btn100) { btn100.classList.remove('on'); btn100.setAttribute('aria-pressed', 'false'); }
+        updateScale();
+      });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var colIdx = parseInt(tab.dataset.col, 10);
+        if (currentMode === 'fit') {
+          if (btn100) btn100.click();
+        }
+        var grid = document.querySelector('.b-grid');
+        if (!grid) return;
+        var cols = grid.querySelectorAll('.b-col');
+        if (cols[colIdx]) {
+          var left = cols[colIdx].offsetLeft - 16;
+          scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+        }
+        tabs.forEach(function (t) {
+          t.classList.toggle('on', t === tab);
+          t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+        });
+      });
+    });
+
+    scroller.addEventListener('scroll', function () {
+      if (currentMode === 'fit') return;
+      var grid = document.querySelector('.b-grid');
+      if (!grid) return;
+      var cols = grid.querySelectorAll('.b-col');
+      var sLeft = scroller.scrollLeft;
+      var activeIdx = 0;
+      cols.forEach(function (c, idx) {
+        if (c.offsetLeft - 80 <= sLeft) activeIdx = idx;
+      });
+      tabs.forEach(function (t, idx) {
+        t.classList.toggle('on', idx === activeIdx);
+        t.setAttribute('aria-selected', idx === activeIdx ? 'true' : 'false');
+      });
+    }, { passive: true });
+
+    window.addEventListener('resize', function () {
+      if (currentMode === 'fit') updateScale();
     });
   })();
 
