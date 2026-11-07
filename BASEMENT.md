@@ -1,4 +1,4 @@
-# BASEMENT — Giai cau long MCGAAW (single rule set)
+# BASEMENT — Giai cau long MCGAAW (product rules; workflow rules are in PROCESS.md)
 
 Standalone workspace for the MCGAAW team badminton tournament (6 teams × 5 players, double elimination, 10 matches).
 It is isolated on purpose: nothing here reads from or writes to `Agent research/` or any other workspace, and no other workspace reads from here.
@@ -11,7 +11,8 @@ It is isolated on purpose: nothing here reads from or writes to `Agent research/
 ```
 Giai cau long MCGAAW/
 ├── .workspace-root        marker — scripts find the root from here
-├── BASEMENT.md · CLAUDE.md
+├── BASEMENT.md (product rules) · PROCESS.md (workflow) · HANDOFF.md (state) · CLAUDE.md · AGENTS.md
+├── tasks/                 BOARD.md (who does what) · _TEMPLATE.md · one <id>.md per task
 ├── config/                single sources of data (edit here, then rebuild)
 │   ├── teams.json         rosters, seed order 1..5 + the 5 pairs
 │   ├── schedule.json      10 matches, dates, rules, busy-team note, optional results
@@ -21,7 +22,7 @@ Giai cau long MCGAAW/
 ├── web/                   website source: body.html · site.css · site.js (no data inside)
 ├── slides/  gallery/  downloads/   INPUT photos/files for the website (see README in each)
 ├── .github/workflows/deploy.yml   build + publish on every push to main
-├── scripts/               build_sheets.py · build_site.py · render_pdf.mjs · _lib/paths.py · package.json
+├── scripts/               build_sheets.py · build_site.py · build_report.py · preflight.py · verify_live.py · render_pdf.mjs · _lib/ · tests/ · apps_script/
 └── output/                generated only: PDFs · site/ (whole website, rebuilt from scratch each run) · site_preview.html · _build/
 ```
 
