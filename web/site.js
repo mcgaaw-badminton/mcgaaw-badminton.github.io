@@ -13,6 +13,7 @@
   S.teams.forEach(function (t) { teamById[t.id] = t; });
   S.matches.forEach(function (m) { byCode[m.code] = m; });
   var finalM = byCode[S.bracket.final];
+  var PLAYERS = (S.stats && S.stats.players) || [];
   function sideName(s) { return s.team ? teamById[s.team].name : s.label; }
   function today() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
   function dateOf(m) { var p = m.iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -57,7 +58,95 @@
   var CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v3a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 12v4M8.5 20h7M10 16h4l.5 4h-5z"/></svg>';
   function isChamp(n) { return CHAMPS.indexOf(n) >= 0; }
   function champTag() { return '<span class="champ" title="Vô địch mùa trước">' + CUP + 'Champion</span>'; }
-  function marks(n) { return (isFemale(n) ? HEART : '') + (isChamp(n) ? '<span class="cup-i" title="Vô địch mùa trước">' + CUP + '</span>' : ''); }
+
+  /* ---------- top-1 animated badges (GOAT stats + Flower leader) ---------- */
+  var GOAT_BADGES = (function () {
+    var map = {};
+    var cats = (S.goat && S.goat.cats) || [];
+    var ICONS = {
+      atk: {
+        cls: 'ico-atk anim-smash',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="17" cy="17" r="3"/><path d="M14.5 14.5L6 6M6 6h6M6 6v6"/></svg>'
+      },
+      sup: {
+        cls: 'ico-sup anim-wing',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 15c3-4 6-4 8-1 2-3 5-3 8 1"/><circle cx="12" cy="8" r="2.5"/></svg>'
+      },
+      diff: {
+        cls: 'ico-diff anim-rise',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>'
+      },
+      eff: {
+        cls: 'ico-eff anim-target',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>'
+      },
+      rate: {
+        cls: 'ico-rate anim-star',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 6.6L21 11l-6.4 2.4L12 20l-2.6-6.6L3 11l6.4-2.4L12 2z"/></svg>'
+      },
+      pa: {
+        cls: 'ico-pa anim-shield',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3z"/></svg>'
+      },
+      run: {
+        cls: 'ico-run anim-bolt',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>'
+      },
+      heat: {
+        cls: 'ico-heat anim-flame',
+        svg: '<svg class="ico-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.5 3.5 4.5 5.5 4.5 9.5a4.5 4.5 0 0 1-9 0c0-2.2 1.2-4.1 2.5-5.5 0 2 1.5 3 2 1-0.5-2 0-3.5 0-5z"/></svg>'
+      }
+    };
+    function detectType(title) {
+      if (title.indexOf('Tấn công') >= 0) return 'atk';
+      if (title.indexOf('Hỗ trợ') >= 0) return 'sup';
+      if (title.indexOf('Hiệu số') >= 0) return 'diff';
+      if (title.indexOf('Hiệu suất') >= 0) return 'eff';
+      if (title.indexOf('thắng') >= 0 || title.indexOf('Thắng') >= 0) return 'rate';
+      if (title.indexOf('Thủng lưới') >= 0 || title.indexOf('thua') >= 0 || title.indexOf('Phòng thủ') >= 0) return 'pa';
+      if (title.indexOf('Chuỗi') >= 0) return 'run';
+      if (title.indexOf('Nhiệt') >= 0 || title.indexOf('Nóng') >= 0) return 'heat';
+      return null;
+    }
+    cats.forEach(function (c) {
+      var t = detectType(c.title);
+      if (!t || !ICONS[t]) return;
+      var info = ICONS[t];
+      var tip = c.title + ': ' + (c.value || '');
+      var badge = '<span class="top-ico ' + info.cls + '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' + info.svg + '</span>';
+      var names = [c.name].concat(c.tie || []);
+      names.forEach(function (nm) {
+        if (!nm) return;
+        if (!map[nm]) map[nm] = [];
+        map[nm].push(badge);
+      });
+    });
+    return {
+      get: function (name) {
+        var res = (map[name] || []).join('');
+        try {
+          if (typeof EGG !== 'undefined') {
+            var best = 0, leadName = null;
+            PLAYERS.forEach(function (p) {
+              var n = EGG.get(p.id);
+              if (n > best) { best = n; leadName = p.name; }
+            });
+            if (best > 0 && leadName === name) {
+              res += '<span class="top-ico ico-flower anim-flower" title="Dẫn đầu bảng hoa: ' + best + ' bông" aria-label="Dẫn đầu bảng hoa">' +
+                '<svg class="ico-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 1 3 3c0 1.2-.7 2.2-1.7 2.7.9.5 1.7 1.3 2 2.3.9-.7 2.1-.9 3.2-.4a3 3 0 0 1-1.2 5.8c-1.2 0-2.2-.7-2.7-1.7-.5.9-1.3 1.7-2.3 2 .7.9.9 2.1.4 3.2a3 3 0 0 1-5.8-1.2c0-1.2.7-2.2 1.7-2.7-.9-.5-1.7-1.3-2-2.3-.9.7-2.1.9-3.2.4a3 3 0 0 1 1.2-5.8c1.2 0 2.2.7 2.7 1.7.5-.9 1.3-1.7 2.3-2-.7-.9-.9-2.1-.4-3.2A3 3 0 0 1 12 2z"/></svg></span>';
+            }
+          }
+        } catch (e) {}
+        return res;
+      }
+    };
+  })();
+
+  function marks(n) {
+    return (isFemale(n) ? HEART : '') +
+           (isChamp(n) ? '<span class="cup-i" title="Vô địch mùa trước">' + CUP + '</span>' : '') +
+           GOAT_BADGES.get(n);
+  }
   /* name chip: tappable in the schedule (pick + highlight), plain glass chip elsewhere (hover shows heat) */
   function pn(n, cls) { return '<button type="button" class="pn' + (cls ? ' ' + cls : '') + '" data-p="' + esc(n) + '">' + esc(n) + marks(n) + '</button>'; }
   function pnPlain(n, cls) { return '<span class="pn plain' + (cls ? ' ' + cls : '') + '" data-h="' + esc(n) + '" tabindex="0">' + esc(n) + marks(n) + '</span>'; }
@@ -273,7 +362,7 @@
   function once(key, gap) { var t = Date.now(); if (saidAt[key] && t - saidAt[key] < gap) return false; saidAt[key] = t; return true; }
   function say(k, v, mood) { var t = line(k, v); if (window.mascotSay) mascotSay(t, mood); AUD.talk(t); return t; }
 
-  var mine = {}, mineTotal = 0, PLAYERS = (S.stats && S.stats.players) || [];
+  var mine = {}, mineTotal = 0;
   function nameOf(id) { var p = PLAYERS.filter(function (x) { return x.id === id; })[0]; return p ? p.name : ''; }
   function teamOf(id) { return +String(id).split('-')[0] || 1; }
   /* what the robot says after one flower lands (one line at most, combo first) */
@@ -755,7 +844,15 @@
       tr.textContent = st.played ? (st.trend > 0 ? '▲ +' + st.trend : st.trend < 0 ? '▼ ' + st.trend : '—') : '';
       $('pFocusRank').textContent = 'Hạng ' + st.hrank + '/' + heatRank.length + (st.played ? ' · ' + st.won + 'T ' + st.lost + 'B' : ' · theo seed');
       $('pFocusBar').style.width = Math.max(4, Math.min(100, (st.heat - 20) / 25 * 100)).toFixed(0) + '%';
-    } else $('pFocusHeat').hidden = true;
+      if (st.hrank === 1 || st.heat >= 40) {
+        $('pFocusHeat').classList.add('heat-aura');
+      } else {
+        $('pFocusHeat').classList.remove('heat-aura');
+      }
+    } else {
+      $('pFocusHeat').hidden = true;
+      $('pFocusHeat').classList.remove('heat-aura');
+    }
     $('pFocusEgg').innerHTML = st ? eggBtn(st.id, selP, 'small') : '';
     bar.hidden = false;
   }
@@ -843,19 +940,73 @@
       var sugg = '<div class="pm-sugg"><p class="pm-h">So sánh nhanh · cùng hạt giống ' + q.seed + '</p><div>' + peers.map(function (p) {
         return '<button type="button" class="pm-chip" data-cmp-with="' + esc(id) + ',' + esc(p.id) + '"><b>' + esc(p.name.split(' ').slice(-2).join(' ')) + '</b><small>' + esc(teamById[p.team].name) + ' · ' + p.heat.toFixed(1) + '°</small></button>';
       }).join('') + '<button type="button" class="pm-chip more" data-cmp-add="' + esc(id) + '"><b>Chọn người khác</b><small>' + (api.ids.indexOf(id) >= 0 ? 'đang trong so sánh' : 'tối đa ' + max() + ' người') + '</small></button></div></div>';
+      var arcPct = Math.max(0, Math.min(1, (q.heat - 20) / 25));
+      var dashoffset = Math.round(126 * (1 - arcPct));
+      var isHot = q.rank === 1 || q.heat >= 40;
+      var auraCls = isHot ? ' heat-aura' : '';
+
+      var gaugeHtml = '<div class="pm-gauge-box' + auraCls + '">' +
+        '<svg viewBox="0 0 100 56" class="pm-gauge-svg" aria-hidden="true">' +
+          '<path d="M 12 48 A 38 38 0 0 1 88 48" class="pm-gauge-bg" stroke-width="7" stroke-linecap="round" fill="none"/>' +
+          '<path d="M 12 48 A 38 38 0 0 1 88 48" class="pm-gauge-val" stroke-width="7" stroke-linecap="round" fill="none" stroke-dasharray="126" stroke-dashoffset="' + dashoffset + '"/>' +
+        '</svg>' +
+        '<div class="pm-gauge-text">' +
+          '<b>' + q.heat.toFixed(1) + '°</b>' +
+          '<small><span class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</span> · #' + q.rank + '/30</small>' +
+        '</div>' +
+      '</div>';
+
       open('<div class="pm-head"><span class="av">' + esc(ini(q.name)) + '</span><div><h3 id="pmTitle">' + esc(q.name) + '</h3><p class="pm-tags">' + tags(q) + '</p></div>' +
-        '<div class="pm-heat"><b>' + q.heat.toFixed(1) + '°</b><span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span><small><span class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</span> · #' + q.rank + '/30</small></div></div>' +
+        gaugeHtml + '</div>' +
         '<div class="pm-tiles">' + tiles + '</div>' + sugg +
         '<p class="pm-note">' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + ', gồm cặp của trận chưa chốt; nhiệt độ theo BXH.' : 'Chưa có dữ liệu trận.') + '</p>', 'prof');
     }
     function compare() {
       var qs = api.ids.map(prof);
+      var h2hBars = '';
+      if (qs.length === 2) {
+        var q0 = qs[0], q1 = qs[1];
+        var metrics = [
+          { label: 'Tấn công', v0: q0.atk || 0, v1: q1.atk || 0, u: 'đ' },
+          { label: 'Hỗ trợ', v0: q0.sup || 0, v1: q1.sup || 0, u: 'đ' },
+          { label: 'Hiệu số', v0: q0.diff || 0, v1: q1.diff || 0, u: '' },
+          { label: 'Tỉ lệ thắng', v0: q0.rate != null ? q0.rate : 0, v1: q1.rate != null ? q1.rate : 0, u: '%' },
+          { label: 'Nhiệt độ', v0: +(q0.heat.toFixed(1)), v1: +(q1.heat.toFixed(1)), u: '°' }
+        ];
+        var rowsHtml = metrics.map(function (m) {
+          var maxV = Math.max(Math.abs(m.v0), Math.abs(m.v1), 1);
+          var p0 = Math.max(8, Math.min(100, Math.round((Math.abs(m.v0) / maxV) * 100)));
+          var p1 = Math.max(8, Math.min(100, Math.round((Math.abs(m.v1) / maxV) * 100)));
+          var c0 = m.v0 > m.v1 ? 'var(--brand)' : 'var(--muted)';
+          var c1 = m.v1 > m.v0 ? '#D9561C' : 'var(--muted)';
+          return '<div class="vs-bar-row">' +
+            '<div class="vs-bar-lbls"><span class="vs-bar-v l" style="color:' + c0 + '">' + (m.v0 > 0 && m.label === 'Hiệu số' ? '+' : '') + m.v0 + m.u + '</span>' +
+            '<span class="vs-bar-m">' + m.label + '</span>' +
+            '<span class="vs-bar-v r" style="color:' + c1 + '">' + (m.v1 > 0 && m.label === 'Hiệu số' ? '+' : '') + m.v1 + m.u + '</span></div>' +
+            '<div class="vs-bar-track">' +
+              '<div class="vs-bar-half l"><div class="vs-bar-fill l" style="width:' + p0 + '%; background:' + (m.v0 >= m.v1 ? 'var(--brand)' : 'var(--hair)') + '"></div></div>' +
+              '<div class="vs-bar-half r"><div class="vs-bar-fill r" style="width:' + p1 + '%; background:' + (m.v1 >= m.v0 ? '#D9561C' : 'var(--hair)') + '"></div></div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        h2hBars = '<div class="vs-h2h-box">' +
+          '<div class="vs-h2h-top">' +
+            '<div class="vs-h2h-side l"><span class="seed-tag s' + q0.seed + '">' + q0.seed + '</span><span class="vs-tname">' + esc(teamById[q0.team].name) + '</span><b>' + esc(q0.name) + '</b></div>' +
+            '<span class="vs-h2h-vs">VS</span>' +
+            '<div class="vs-h2h-side r"><b>' + esc(q1.name) + '</b><span class="vs-tname">' + esc(teamById[q1.team].name) + '</span><span class="seed-tag s' + q1.seed + '">' + q1.seed + '</span></div>' +
+          '</div>' +
+          '<div class="vs-bar-list">' + rowsHtml + '</div>' +
+        '</div>';
+      }
       var head = '<tr><th></th>' + qs.map(function (q) { return '<th><button type="button" class="pname" data-pid="' + esc(q.id) + '">' + esc(q.name.split(' ').slice(-2).join(' ')) + '</button><small>' + esc(teamById[q.team].name) + ' · seed ' + q.seed + '</small></th>'; }).join('') + '</tr>';
       var body = ROWS.map(function (r) {
         var vals = qs.map(r[1]), best = r[3] ? Math.max.apply(null, vals) : null, nBest = vals.filter(function (v) { return v === best; }).length;
         return '<tr><th>' + r[0] + '</th>' + qs.map(function (q, k) { return '<td class="' + (r[3] && vals[k] === best && nBest < qs.length ? 'best' : '') + '">' + esc(String(r[2](q))) + '</td>'; }).join('') + '</tr>';
       }).join('');
-      open('<h3 id="pmTitle">So sánh ' + qs.length + ' VĐV</h3><div class="cmp-wrap"><table class="cmp"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      open('<h3 id="pmTitle">' + (qs.length === 2 ? 'So găng đối đầu' : 'So sánh ' + qs.length + ' VĐV') + '</h3>' +
+        h2hBars +
+        '<div class="cmp-wrap"><table class="cmp"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
         '<p class="pm-note">Ô tô đậm = tốt nhất trong nhóm. ' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + '.' : '') + '</p>', 'wide c' + qs.length);
     }
     var tray = document.createElement('div'); tray.className = 'cmp-tray glass'; tray.hidden = true; document.body.appendChild(tray);

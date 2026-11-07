@@ -842,3 +842,209 @@ html.pm-open { overflow: hidden }
   .ms-ph .mute-btn, .ms-hide { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--glass-strong); box-shadow: var(--shadow); color: var(--muted); display: grid; place-items: center; cursor: pointer }
   .ms-hide svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round }
 }
+
+
+/* ==========================================================================
+   Top-1 Animated Micro-Badges, Heat Gauge & Visual Head-to-Head Comparison
+   ========================================================================== */
+
+/* Top-1 individual dynamic badges (Navy & Pearl palette) */
+.top-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: transform .2s ease;
+}
+.top-ico:hover { transform: scale(1.18); z-index: 2; }
+.top-ico .ico-svg { width: 12px; height: 12px; pointer-events: none; }
+
+.top-ico.ico-atk { color: #D9561C; background: rgba(217, 86, 28, .12); box-shadow: inset 0 0 0 1px rgba(217, 86, 28, .35); }
+.top-ico.ico-sup { color: #1F7A8C; background: rgba(31, 122, 140, .12); box-shadow: inset 0 0 0 1px rgba(31, 122, 140, .35); }
+.top-ico.ico-diff { color: #2F45F0; background: rgba(47, 69, 240, .12); box-shadow: inset 0 0 0 1px rgba(47, 69, 240, .35); }
+.top-ico.ico-eff { color: #6A3FC2; background: rgba(106, 63, 194, .12); box-shadow: inset 0 0 0 1px rgba(106, 63, 194, .35); }
+.top-ico.ico-rate { color: #157A4A; background: rgba(21, 122, 74, .12); box-shadow: inset 0 0 0 1px rgba(21, 122, 74, .35); }
+.top-ico.ico-pa { color: #4338CA; background: rgba(67, 56, 202, .12); box-shadow: inset 0 0 0 1px rgba(67, 56, 202, .35); }
+.top-ico.ico-run { color: #2F45F0; background: rgba(47, 69, 240, .12); box-shadow: inset 0 0 0 1px rgba(47, 69, 240, .35); }
+.top-ico.ico-heat { color: #D9561C; background: rgba(217, 86, 28, .12); box-shadow: inset 0 0 0 1px rgba(217, 86, 28, .35); }
+.top-ico.ico-flower { color: #B0285E; background: rgba(176, 40, 94, .12); box-shadow: inset 0 0 0 1px rgba(176, 40, 94, .35); }
+
+@keyframes icoSmash { 0%,100%{transform:translate(0,0) rotate(0)} 45%{transform:translate(-1.5px,-1.5px) rotate(-12deg)} 70%{transform:translate(2px,2px) rotate(14deg) scale(1.12)} }
+@keyframes icoWing { 0%,100%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-2px) scaleX(1.08)} }
+@keyframes icoRise { 0%,100%{transform:translateY(1.5px);opacity:.85} 50%{transform:translateY(-2px);opacity:1} }
+@keyframes icoTarget { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+@keyframes icoStar { 0%,100%{transform:rotate(0) scale(1)} 50%{transform:rotate(18deg) scale(1.15)} }
+@keyframes icoShield { 0%,100%{filter:brightness(1);transform:scale(1)} 50%{filter:brightness(1.25);transform:scale(1.08)} }
+@keyframes icoBolt { 0%,100%{opacity:1;transform:scale(1)} 45%{opacity:.65;transform:scale(.92)} 55%{opacity:1;transform:scale(1.16)} }
+@keyframes icoFlame { 0%,100%{transform:scaleY(1) translateY(0)} 50%{transform:scaleY(1.16) translateY(-1.5px)} }
+@keyframes icoFlowerSpin { to{transform:rotate(360deg)} }
+
+.anim-smash { animation: icoSmash 1.6s ease-in-out infinite; }
+.anim-wing { animation: icoWing 2s ease-in-out infinite; }
+.anim-rise { animation: icoRise 1.5s ease-in-out infinite; }
+.anim-target { animation: icoTarget 1.8s ease-in-out infinite; }
+.anim-star { animation: icoStar 2.2s ease-in-out infinite; }
+.anim-shield { animation: icoShield 2.2s ease-in-out infinite; }
+.anim-bolt { animation: icoBolt 1.4s ease-in-out infinite; }
+.anim-flame { animation: icoFlame 1.3s ease-in-out infinite; }
+.anim-flower { animation: icoFlowerSpin 7s linear infinite; }
+
+/* Heat aura pulse & arc gauge */
+@keyframes auraPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 86, 28, .35); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 86, 28, .15); }
+}
+.heat-aura { animation: auraPulse 1.8s ease-in-out infinite; }
+
+.pm-gauge-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px 6px;
+  border-radius: var(--r-m);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+.pm-gauge-svg {
+  width: 96px;
+  height: 54px;
+  overflow: visible;
+}
+.pm-gauge-bg {
+  stroke: var(--hair);
+}
+.pm-gauge-val {
+  stroke: #D9561C;
+  transition: stroke-dashoffset .8s cubic-bezier(.16, 1, .3, 1);
+}
+.pm-gauge-text {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  line-height: 1.1;
+}
+.pm-gauge-text b {
+  font-size: 19px;
+  font-weight: 800;
+  color: #D9561C;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.pm-gauge-text small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.thermo i {
+  transition: width .7s cubic-bezier(.16, 1, .3, 1);
+}
+
+/* Visual Head-to-Head Comparison (So gang VS) */
+.vs-h2h-box {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-m);
+  background: var(--glass-strong);
+  border: 1px solid var(--hair);
+  box-shadow: 0 1px 3px rgba(12, 20, 48, .04);
+}
+.vs-h2h-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
+}
+.vs-h2h-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.vs-h2h-side.l { justify-content: flex-start; }
+.vs-h2h-side.r { justify-content: flex-end; text-align: right; }
+.vs-h2h-side b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-h2h-side .vs-tname { font-size: 12px; color: var(--muted); font-weight: 600; }
+.vs-h2h-vs {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--seed-bg);
+  color: var(--seed-ink);
+  font-weight: 800;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.vs-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.vs-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vs-bar-lbls {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.vs-bar-v { font-weight: 800; min-width: 40px; }
+.vs-bar-v.l { text-align: left; }
+.vs-bar-v.r { text-align: right; }
+.vs-bar-m {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  color: var(--muted);
+}
+.vs-bar-track {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  height: 7px;
+}
+.vs-bar-half {
+  background: var(--hair);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+.vs-bar-half.l { justify-content: flex-end; }
+.vs-bar-half.r { justify-content: flex-start; }
+.vs-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .7s cubic-bezier(.16, 1, .3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-ico, .anim-smash, .anim-wing, .anim-rise, .anim-target,
+  .anim-star, .anim-shield, .anim-bolt, .anim-flame, .anim-flower,
+  .heat-aura {
+    animation: none !important;
+  }
+  .pm-gauge-val, .thermo i, .vs-bar-fill {
+    transition: none !important;
+  }
+}
