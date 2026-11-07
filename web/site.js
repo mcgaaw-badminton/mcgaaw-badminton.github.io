@@ -61,7 +61,7 @@
 
   /* ---------- top-1 animated badges (GOAT stats + Flower leader) ---------- */
   var GOAT_BADGES = (function () {
-    var map = {};
+    var byNameAndType = {};
     var cats = (S.goat && S.goat.cats) || [];
     var ICONS = {
       atk: {
@@ -117,27 +117,46 @@
       var names = [c.name].concat(c.tie || []);
       names.forEach(function (nm) {
         if (!nm) return;
-        if (!map[nm]) map[nm] = [];
-        map[nm].push(badge);
+        if (!byNameAndType[nm]) byNameAndType[nm] = {};
+        byNameAndType[nm][t] = badge;
       });
     });
+
+    var FLOWER_SVG = '<span class="top-ico ico-flower anim-flower" title="Dẫn đầu bảng hoa: {n} bông" aria-label="Dẫn đầu bảng hoa">' +
+      '<svg class="ico-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 1 3 3c0 1.2-.7 2.2-1.7 2.7.9.5 1.7 1.3 2 2.3.9-.7 2.1-.9 3.2-.4a3 3 0 0 1-1.2 5.8c-1.2 0-2.2-.7-2.7-1.7-.5.9-1.3 1.7-2.3 2 .7.9.9 2.1.4 3.2a3 3 0 0 1-5.8-1.2c0-1.2.7-2.2 1.7-2.7-.9-.5-1.7-1.3-2-2.3-.9.7-2.1.9-3.2.4a3 3 0 0 1 1.2-5.8c1.2 0 2.2.7 2.7 1.7.5-.9 1.3-1.7 2.3-2-.7-.9-.9-2.1-.4-3.2A3 3 0 0 1 12 2z"/></svg></span>';
+
     return {
-      get: function (name) {
-        var res = (map[name] || []).join('');
-        try {
-          if (typeof EGG !== 'undefined') {
-            var best = 0, leadName = null;
-            PLAYERS.forEach(function (p) {
-              var n = EGG.get(p.id);
-              if (n > best) { best = n; leadName = p.name; }
-            });
-            if (best > 0 && leadName === name) {
-              res += '<span class="top-ico ico-flower anim-flower" title="Dẫn đầu bảng hoa: ' + best + ' bông" aria-label="Dẫn đầu bảng hoa">' +
-                '<svg class="ico-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 1 3 3c0 1.2-.7 2.2-1.7 2.7.9.5 1.7 1.3 2 2.3.9-.7 2.1-.9 3.2-.4a3 3 0 0 1-1.2 5.8c-1.2 0-2.2-.7-2.7-1.7-.5.9-1.3 1.7-2.3 2 .7.9.9 2.1.4 3.2a3 3 0 0 1-5.8-1.2c0-1.2.7-2.2 1.7-2.7-.9-.5-1.7-1.3-2-2.3-.9.7-2.1.9-3.2.4a3 3 0 0 1 1.2-5.8c1.2 0 2.2.7 2.7 1.7.5-.9 1.3-1.7 2.3-2-.7-.9-.9-2.1-.4-3.2A3 3 0 0 1 12 2z"/></svg></span>';
-            }
+      detectType: detectType,
+      get: function (name, metricFilter) {
+        var userBadges = byNameAndType[name] || {};
+        // If a specific metric filter is requested (e.g. state.metric in BXH):
+        if (metricFilter) {
+          if (metricFilter === 'eggs') {
+            try {
+              if (typeof EGG !== 'undefined') {
+                var best = 0, leadName = null;
+                PLAYERS.forEach(function (p) {
+                  var n = EGG.get(p.id);
+                  if (n > best) { best = n; leadName = p.name; }
+                });
+                if (best > 0 && leadName === name) {
+                  return FLOWER_SVG.replace('{n}', best);
+                }
+              }
+            } catch (e) {}
+            return '';
           }
-        } catch (e) {}
-        return res;
+          // For any other metric: return ONLY that metric's badge, NEVER flower or other stats!
+          return userBadges[metricFilter] || '';
+        }
+
+        // When NO filter is specified (e.g. Schedule pairs or Profile modal):
+        // Show at most 1 signature GOAT badge so badges NEVER overlap or crowd each other!
+        var ORDER = ['heat', 'atk', 'diff', 'sup', 'eff', 'rate', 'pa', 'run'];
+        for (var i = 0; i < ORDER.length; i++) {
+          if (userBadges[ORDER[i]]) return userBadges[ORDER[i]];
+        }
+        return '';
       }
     };
   })();
@@ -776,12 +795,12 @@
     if (m.branch === 'final') foot.push('Thắng: vô địch');
     var head = '<span class="b-head"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span>' + esc(m.date.slice(0, 5)) + '</span></span>';
     var cls = 'b-card' + (m.branch === 'final' ? ' final' : '');
-    if (!(m.a.team || m.b.team)) return '<div class="' + cls + '">' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
+    if (!(m.a.team || m.b.team)) return '<div class="' + cls + '" data-bcode="' + esc(m.code) + '"><span class="b-pulse" aria-hidden="true"></span>' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
     var roster = function (k) {
       var s = m[k]; if (!s.team) return '<div class="b-roster tbd"><b>' + esc(sideName(s)) + '</b><span>Chưa xác định</span></div>';
       return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n) + '</li>'; }).join('') + '</ol></div>';
     };
-    return '<div class="' + cls + '"><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
+    return '<div class="' + cls + '" data-bcode="' + esc(m.code) + '"><span class="b-pulse" aria-hidden="true"></span><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
       '<span class="b-foot"><span>' + foot.join(' · ') + '</span>' + CHIP + '</span></button>' + box('bk-' + m.code, roster('a') + roster('b')) + '</div>';
   }
   var phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
@@ -789,9 +808,63 @@
     var n = cols.reduce(function (t, c) { return t + c.length; }, 0);
     return '<div class="b-sec ' + key + '"><button type="button" class="lane-toggle" aria-expanded="' + open + '" aria-controls="lane-' + key + '">' +
       '<span class="lt">' + title + '<small>' + n + ' trận</small></span>' + CHIP + '</button>' +
-      box('lane-' + key, '<div class="b-grid">' + cols.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + heads[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') + '</div>', open) + '</div>';
+      box('lane-' + key, '<div class="b-grid" data-lane="' + key + '"><svg class="b-flow-svg" aria-hidden="true"></svg>' + cols.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + heads[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') + '</div>', open) + '</div>';
   }
   $('bracket').innerHTML = lane('win', 'Nhánh thắng', S.bracket.win, COLS, true) + lane('lose', 'Nhánh thua', S.bracket.lose, LCOLS, !phone);
+
+  /* ---------- bracket path flow (chay mach anh sang tren so do) ---------- */
+  function drawBracketFlow() {
+    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return;
+    document.querySelectorAll('.b-grid[data-lane]').forEach(function (grid) {
+      var svg = grid.querySelector('.b-flow-svg');
+      if (!svg) return;
+      var gr = grid.getBoundingClientRect();
+      if (!gr.width || !gr.height) return;
+      svg.setAttribute('viewBox', '0 0 ' + Math.round(gr.width) + ' ' + Math.round(gr.height));
+      var paths = [];
+
+      S.matches.forEach(function (m) {
+        if (!m.winTo) return;
+        var src = grid.querySelector('[data-bcode="' + m.code + '"]');
+        var tgt = grid.querySelector('[data-bcode="' + m.winTo + '"]');
+        if (!src || !tgt) return;
+
+        var r1 = src.getBoundingClientRect();
+        var r2 = tgt.getBoundingClientRect();
+        if (r1.right >= r2.left) return;
+
+        var x1 = Math.round(r1.right - gr.left);
+        var y1 = Math.round(r1.top + r1.height / 2 - gr.top);
+        var x2 = Math.round(r2.left - gr.left);
+        var y2 = Math.round(r2.top + r2.height / 2 - gr.top);
+        var dx = Math.max(14, Math.round((x2 - x1) * 0.45));
+
+        var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2;
+
+        paths.push('<path d="' + d + '" class="b-path-bg" />');
+        if (m.winner) {
+          var isFin = (m.winTo === S.bracket.final);
+          paths.push('<path d="' + d + '" class="b-path-flow' + (isFin ? ' final' : '') + '" />');
+          paths.push('<circle cx="' + x1 + '" cy="' + y1 + '" r="3.5" class="b-node-dot' + (isFin ? ' final' : '') + '" />');
+        } else {
+          paths.push('<path d="' + d + '" class="b-path-pending" />');
+        }
+      });
+      svg.innerHTML = paths.join('');
+    });
+  }
+
+  setTimeout(drawBracketFlow, 100);
+  window.addEventListener('resize', function () {
+    clearTimeout(window._bfTimer);
+    window._bfTimer = setTimeout(drawBracketFlow, 120);
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.lane-toggle, .b-toggle')) {
+      setTimeout(drawBracketFlow, 320);
+    }
+  });
+
 
   /* ---------- teams: seed tags + female label ---------- */
   $('teams').innerHTML = S.teams.map(function (t) {
@@ -963,49 +1036,12 @@
     }
     function compare() {
       var qs = api.ids.map(prof);
-      var h2hBars = '';
-      if (qs.length === 2) {
-        var q0 = qs[0], q1 = qs[1];
-        var metrics = [
-          { label: 'Tấn công', v0: q0.atk || 0, v1: q1.atk || 0, u: 'đ' },
-          { label: 'Hỗ trợ', v0: q0.sup || 0, v1: q1.sup || 0, u: 'đ' },
-          { label: 'Hiệu số', v0: q0.diff || 0, v1: q1.diff || 0, u: '' },
-          { label: 'Tỉ lệ thắng', v0: q0.rate != null ? q0.rate : 0, v1: q1.rate != null ? q1.rate : 0, u: '%' },
-          { label: 'Nhiệt độ', v0: +(q0.heat.toFixed(1)), v1: +(q1.heat.toFixed(1)), u: '°' }
-        ];
-        var rowsHtml = metrics.map(function (m) {
-          var maxV = Math.max(Math.abs(m.v0), Math.abs(m.v1), 1);
-          var p0 = Math.max(8, Math.min(100, Math.round((Math.abs(m.v0) / maxV) * 100)));
-          var p1 = Math.max(8, Math.min(100, Math.round((Math.abs(m.v1) / maxV) * 100)));
-          var c0 = m.v0 > m.v1 ? 'var(--brand)' : 'var(--muted)';
-          var c1 = m.v1 > m.v0 ? '#D9561C' : 'var(--muted)';
-          return '<div class="vs-bar-row">' +
-            '<div class="vs-bar-lbls"><span class="vs-bar-v l" style="color:' + c0 + '">' + (m.v0 > 0 && m.label === 'Hiệu số' ? '+' : '') + m.v0 + m.u + '</span>' +
-            '<span class="vs-bar-m">' + m.label + '</span>' +
-            '<span class="vs-bar-v r" style="color:' + c1 + '">' + (m.v1 > 0 && m.label === 'Hiệu số' ? '+' : '') + m.v1 + m.u + '</span></div>' +
-            '<div class="vs-bar-track">' +
-              '<div class="vs-bar-half l"><div class="vs-bar-fill l" style="width:' + p0 + '%; background:' + (m.v0 >= m.v1 ? 'var(--brand)' : 'var(--hair)') + '"></div></div>' +
-              '<div class="vs-bar-half r"><div class="vs-bar-fill r" style="width:' + p1 + '%; background:' + (m.v1 >= m.v0 ? '#D9561C' : 'var(--hair)') + '"></div></div>' +
-            '</div>' +
-          '</div>';
-        }).join('');
-
-        h2hBars = '<div class="vs-h2h-box">' +
-          '<div class="vs-h2h-top">' +
-            '<div class="vs-h2h-side l"><span class="seed-tag s' + q0.seed + '">' + q0.seed + '</span><span class="vs-tname">' + esc(teamById[q0.team].name) + '</span><b>' + esc(q0.name) + '</b></div>' +
-            '<span class="vs-h2h-vs">VS</span>' +
-            '<div class="vs-h2h-side r"><b>' + esc(q1.name) + '</b><span class="vs-tname">' + esc(teamById[q1.team].name) + '</span><span class="seed-tag s' + q1.seed + '">' + q1.seed + '</span></div>' +
-          '</div>' +
-          '<div class="vs-bar-list">' + rowsHtml + '</div>' +
-        '</div>';
-      }
-      var head = '<tr><th></th>' + qs.map(function (q) { return '<th><div class="cmp-h-name"><button type="button" class="pname" data-pid="' + esc(q.id) + '">' + esc(q.name.split(' ').slice(-2).join(' ')) + '</button>' + GOAT_BADGES.get(q.name) + '</div><small>' + esc(teamById[q.team].name) + ' · seed ' + q.seed + '</small></th>'; }).join('') + '</tr>';
+      var head = '<tr><th></th>' + qs.map(function (q) { return '<th><button type="button" class="pname" data-pid="' + esc(q.id) + '">' + esc(q.name.split(' ').slice(-2).join(' ')) + '</button><small>' + esc(teamById[q.team].name) + ' · seed ' + q.seed + '</small></th>'; }).join('') + '</tr>';
       var body = ROWS.map(function (r) {
         var vals = qs.map(r[1]), best = r[3] ? Math.max.apply(null, vals) : null, nBest = vals.filter(function (v) { return v === best; }).length;
         return '<tr><th>' + r[0] + '</th>' + qs.map(function (q, k) { return '<td class="' + (r[3] && vals[k] === best && nBest < qs.length ? 'best' : '') + '">' + esc(String(r[2](q))) + '</td>'; }).join('') + '</tr>';
       }).join('');
-      open('<h3 id="pmTitle">' + (qs.length === 2 ? 'So găng đối đầu' : 'So sánh ' + qs.length + ' VĐV') + '</h3>' +
-        h2hBars +
+      open('<h3 id="pmTitle">So sánh ' + qs.length + ' VĐV</h3>' +
         '<div class="cmp-wrap"><table class="cmp"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
         '<p class="pm-note">Ô tô đậm = tốt nhất trong nhóm. ' + (S.goat ? 'Số liệu trận tính đến ' + esc(S.goat.asof) + '.' : '') + '</p>', 'wide c' + qs.length);
     }
@@ -1153,7 +1189,7 @@
         return '<li class="prow' + (i === 0 ? ' top' : '') + (CMP.on ? ' cmp-on' : '') + (picked ? ' picked' : '') + '">' +
           (CMP.on ? '<button type="button" class="cmp-pick" data-cmp="' + esc(p.id) + '" aria-pressed="' + picked + '" aria-label="Chọn ' + esc(p.name) + ' để so sánh"></button>' : '') +
           '<span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
-          '<span class="who"><span class="who-line"><button type="button" class="pname" data-pid="' + esc(p.id) + '">' + esc(p.name) + '</button>' + GOAT_BADGES.get(p.name) + '</span><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
+          '<span class="who"><span class="who-line"><button type="button" class="pname" data-pid="' + esc(p.id) + '">' + esc(p.name) + '</button>' + GOAT_BADGES.get(p.name, state.metric) + '</span><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
           '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
       }
       note.textContent = state.metric === 'eggs'
