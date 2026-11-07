@@ -829,15 +829,20 @@
         var tgt = grid.querySelector('[data-bcode="' + m.winTo + '"]');
         if (!src || !tgt) return;
 
-        var r1 = src.getBoundingClientRect();
-        var r2 = tgt.getBoundingClientRect();
-        if (r1.right >= r2.left) return;
+        // Neo vao match header / toggle de khi mo rong danh sach VDV diem noi khong bi lech xuong day card
+        var srcAnchor = src.querySelector('.b-toggle') || src.querySelector('.b-head') || src;
+        var tgtAnchor = tgt.querySelector('.b-toggle') || tgt.querySelector('.b-head') || tgt;
+        var r1 = srcAnchor.getBoundingClientRect();
+        var r2 = tgtAnchor.getBoundingClientRect();
+        var srcBox = src.getBoundingClientRect();
+        var tgtBox = tgt.getBoundingClientRect();
+        if (srcBox.right >= tgtBox.left) return;
 
-        var x1 = Math.round(r1.right - gr.left);
+        var x1 = Math.round(srcBox.right - gr.left);
         var y1 = Math.round(r1.top + r1.height / 2 - gr.top);
-        var x2 = Math.round(r2.left - gr.left);
+        var x2 = Math.round(tgtBox.left - gr.left);
         var y2 = Math.round(r2.top + r2.height / 2 - gr.top);
-        var dx = Math.max(14, Math.round((x2 - x1) * 0.45));
+        var dx = Math.max(28, Math.round((x2 - x1) * 0.5));
 
         var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2;
 
@@ -864,6 +869,43 @@
       setTimeout(drawBracketFlow, 320);
     }
   });
+
+  /* ---------- drag-to-scroll (keo tha chuot de cuon so do thi dau) ---------- */
+  (function () {
+    var scrollers = document.querySelectorAll('.bracket-scroll');
+    scrollers.forEach(function (scroller) {
+      var isDown = false, startX, startY, sLeft, sTop;
+      scroller.addEventListener('mousedown', function (e) {
+        if (e.target.closest('button, a, input, select, .pn, summary')) return;
+        isDown = true;
+        scroller.classList.add('is-dragging');
+        startX = e.pageX - scroller.offsetLeft;
+        startY = e.pageY - scroller.offsetTop;
+        sLeft = scroller.scrollLeft;
+        sTop = scroller.scrollTop;
+      });
+      document.addEventListener('mouseup', function () {
+        if (isDown) {
+          isDown = false;
+          scroller.classList.remove('is-dragging');
+        }
+      });
+      scroller.addEventListener('mouseleave', function () {
+        if (isDown) {
+          isDown = false;
+          scroller.classList.remove('is-dragging');
+        }
+      });
+      scroller.addEventListener('mousemove', function (e) {
+        if (!isDown) return;
+        e.preventDefault();
+        var x = e.pageX - scroller.offsetLeft;
+        var y = e.pageY - scroller.offsetTop;
+        scroller.scrollLeft = sLeft - (x - startX) * 1.25;
+        scroller.scrollTop = sTop - (y - startY) * 1.25;
+      });
+    });
+  })();
 
 
   /* ---------- teams: seed tags + female label ---------- */
@@ -1190,7 +1232,7 @@
           (CMP.on ? '<button type="button" class="cmp-pick" data-cmp="' + esc(p.id) + '" aria-pressed="' + picked + '" aria-label="Chọn ' + esc(p.name) + ' để so sánh"></button>' : '') +
           '<span class="rk">' + (i + 1) + '</span><span class="av" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
           '<span class="who"><span class="who-line"><button type="button" class="pname" data-pid="' + esc(p.id) + '">' + esc(p.name) + '</button>' + GOAT_BADGES.get(p.name, state.metric) + '</span><small>' + esc(teamById[p.team].name) + seedTag(p.seed) + (p.female ? femTag() : '') + (isChamp(p.name) ? champTag() : '') + '</small></span>' +
-          '<span class="val"><b>' + main + '</b>' + sub + '</span>' + eggBtn(p.id, p.name) + '</li>';
+          '<span class="val"><b>' + main + '</b>' + sub + '</span>' + (state.metric === 'eggs' ? eggBtn(p.id, p.name) : '') + '</li>';
       }
       note.textContent = state.metric === 'eggs'
         ? 'Bấm nút bông hoa ở mỗi dòng để tặng hoa, mỗi lần ra một bông khác nhau. 10 bông mới gói thành 1 bó. Bấm liền 3 lần để vào chuỗi hoa. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')

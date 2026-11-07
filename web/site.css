@@ -296,14 +296,15 @@ h3 { font-size: 18px; font-weight: 800 }
 .hint::before { content: "i"; flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; background: var(--navy); color: var(--on-navy) }
 
 /* bracket */
-.bracket-scroll { overflow-x: auto; border-radius: var(--r-l); padding: 20px }
-.bracket { display: flex; flex-direction: column; gap: 12px; min-width: 900px }
+.bracket-scroll { overflow-x: auto; border-radius: var(--r-l); padding: 20px; cursor: grab; user-select: none; -webkit-user-select: none }
+.bracket-scroll.is-dragging { cursor: grabbing !important }
+.bracket { display: flex; flex-direction: column; gap: 12px; min-width: 1280px }
 .b-sec + .b-sec { border-top: 1px solid var(--hair); padding-top: 12px }
 .lane-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 4px 2px; border: 0; background: transparent; color: var(--brand-text); cursor: pointer; text-align: left; font: inherit }
 .b-sec.lose .lane-toggle { color: var(--lose-text) }
 .lane-toggle .lt { display: flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 800 }
 .lane-toggle .lt small { font-size: 12px; font-weight: 600; color: var(--muted) }
-.b-grid { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px 24px; padding-bottom: 4px }
+.b-grid { display: grid; grid-template-columns: repeat(4, minmax(260px, 1fr)); gap: 16px 64px; padding-bottom: 4px }
 .b-col { display: flex; flex-direction: column; justify-content: center; gap: 10px }
 .b-colhead { font-size: 12px; font-weight: 700; color: var(--muted) }
 .b-card { border-radius: var(--r-m); background: var(--glass-strong); border: 1px solid var(--hair); overflow: hidden; transition: transform .4s var(--spring), box-shadow .4s }
@@ -565,7 +566,8 @@ a.doc:hover .go { transform: translateX(4px); color: var(--brand-text) }
 .hint::before, .seed-legend .seed-tag, .seed-legend .fem, .seed-legend .champ { font-style: normal }
 
 /* ---------- flowers (ex rotten eggs; class names kept) ---------- */
-.prow { grid-template-columns: 28px 40px minmax(0, 1fr) auto auto }
+.plist.eggs-mode .prow { grid-template-columns: 28px 40px minmax(0, 1fr) auto auto }
+.plist:not(.eggs-mode) .prow { grid-template-columns: 28px 40px minmax(0, 1fr) auto }
 .egg-btn { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 6px 10px 6px 7px; border: 1px solid transparent; border-radius: 999px; background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--glass-hi), 0 1px 3px rgba(12, 20, 48, .08); color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; transition: transform .15s var(--spring), border-color .25s }
 .egg-btn:active { transform: scale(.92) }
 @media (hover: hover) and (pointer: fine) { .egg-btn:hover { border-color: var(--rose-text) } }
@@ -826,7 +828,9 @@ html.pm-open { overflow: hidden }
   .flt .chipset { flex-wrap: wrap }
   .flt .filters-r { margin-left: 0; justify-content: space-between }
   /* rows: one line each — no avatar, name + team, value, flower button */
-  .prow, .prow.cmp-on { grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 8px; padding: 9px 4px }
+  .plist.eggs-mode .prow { grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 8px; padding: 9px 4px }
+  .plist:not(.eggs-mode) .prow { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; padding: 9px 4px }
+  .prow.cmp-on { grid-template-columns: 22px 22px minmax(0, 1fr) auto auto; gap: 8px; padding: 9px 4px }
   .prow.cmp-on { grid-template-columns: 22px 22px minmax(0, 1fr) auto auto }
   .prow .av { display: none }
   .prow .egg-btn { grid-column: auto; justify-self: end; min-height: 36px; padding: 6px }
@@ -987,8 +991,8 @@ html.pm-open { overflow: hidden }
 .b-grid {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(210px, 1fr));
-  gap: 12px 28px;
+  grid-template-columns: repeat(4, minmax(260px, 1fr));
+  gap: 16px 64px;
   padding-bottom: 4px;
 }
 .b-flow-svg {
