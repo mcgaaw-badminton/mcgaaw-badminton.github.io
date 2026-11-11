@@ -29,6 +29,7 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 3. After deploy: `curl -s <site>/version.json` shows the new version.
 
 ## Open items (ask the owner, do not decide alone)
+- Bracket v2 review page (2026-11-11) awaits the owner: https://claude.ai/artifact/25FzYq2TSSo5g7aDvS4imY (source copy in output/review/261111-bracket-v2/, not in git). Green/red lanes override BASEMENT §4's blue/orange bracket colours if approved.
 - Not confirmed by the owner: is `REF_PIN` set, is `TURNSTILE_SECRET` set, is `GH_TOKEN` set (Chốt → auto build)? Check once and record here.
 - v1.24.0 (GOAT badges, heat arc, H2H bars) shipped without a BASEMENT line or HANDOFF note: the lead should add one line to BASEMENT §6 after looking at it.
 - Trust (deferred 2026-11-04): anyone could POST a fake Chốt; with REF_PIN set this is closed.
