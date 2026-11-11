@@ -190,11 +190,14 @@ def match_model(m, teams, pairs, rows, final):
     if typed:  # result typed in config/schedule.json (no Chốt on the sheet): counts as closed, null pairs = absent
         final = {"report": "BTC nhập", "typed": True}
     out = {"m": m, "A": ta, "B": tb, "pairs": [], "final": final}
+    lineup = (m.get("result") or {}).get("lineup") or {}  # stand-ins typed in config (pair no. → side → seeds)
     for k, (x, y) in enumerate(pairs):
         st = ((rows.get(str(k + 1)) or {}).get("state")) or {}
         r = replay(st)
         r["seeds"] = (x, y)
-        r["names"] = {"a": [ta["members"][x - 1], ta["members"][y - 1]], "b": [tb["members"][x - 1], tb["members"][y - 1]]}
+        sa_, sb_ = (lineup.get(str(k + 1)) or {}).get("a") or (x, y), (lineup.get(str(k + 1)) or {}).get("b") or (x, y)
+        r["side_seeds"] = {"a": tuple(sa_), "b": tuple(sb_)}
+        r["names"] = {"a": [ta["members"][sa_[0] - 1], ta["members"][sa_[1] - 1]], "b": [tb["members"][sb_[0] - 1], tb["members"][sb_[1] - 1]]}
         r["played"] = r["n"] > 0 and max(r["sc"].values()) >= TARGET or (st.get("manualEnd") and r["n"] > 0)
         if typed and k < len(typed) and typed[k] is None:
             r["absent"] = True
@@ -370,7 +373,7 @@ def goat_main(args):
                 continue
             for side, o in (("a", "b"), ("b", "a")):
                 for i in (0, 1):
-                    q = P[f"{ms[c][side]}-{p['seeds'][i]}"]
+                    q = P[f"{ms[c][side]}-{p['side_seeds'][side][i]}"]
                     q["matches"].add(c); q["pairs"] += 1; q["won"] += p["sc"][side] > p["sc"][o]
                     q["log"].append({"c": c, "k": mm["pairs"].index(p) + 1, "mate": given(p["names"][side][1 - i]), "opp": " · ".join(given(x) for x in p["names"][o]),
                                      "s": [p["sc"][side], p["sc"][o]], "atk": p["atk"].get((side, i), 0), "sup": p["sup"].get((side, i), 0), "run": p["run"][side],

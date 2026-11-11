@@ -749,8 +749,10 @@
     var A = m.a.team ? teamById[m.a.team].members : null, B = m.b.team ? teamById[m.b.team].members : null;
     if (!A && !B) return '<div class="pairs tbd">Tên VĐV hiện khi đã có kết quả ' + esc([m.a.label, m.b.label].join(', ').replace(/Thắng |Thua /g, '')) + '</div>';
     var side = function (L, p, r) { return '<span class="pside' + (r ? ' r' : '') + '">' + (L ? pn(L[p[0] - 1]) + pn(L[p[1] - 1]) : '<span class="pn tbd">Chưa xác định</span>') + '</span>'; };
+    var lu = (m.result && m.result.lineup) || {};  // stand-ins typed by the organisers: {"3": {"a": [2, 5]}}
     return '<div class="pairs">' + S.pairs.map(function (p, i) {
-      return '<div class="pair"><span class="no" title="Cặp ' + (i + 1) + '">' + p[0] + '–' + p[1] + '</span>' + side(A, p) + side(B, p, true) + '</div>';
+      var o = lu[i + 1] || {}, absent = m.result && m.result.pairs && !m.result.pairs[i];
+      return '<div class="pair' + (absent ? ' absent' : '') + '"><span class="no" title="Cặp ' + (i + 1) + (absent ? ' · vắng, không đấu' : '') + '">' + p[0] + '–' + p[1] + '</span>' + side(A, o.a || p) + side(B, o.b || p, true) + '</div>';
     }).join('') + '</div>';
   }
   /* absent pairs (null in result.pairs) were not played: shown as a note, they count for nobody */
@@ -1164,12 +1166,10 @@
       ['Trận đã đấu', function (q) { return q.n; }, function (q) { return q.n; }, null],
       ['Cặp đã đấu', function (q) { return q.pairs; }, function (q) { return q.pairs; }, null],
       ['Cặp thắng–thua', function (q) { return q.won; }, function (q) { return q.won + '–' + (q.pairs - q.won); }, true],
-      ['Tỉ lệ thắng', function (q) { return q.rate == null ? -1 : q.rate; }, function (q) { return q.rate == null ? '–' : q.rate + '%'; }, true],
-      ['Hiệu số', function (q) { return q.pairs ? q.diff : -1e9; }, function (q) { return q.pairs ? (q.diff > 0 ? '+' : '') + q.diff : '–'; }, true],
-      ['Điểm ghi', function (q) { return q.pf; }, function (q) { return q.pf; }, true],
+      ['Hiệu số / cặp', function (q) { return q.pairs ? q.diff / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.diff > 0 ? '+' : '') + (q.diff / q.pairs).toFixed(1) : '–'; }, true],
       ['Thua / cặp', function (q) { return q.pairs ? -q.pa / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.pa / q.pairs).toFixed(1) : '–'; }, true],
-      ['Tấn công', function (q) { return q.atk; }, function (q) { return q.atk; }, true],
-      ['Hỗ trợ', function (q) { return q.sup; }, function (q) { return q.sup; }, true],
+      ['Tấn công / cặp', function (q) { return q.pairs ? q.atk / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.atk / q.pairs).toFixed(1) : '–'; }, true],
+      ['Hỗ trợ / cặp', function (q) { return q.pairs ? q.sup / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.sup / q.pairs).toFixed(1) : '–'; }, true],
       ['Hiệu suất', function (q) { return q.eff == null ? -1 : q.eff; }, function (q) { return q.eff == null ? '–' : q.eff + '%'; }, true],
       ['Chuỗi dài nhất', function (q) { return q.run; }, function (q) { return q.run || '–'; }, true],
       ['Hoa', function (q) { return q.eggs; }, function (q) { return q.eggs; }, null]];
@@ -1264,11 +1264,13 @@
       ['eggs', 'Hoa', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
       ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
       /* point metrics rank by the average per pair played (owner, 2026-11-11): a player who missed a pair is not behind for it */
-      ['pf', 'Điểm ghi', avg('pf'), avgTxt('pf'), 'pf'],
       ['atk', 'Tấn công', avg('atk'), avgTxt('atk'), 'atk'],
       ['sup', 'Hỗ trợ', avg('sup'), avgTxt('sup'), 'sup'],
       ['diff', 'Hiệu số', avg('diff'), avgTxt('diff', true), 'diff'],
-      ['rate', 'Tỉ lệ thắng', function (p) { return p.rate == null ? -1 : p.rate; }, function (p) { return p.rate == null ? '–' : p.rate + '%'; }]
+      /* v1.27.0: "Tỉ lệ thắng" dropped (owner; Nhiệt độ already weighs the win rate) and "Điểm ghi" dropped (= Tấn công + Hỗ trợ exactly);
+         added Thủng lưới/cặp (fewer is better) and Hiệu suất (share of the team's points the player scored) */
+      ['pa', 'Thủng lưới', function (p) { return p.played ? -p.pa / p.played : -1e9; }, function (p) { return p.played ? (Math.round(p.pa / p.played * 10) / 10).toFixed(1).replace('.0', '') + '<small class="per">/cặp</small>' : '–'; }, 'pa'],
+      ['eff', 'Hiệu suất', function (p) { return p.pf ? (p.atk || 0) / p.pf : -1; }, function (p) { return p.pf ? Math.round(100 * (p.atk || 0) / p.pf) + '%' : '–'; }]
     ];
     function sign(n) { return (n > 0 ? '+' : '') + n; }
     function dcls(n) { return n > 0 ? 'pos-n' : n < 0 ? 'neg-n' : ''; }
@@ -1365,7 +1367,7 @@
             (p.played ? '<small class="trend ' + (p.trend > 0 ? 'up' : p.trend < 0 ? 'down' : '') + '">' + (p.trend > 0 ? '▲ +' + p.trend : p.trend < 0 ? '▼ ' + p.trend : 'giữ nguyên') + '</small>' : '<small>theo seed</small>');
         } else if (M[4]) {
           var tot = p[M[4]] || 0;
-          sub = '<small>tổng ' + (M[4] === 'diff' && tot > 0 ? '+' : '') + tot + ' · ' + p.played + ' cặp</small>';
+          sub = '<small>' + (M[4] === 'pa' ? 'thua ' : 'tổng ') + (M[4] === 'diff' && tot > 0 ? '+' : '') + tot + ' · ' + p.played + ' cặp</small>';
         } else {
           sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
         }
@@ -1380,7 +1382,8 @@
         ? 'Bấm nút bông hoa ở mỗi dòng để tặng hoa, mỗi lần ra một bông khác nhau. 10 bông mới gói thành 1 bó. Bấm liền 3 lần để vào chuỗi hoa. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
         : state.metric === 'heat'
         ? 'Nhiệt độ 20°–45°: lúc đầu tính theo seed; sau mỗi trận, tỉ lệ thắng cặp và hiệu số điểm của chính VĐV dần thay thế điểm khởi đầu. Mũi tên so với trước trận gần nhất.'
-        : (/^(pf|atk|sup|diff)$/.test(state.metric) ? 'Xếp theo trung bình mỗi cặp đã đấu (tổng chia số cặp), nên VĐV vắng cặp không bị thiệt. ' : 'Chỉ số tính từ điểm từng cặp đã nhập. ') + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
+        : state.metric === 'eff' ? 'Hiệu suất = điểm VĐV tự ghi (tấn công) / điểm cả cặp ghi khi VĐV trên sân. '
+        : (/^(atk|sup|diff|pa)$/.test(state.metric) ? 'Xếp theo trung bình mỗi cặp đã đấu (tổng chia số cặp), nên VĐV vắng cặp không bị thiệt' + (state.metric === 'pa' ? '; thủng lưới càng ít càng tốt. ' : '. ') : 'Chỉ số tính từ điểm từng cặp đã nhập. ') + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
     }
 
     function render() {

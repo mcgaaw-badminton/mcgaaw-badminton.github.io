@@ -1093,3 +1093,6 @@ html.pm-open { overflow: hidden }
 /* per-pair averages in BXH › VĐV (v1.26.0) */
 .val .per { display: inline; margin-left: 2px; font-size: .62em; font-weight: 600; color: var(--muted) }
 @media (max-width: 560px) { .val .per { display: inline } }
+
+/* pair not played (absent): faded in the schedule card (v1.27.0) */
+.pair.absent { opacity: .45 }

@@ -2,12 +2,13 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-11, v1.26.1)
+## Current state (2026-11-11, v1.27.0)
 - Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.25.3 bracket round tabs filter for real, lines stay attached (BASEMENT §5 "Bracket view").
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — version 5 deployed 2026-11-06 per commit 0e9afd5 (cache, flower rate limit, Turnstile, optional REF_PIN, `triggerDeploy_()` runs the GitHub workflow after every Chốt when Script property `GH_TOKEN` is set).
 - Turnstile public site key is in `config/site.json` `protect`; the secret lives only in Script properties (owner).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs (flowers), referee, referee_log, referee_final, referee_draft.
 - Results: T1 #T1-FUJF8B (Đội 2 155–88, 5–0) · T2 #T2-FC2S83 (pairs 1, 3 absent; Đội 4 91–73, 2–1) · T4 #T4-F1FD6C by the referee (Đội 2 135–109, 3–2) · T3 typed in `config/schedule.json` (pair 5 absent, not played; Đội 5 124–79, 4–0) because the Apps Script now demands Turnstile for a Chốt and the referee page cannot close a match with an absent pair.
+- 2026-11-11: Đội 5 seed 4 renamed Lê Hữu Thái → Nguyễn Xuân Phi (`config/teams.json`; flower count on id 5-4 carries over). The Apps Script copy in `scripts/apps_script/eggs.gs` has the new name but is NOT redeployed: the Sheet's label for 5-4 still reads the old name until the next Apps Script deploy (cosmetic; counts go by id).
 - Standings since v1.26.0: after W/L, pair win rate and point diff per pair played (absent pairs cost nobody); player point metrics are averages per pair.
 - Next: 18/11 T5 Đội 1–Đội 3 (losers R1) and T6 Đội 2–Đội 5 (winners' final) · 25/11 T7 Đội 6 vs winner T5 · 02/12 T8 Đội 4 vs winner T7.
 - v1.25.1 (2026-11-11): the referee page reads the server Chốt list, so T1/T2 show as closed on every phone and leave "Ngày trước".

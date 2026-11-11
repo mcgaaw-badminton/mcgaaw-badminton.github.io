@@ -60,7 +60,7 @@
   "asof": "11/11/2026",
   "file": "Bao_cao_GOAT_11-11-2026.pdf",
   "label": "Báo cáo GOAT · tính đến 11/11/2026",
-  "scope": "4 lượt trận (T1, T2, T3, T4) · 17 cặp · 29/30 VĐV đã ra sân · tính mọi cặp đã đấu xong (gồm cả trận chưa chốt)",
+  "scope": "4 lượt trận (T1, T2, T3, T4) · 17 cặp · 28/30 VĐV đã ra sân · tính mọi cặp đã đấu xong (gồm cả trận chưa chốt)",
   "cats": [
    {
     "title": "Hiệu số mỗi cặp",
@@ -1348,7 +1348,7 @@
      {
       "c": "T3",
       "k": 3,
-      "mate": "Thái",
+      "mate": "Chi",
       "opp": "Vũ · Tuấn",
       "s": [
        31,
@@ -1405,44 +1405,29 @@
     ]
    },
    "5-4": {
-    "n": 1,
-    "pairs": 1,
-    "won": 1,
-    "pf": 31,
-    "pa": 26,
-    "diff": 5,
-    "atk": 14,
-    "sup": 17,
-    "eff": 45,
-    "rate": 100,
-    "run": 5,
-    "log": [
-     {
-      "c": "T3",
-      "k": 3,
-      "mate": "Thịnh",
-      "opp": "Vũ · Tuấn",
-      "s": [
-       31,
-       26
-      ],
-      "atk": 14,
-      "sup": 17,
-      "run": 5,
-      "closed": false
-     }
-    ]
+    "n": 0,
+    "pairs": 0,
+    "won": 0,
+    "pf": 0,
+    "pa": 0,
+    "diff": 0,
+    "atk": 0,
+    "sup": 0,
+    "eff": null,
+    "rate": null,
+    "run": 0,
+    "log": []
    },
    "5-5": {
     "n": 1,
-    "pairs": 1,
-    "won": 1,
-    "pf": 31,
-    "pa": 20,
-    "diff": 11,
-    "atk": 18,
-    "sup": 13,
-    "eff": 58,
+    "pairs": 2,
+    "won": 2,
+    "pf": 62,
+    "pa": 46,
+    "diff": 16,
+    "atk": 32,
+    "sup": 30,
+    "eff": 52,
     "rate": 100,
     "run": 7,
     "log": [
@@ -1458,6 +1443,20 @@
       "atk": 18,
       "sup": 13,
       "run": 7,
+      "closed": false
+     },
+     {
+      "c": "T3",
+      "k": 3,
+      "mate": "Thịnh",
+      "opp": "Vũ · Tuấn",
+      "s": [
+       31,
+       26
+      ],
+      "atk": 14,
+      "sup": 17,
+      "run": 5,
       "closed": false
      }
     ]
@@ -1536,7 +1535,7 @@
       "c": "T3",
       "k": 3,
       "mate": "Tuấn",
-      "opp": "Thịnh · Thái",
+      "opp": "Thịnh · Chi",
       "s": [
        26,
        31
@@ -1608,7 +1607,7 @@
       "c": "T3",
       "k": 3,
       "mate": "Vũ",
-      "opp": "Thịnh · Thái",
+      "opp": "Thịnh · Chi",
       "s": [
        26,
        31

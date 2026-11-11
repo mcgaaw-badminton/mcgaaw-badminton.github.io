@@ -157,7 +157,7 @@ def resolve_matches(sched, teams_cfg, branches):
             sides[k] = {"label": v, "team": team}
         res = m.get("result")
         if res:
-            res = {"a": res["a"], "b": res["b"], "pa": res["pa"], "pb": res["pb"], "pairs": res.get("pairs"), "players": res.get("players")}
+            res = {"a": res["a"], "b": res["b"], "pa": res["pa"], "pb": res["pb"], "pairs": res.get("pairs"), "players": res.get("players"), "lineup": res.get("lineup")}
         dd, mm, yy = m["date"].split("/")
         o = {"code": m["code"], "round": m["round"], "day": m["day"], "date": m["date"], "iso": f"{yy}-{mm}-{dd}",
              "branch": branch.get(m["code"], "win"), "a": sides["a"], "b": sides["b"], "result": res,
@@ -214,12 +214,13 @@ def stats(teams_cfg, matches, placements):
         ps = m["result"].get("pairs")
         if not ps:
             continue
+        lineup = m["result"].get("lineup") or {}  # {"3": {"a": [2, 5]}}: a stand-in played pair 3 for side a
         for k, (x, y) in enumerate(pairs):
             if ps[k] is None:  # absent pair: not played, no stats
                 continue
             sa, sb = ps[k]
             for side, mine, theirs in (("a", sa, sb), ("b", sb, sa)):
-                for seed in (x, y):
+                for seed in (lineup.get(str(k + 1)) or {}).get(side) or (x, y):
                     p = P[f"{m[side]['team']}-{seed}"]
                     p["n"] += 1; p["won"] += mine > theirs; p["pf"] += mine; p["pa"] += theirs
                     p["log"].append((m["code"], mine > theirs, mine - theirs))
