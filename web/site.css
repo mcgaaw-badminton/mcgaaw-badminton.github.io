@@ -1079,3 +1079,13 @@ html.pm-open { overflow: hidden }
     stroke-dasharray: none;
   }
 }
+
+/* v1.25.3: round tabs filter (focus one round, fade the rest) + end dot of a played line */
+.b-card, .b-colhead { transition: opacity .3s var(--ease), filter .3s var(--ease), box-shadow .3s }
+.bracket.has-focus .b-card.is-dim { opacity: .3; filter: saturate(.3) }
+.bracket.has-focus .b-col.is-dim .b-colhead { opacity: .35 }
+.bracket.has-focus .b-card.is-focus { box-shadow: 0 0 0 2px var(--brand), 0 6px 18px rgba(47, 69, 240, .18) }
+.bracket.has-focus .b-sec.lose .b-card.is-focus { box-shadow: 0 0 0 2px #D9561C, 0 6px 18px rgba(217, 86, 28, .18) }
+.bracket.has-focus .b-card.final.is-focus { box-shadow: 0 0 0 2px var(--gold), 0 6px 18px rgba(242, 193, 78, .25) }
+.b-path-bg.dim, .b-path-pending.dim, .b-path-flow.dim, .b-node-dot.dim { opacity: .2 }
+.b-node-dot.end { opacity: .9 }

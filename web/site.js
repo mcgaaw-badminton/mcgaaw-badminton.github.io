@@ -812,14 +812,40 @@
   }
   $('bracket').innerHTML = lane('win', 'Nhánh thắng', S.bracket.win, COLS, true) + lane('lose', 'Nhánh thua', S.bracket.lose, LCOLS, !phone);
 
-  /* ---------- bracket path flow (chay mach anh sang tren so do) ---------- */
+  /* ---------- bracket path flow (chay mach anh sang tren so do) ----------
+     v1.25.3: each line ends on the row of the side it feeds (a = first team row, b = second), so two lines
+     into one match never share an end point (T4 -> T6 a, T3 -> T6 b); a line that skips a column runs
+     along a free lane past the cards in between, then turns in the last gutter; lines are redrawn on every
+     size change of a card (ResizeObserver), so opening a roster (0.45 s animation) keeps them attached. */
+  var bkFocus = null; // null = all; else { code: true } for the round tab picked
+  function teamRowY(card, idx, gr) {
+    var rows = card.querySelectorAll('.b-team');
+    var r = (rows[idx] || card).getBoundingClientRect();
+    return r.top + r.height / 2 - gr.top;
+  }
+  function sideOf(tm, code) { // which side of match tm is fed by match code: 0 (a), 1 (b) or -1
+    var re = new RegExp('(^|\\s)' + code + '$');
+    if (tm.a && re.test(tm.a.label || '')) return 0;
+    if (tm.b && re.test(tm.b.label || '')) return 1;
+    return -1;
+  }
+  function bkCurve(xa, ya, xb, yb) {
+    var dx = Math.max(14, Math.round((xb - xa) * 0.5));
+    return ' C ' + (xa + dx) + ' ' + ya + ', ' + (xb - dx) + ' ' + yb + ', ' + xb + ' ' + yb;
+  }
   function drawBracketFlow() {
     document.querySelectorAll('.b-grid[data-lane]').forEach(function (grid) {
       var svg = grid.querySelector('.b-flow-svg');
       if (!svg) return;
       var gr = grid.getBoundingClientRect();
       if (!gr.width || !gr.height) return;
-      svg.setAttribute('viewBox', '0 0 ' + Math.round(gr.width) + ' ' + Math.round(gr.height));
+      var k = grid.offsetWidth ? gr.width / grid.offsetWidth : 1; // "Toàn cảnh" scales the grid; draw in layout px
+      var R = function (el) { var r = el.getBoundingClientRect(); return { l: (r.left - gr.left) / k, r: (r.right - gr.left) / k, t: (r.top - gr.top) / k, b: (r.bottom - gr.top) / k }; };
+      svg.setAttribute('viewBox', '0 0 ' + grid.offsetWidth + ' ' + grid.offsetHeight);
+      var cols = Array.prototype.slice.call(grid.querySelectorAll('.b-col')).map(function (c) {
+        return { r: R(c), cards: Array.prototype.slice.call(c.querySelectorAll('.b-card')).map(R) };
+      });
+      var colOf = function (box) { for (var i = 0; i < cols.length; i++) if (box.l >= cols[i].r.l - 1 && box.r <= cols[i].r.r + 1) return i; return -1; };
       var paths = [];
 
       S.matches.forEach(function (m) {
@@ -827,47 +853,59 @@
         var src = grid.querySelector('[data-bcode="' + m.code + '"]');
         var tgt = grid.querySelector('[data-bcode="' + m.winTo + '"]');
         if (!src || !tgt) return;
-
-        // Neo vao match header / toggle de khi mo rong danh sach VDV diem noi khong bi lech xuong day card
-        var srcAnchor = src.querySelector('.b-toggle') || src.querySelector('.b-head') || src;
-        var tgtAnchor = tgt.querySelector('.b-toggle') || tgt.querySelector('.b-head') || tgt;
-        var r1 = srcAnchor.getBoundingClientRect();
-        var r2 = tgtAnchor.getBoundingClientRect();
-        var srcBox = src.getBoundingClientRect();
-        var tgtBox = tgt.getBoundingClientRect();
-        if (srcBox.right >= tgtBox.left) return;
-
-        var x1 = Math.round(srcBox.right - gr.left);
-        var y1 = Math.round(r1.top + r1.height / 2 - gr.top);
-        var x2 = Math.round(tgtBox.left - gr.left);
-        var y2 = Math.round(r2.top + r2.height / 2 - gr.top);
-        var dx = Math.max(28, Math.round((x2 - x1) * 0.5));
-
-        var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2;
-
-        paths.push('<path d="' + d + '" class="b-path-bg" />');
+        var sb = R(src), tb = R(tgt);
+        if (sb.r >= tb.l) return;
+        var tm = byCode[m.winTo];
+        // start: the winner's row once known, else between the two team rows; end: the row this match feeds
+        var y1 = m.winner ? teamRowY(src, m.winner === 'a' ? 0 : 1, gr) / k : (teamRowY(src, 0, gr) + teamRowY(src, 1, gr)) / 2 / k;
+        var side = tm ? sideOf(tm, m.code) : -1;
+        var y2 = side >= 0 ? teamRowY(tgt, side, gr) / k : (tb.t + tb.b) / 2;
+        var x1 = Math.round(sb.r), x2 = Math.round(tb.l);
+        y1 = Math.round(y1); y2 = Math.round(y2);
+        var d = 'M ' + x1 + ' ' + y1, ci = colOf(sb), cj = colOf(tb);
+        if (ci >= 0 && cj > ci + 1) {
+          // skips a column: keep a lane clear of the cards in between, turn in the gutter before the target
+          var lane = y1, i, hit = true, guard = 0;
+          while (hit && guard++ < 8) {
+            hit = false;
+            for (i = ci + 1; i < cj; i++) cols[i].cards.forEach(function (c) { if (lane > c.t - 10 && lane < c.b + 10) { lane = c.b + 16; hit = true; } });
+          }
+          var xs = Math.round(cols[ci + 1].r.l - 12), xe = Math.round(cols[cj - 1].r.r + 12);
+          if (lane !== y1) d += bkCurve(x1, y1, xs, lane); else d += ' L ' + xs + ' ' + lane;
+          d += ' L ' + xe + ' ' + lane + bkCurve(xe, lane, x2, y2);
+        } else {
+          d += bkCurve(x1, y1, x2, y2);
+        }
+        var dim = bkFocus && !(bkFocus[m.code] || bkFocus[m.winTo]) ? ' dim' : '';
+        paths.push('<path d="' + d + '" class="b-path-bg' + dim + '" />');
         if (m.winner) {
           var isFin = (m.winTo === S.bracket.final);
-          paths.push('<path d="' + d + '" class="b-path-flow' + (isFin ? ' final' : '') + '" />');
-          paths.push('<circle cx="' + x1 + '" cy="' + y1 + '" r="3.5" class="b-node-dot' + (isFin ? ' final' : '') + '" />');
+          paths.push('<path d="' + d + '" class="b-path-flow' + (isFin ? ' final' : '') + dim + '" />');
+          paths.push('<circle cx="' + x1 + '" cy="' + y1 + '" r="3.5" class="b-node-dot' + (isFin ? ' final' : '') + dim + '" />');
+          paths.push('<circle cx="' + x2 + '" cy="' + y2 + '" r="3" class="b-node-dot end' + (isFin ? ' final' : '') + dim + '" />');
         } else {
-          paths.push('<path d="' + d + '" class="b-path-pending" />');
+          paths.push('<path d="' + d + '" class="b-path-pending' + dim + '" />');
         }
       });
       svg.innerHTML = paths.join('');
     });
   }
-
+  var bfRaf = 0;
+  function scheduleFlow() {
+    if (bfRaf) return;
+    bfRaf = requestAnimationFrame(function () { bfRaf = 0; drawBracketFlow(); });
+  }
+  if (window.ResizeObserver) {
+    var bfRO = new ResizeObserver(scheduleFlow);
+    document.querySelectorAll('#bracket .b-grid, #bracket .b-card, #bracket .b-sec').forEach(function (el) { bfRO.observe(el); });
+  } else {
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.lane-toggle, .b-toggle')) { setTimeout(drawBracketFlow, 120); setTimeout(drawBracketFlow, 520); }
+    });
+  }
+  document.addEventListener('transitionend', function (e) { if (e.target.closest && e.target.closest('#bracket')) scheduleFlow(); });
+  window.addEventListener('resize', scheduleFlow);
   setTimeout(drawBracketFlow, 100);
-  window.addEventListener('resize', function () {
-    clearTimeout(window._bfTimer);
-    window._bfTimer = setTimeout(drawBracketFlow, 120);
-  });
-  document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('.lane-toggle, .b-toggle')) {
-      setTimeout(drawBracketFlow, 320);
-    }
-  });
 
   /* ---------- drag-to-scroll (keo tha chuot de cuon so do thi dau) ---------- */
   (function () {
@@ -960,41 +998,45 @@
       });
     }
 
+    /* round tabs = a real filter (v1.25.3): the picked round's matches stay lit in both lanes, the rest and
+       their lines fade; then the first of them is scrolled into view when the bracket can scroll. Before this
+       the tabs only scrolled, so on a wide screen (nothing to scroll) every tab showed the same view. */
+    var B = S.bracket, FOCUS = {
+      all: null,
+      r1: B.win[0],
+      sf: B.win[1],
+      bf: [].concat(B.win[2] || [], B.lose[B.lose.length - 1] || []),
+      f: [B.final]
+    };
+    function setFocus(key) {
+      var list = FOCUS[key] || null;
+      bkFocus = null;
+      if (list) { bkFocus = {}; list.forEach(function (c) { bkFocus[c] = true; }); }
+      bracket.classList.toggle('has-focus', !!bkFocus);
+      bracket.querySelectorAll('.b-card').forEach(function (c) {
+        var on = !bkFocus || !!bkFocus[c.dataset.bcode];
+        c.classList.toggle('is-focus', !!bkFocus && on);
+        c.classList.toggle('is-dim', !on);
+      });
+      bracket.querySelectorAll('.b-col').forEach(function (col) {
+        col.classList.toggle('is-dim', !!bkFocus && !col.querySelector('.b-card.is-focus'));
+      });
+      tabs.forEach(function (t) {
+        var on = t.dataset.focus === key;
+        t.classList.toggle('on', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      drawBracketFlow();
+      if (!bkFocus || currentMode === 'fit') return;
+      var first = bracket.querySelector('.b-card.is-focus');
+      if (!first || scroller.scrollWidth <= scroller.clientWidth + 2) return;
+      var sr = scroller.getBoundingClientRect(), fr = first.getBoundingClientRect();
+      var left = scroller.scrollLeft + (fr.left - sr.left) - 24;
+      scroller.scrollTo({ left: Math.max(0, left), behavior: reduce ? 'auto' : 'smooth' });
+    }
     tabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        var colIdx = parseInt(tab.dataset.col, 10);
-        if (currentMode === 'fit') {
-          if (btn100) btn100.click();
-        }
-        var grid = document.querySelector('.b-grid');
-        if (!grid) return;
-        var cols = grid.querySelectorAll('.b-col');
-        if (cols[colIdx]) {
-          var left = cols[colIdx].offsetLeft - 16;
-          scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
-        }
-        tabs.forEach(function (t) {
-          t.classList.toggle('on', t === tab);
-          t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
-        });
-      });
+      tab.addEventListener('click', function () { setFocus(tab.dataset.focus); });
     });
-
-    scroller.addEventListener('scroll', function () {
-      if (currentMode === 'fit') return;
-      var grid = document.querySelector('.b-grid');
-      if (!grid) return;
-      var cols = grid.querySelectorAll('.b-col');
-      var sLeft = scroller.scrollLeft;
-      var activeIdx = 0;
-      cols.forEach(function (c, idx) {
-        if (c.offsetLeft - 80 <= sLeft) activeIdx = idx;
-      });
-      tabs.forEach(function (t, idx) {
-        t.classList.toggle('on', idx === activeIdx);
-        t.setAttribute('aria-selected', idx === activeIdx ? 'true' : 'false');
-      });
-    }, { passive: true });
 
     window.addEventListener('resize', function () {
       if (currentMode === 'fit') updateScale();
