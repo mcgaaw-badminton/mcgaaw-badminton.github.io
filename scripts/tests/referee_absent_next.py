@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import json, threading, http.server, functools
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 API='https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec'
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8797),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
@@ -20,7 +21,7 @@ def h(route):
     route.fulfill(status=200, content_type='application/json', headers={'access-control-allow-origin':'*'}, body=json.dumps(body))
 B='http://127.0.0.1:8797/trong-tai.html'
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=freeze(p.chromium.launch())
     for W,H in [(390,844),(360,780)]:
         ctx=b.new_context(viewport={'width':W,'height':H},device_scale_factor=2); ctx.route(API+'*',h); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
         pg.goto(B+'#T1'); pg.wait_for_timeout(400)

@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import threading, http.server, functools, json
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8796),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
 threading.Thread(target=srv.serve_forever,daemon=True).start()
@@ -18,7 +19,7 @@ def check(W,what,res,h=None,H=None):
     if 'OUT' in res: errs.append(f'{W} {what}: token outside its box ({res})')
     if h is not None and h>H: errs.append(f'{W} {what}: page {h}px taller than {H}px')
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=freeze(p.chromium.launch())
     for W,H in [(360,780),(375,667),(390,844)]:
         pg=b.new_page(viewport={'width':W,'height':H},device_scale_factor=2)
         pg.route('**/macros/**',lambda r:r.fulfill(status=200,content_type='application/json',headers={'access-control-allow-origin':'*'},body='{"pairs":{}}'))

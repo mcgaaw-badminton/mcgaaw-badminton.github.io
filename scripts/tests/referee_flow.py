@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import json, threading, http.server, functools, time
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 API='https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec'
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8792),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
@@ -24,7 +25,7 @@ def toks(pg,sel='#playCourt'):
     return {t['k']:t for t in pg.evaluate(f"""[...document.querySelectorAll('{sel} .tok')].map(t=>({{k:t.dataset.k, x:parseFloat(t.style.left), y:parseFloat(t.style.top), c:t.className}}))""")}
 def tap(pg,sel,wait=380): pg.click(sel); pg.wait_for_timeout(wait)
 with sync_playwright() as p:
-    b=p.chromium.launch(); ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True); ctx.route(API+'*',h)
+    b=freeze(p.chromium.launch()); ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True); ctx.route(API+'*',h)
     pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e))); pg.on('console',lambda m: m.type=='error' and errs.append(m.text))
     pg.goto('http://127.0.0.1:8792/trong-tai.html'); pg.wait_for_timeout(700); pg.screenshot(path=f'{SP}/s1_list.png')
     tap(pg,'#mlist .row >> nth=0'); pg.screenshot(path=f'{SP}/s2_pairs.png')
