@@ -294,23 +294,46 @@
     if (pr.log.length) return '<b class="st on">Đang đấu ' + r.sc.a + '–' + r.sc.b + '</b><small>' + fmt(tMs(pr)) + ' ' + sent + '</small>';
     return '<b class="st">' + (pr.setup.ok ? 'Đã xếp vị trí' : 'Chưa đấu') + '</b>';
   }
+  /* matches closed on the server (last Chốt per match, from ?ref=all): every phone shows them as closed, not only the one that pressed Chốt.
+     Closed matches from earlier days leave the "Ngày trước" list and sit behind one "Đã chốt" toggle; today's stay with an "Đã chốt" label. */
+  var FIN = ls('gcl-ref-finals') || {}, finAsked = 0, showClosed = false;
+  function pullFinals() {
+    if (!API || MODE !== 'live' || Date.now() - finAsked < 15000) return; finAsked = Date.now();
+    fetch(API + '?ref=all').then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.finals) return; FIN = d.finals; ls('gcl-ref-finals', FIN);
+      if (!M) renderList(); else if (!$('scrPairs').hidden) renderPairs();
+    }).catch(function () {});
+  }
+  function closedOf(code) { return MODE === 'live' && FIN[code] ? FIN[code] : null; }
   function renderList() {
+    pullFinals();
     $('modePick').innerHTML = [['live', 'Chính thức', 'Tính vào bảng xếp hạng'], ['demo', 'Demo', 'Tập thử, không tính']].map(function (o) {
       return '<button type="button" data-mode="' + o[0] + '" aria-pressed="' + (MODE === o[0]) + '"><b>' + o[1] + '</b><small>' + o[2] + '</small></button>';
     }).join('');
-    var groups = [['today', 'Hôm nay'], ['past', 'Ngày trước (đánh bù trong tuần)'], ['future', 'Ngày sau']];
+    var groups = [['today', 'Hôm nay'], ['past', 'Ngày trước (đánh bù trong tuần)'], ['future', 'Ngày sau'], ['closed', 'Đã chốt']];
+    var group = function (m) { var w = when(m); return w === 'past' && closedOf(m.code) ? 'closed' : w; };
     $('mlist').innerHTML = groups.map(function (g) {
-      var ms = playable.filter(function (m) { return when(m) === g[0]; }); if (!ms.length) return '';
-      return '<h2 class="grp">' + g[1] + '</h2>' + ms.map(function (m) {
-        var st = ls(keyOf(m.code)), ps = st && st.pairs && st.pairs.length === PAIRS.length ? st.pairs.map(function (p) { return migrate(Object.assign(blankPair(), p)); }) : [], lk = locked(m);
+      var ms = playable.filter(function (m) { return group(m) === g[0]; }); if (!ms.length) return '';
+      if (g[0] === 'closed') {
+        var head = '<button type="button" class="grp grp-tgl" id="closedTgl" aria-expanded="' + showClosed + '">Đã chốt (' + ms.length + ')<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>';
+        if (!showClosed) return head;
+        return head + ms.map(rowOf).join('');
+      }
+      return '<h2 class="grp">' + g[1] + '</h2>' + ms.map(rowOf).join('');
+    }).join('') || '<p class="muted">Chưa có trận nào biết đủ hai đội.</p>';
+    function rowOf(m) {
+      {
+        var st = ls(keyOf(m.code)), cf = closedOf(m.code), ps = st && st.pairs && st.pairs.length === PAIRS.length ? st.pairs.map(function (p) { return migrate(Object.assign(blankPair(), p)); }) : [], lk = locked(m);
         var n = ps.filter(function (p) { return p.done; }).length, pc = ps.length ? ps.reduce(function (t, p) { return t + prog(p); }, 0) / PAIRS.length : 0;
         var inner = '<span class="code">' + esc(m.code) + '</span><span class="who"><b>' + esc(teamById[m.a.team].name) + ' vs ' + esc(teamById[m.b.team].name) + '</b><small>' + esc(S.rules.weekday) + ' ' + esc(m.date) + '</small></span>' +
-          '<span class="right"><b class="st' + (n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : st && st.final && st.final.state === 'ok' ? 'Đã chốt' : n === 5 ? 'Chờ chốt' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
+          '<span class="right"><b class="st' + (cf || n === 5 ? ' done' : n ? ' on' : '') + '">' + (lk ? 'Mở ngày ' + esc(m.date.slice(0, 5)) : cf ? 'Đã chốt ' + cf.a + '–' + cf.b : st && st.final && st.final.state === 'ok' ? 'Đã chốt' : n === 5 ? 'Chờ chốt' : n ? n + '/5 cặp' : 'Chưa ghi') + '</b></span>';
+        if (cf) pc = 1;
         return lk ? '<div class="row locked" aria-disabled="true">' + inner + '<span></span></div>'
-          : '<a class="row" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pc ? bar(pc, n === 5 ? 'done' : '') : '') + '</a>';
-      }).join('');
-    }).join('') || '<p class="muted">Chưa có trận nào biết đủ hai đội.</p>';
+          : '<a class="row' + (cf ? ' closed' : '') + '" href="#' + esc(m.code) + '">' + inner + '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>' + (pc ? bar(pc, cf || n === 5 ? 'done' : '') : '') + '</a>';
+      }
+    }
   }
+  $('mlist').addEventListener('click', function (e) { if (e.target.closest('#closedTgl')) { showClosed = !showClosed; renderList(); } });
   function renderPairs() {
     $('pairsTitle').textContent = M.code + ' · ' + teamName('a') + ' vs ' + teamName('b');
     $('plist').innerHTML = ST.pairs.map(function (pr, k) {
@@ -433,6 +456,11 @@
   }
   function canFinal() { return API && MODE === 'live' && ST.pairs.every(function (p) { return p.done && !p.absent; }); }
   function finalBox() {
+    var cf = closedOf(M.code), mine = ST.final && ST.final.state === 'ok' && ST.final.report === (cf && cf.report);
+    var srv = cf && !mine ? '<p class="submit ok"><b>✓ ' + M.code + ' đã chốt · mã #' + esc(cf.report) + ' · ' + cf.a + '–' + cf.b + '</b><span>Lúc ' + clockTime(Date.parse(cf.at)) + '. Lịch và bảng xếp hạng đang dùng bản chốt này. Chỉ sửa khi trọng tài thống nhất, rồi phải chốt lại.</span></p>' : '';
+    return srv + finalBoxInner();
+  }
+  function finalBoxInner() {
     if (!canFinal()) {
       var old = ST.final && ST.final.state === 'ok' && MODE === 'live' ? '<p class="submit err"><b>Bản chốt #' + esc(ST.final.report) + ' vẫn đang được dùng</b><span>Đánh đủ 5 cặp rồi chốt lại để thay.</span></p>' : '';
       return old || (ST.pairs.some(function (p) { return p.absent; }) && MODE === 'live' ? '<p class="muted fin-note">Có cặp vắng: chốt khi đủ 5 cặp.</p>' : '');
@@ -459,7 +487,7 @@
       body: JSON.stringify({ _ref: 1, final: true, pin: refPin(), ts: tok || '', match: code, report: report, pairs: d.pairs, players: d.players, teamA: teamName('a'), teamB: teamName('b') }) })
       .then(function (r) { return r.json(); })
       .then(function (x) { if (x && x.error === 'pin') askPin(); if (!x || x.ok !== true || x.report !== report) throw new Error('not saved'); return fetch(API + '?ref=all').then(function (r) { return r.json(); }); })
-      .then(function (all) { var f = all && all.finals && all.finals[code]; if (!f || f.report !== report) throw new Error('not read back'); }))
+      .then(function (all) { if (all && all.finals) { FIN = all.finals; ls('gcl-ref-finals', FIN); } var f = all && all.finals && all.finals[code]; if (!f || f.report !== report) throw new Error('not read back'); }))
       .then(function () { if (M && M.code === code) { ST.final = { state: 'ok', report: report, sig: sig, at: Date.now() }; store(); } })
       .catch(function () { if (M && M.code === code) { if (unsentNow) retryAll(); ST.final = { state: 'err', report: report, sig: sig }; store(); } })
       .then(function () { if (M && M.code === code) renderSide(); });

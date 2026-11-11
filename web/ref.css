@@ -168,6 +168,10 @@ button.tok:active i { transform: scale(.9) }
 
 .grp { margin: 6px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted) }
 .row.locked { opacity: .5 }
+.grp-tgl { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); cursor: pointer; text-align: left }
+.grp-tgl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s }
+.grp-tgl[aria-expanded="true"] svg { transform: rotate(180deg) }
+.row.closed { opacity: .72 }
 
 /* under the court: sides + where the referee stands (kept outside the court so nothing covers the players) */
 .court-wrap { display: flex; flex-direction: column; gap: 6px }
