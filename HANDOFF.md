@@ -2,7 +2,7 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-11, v1.26.0)
+## Current state (2026-11-11, v1.26.1)
 - Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.25.3 bracket round tabs filter for real, lines stay attached (BASEMENT §5 "Bracket view").
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — version 5 deployed 2026-11-06 per commit 0e9afd5 (cache, flower rate limit, Turnstile, optional REF_PIN, `triggerDeploy_()` runs the GitHub workflow after every Chốt when Script property `GH_TOKEN` is set).
 - Turnstile public site key is in `config/site.json` `protect`; the secret lives only in Script properties (owner).
@@ -12,7 +12,7 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - Next: 18/11 T5 Đội 1–Đội 3 (losers R1) and T6 Đội 2–Đội 5 (winners' final) · 25/11 T7 Đội 6 vs winner T5 · 02/12 T8 Đội 4 vs winner T7.
 - v1.25.1 (2026-11-11): the referee page reads the server Chốt list, so T1/T2 show as closed on every phone and leave "Ngày trước".
 - Gallery: album `01-doi-1-va-doi-2` (4 team photos from the owner, 2026-11-11; Đội 1 pink shirts, Đội 2 red KAIZEN shirts) after the champions album.
-- Reports published for 04/11 (day + GOAT) in `downloads/` and `config/reports.json`.
+- Reports published for 11/11 (day: T3, T4) and GOAT to 11/11 (per-pair titles) — v1.26.1. Earlier: reports for 04/11 (day + GOAT) in `downloads/` and `config/reports.json`.
 - GitHub cron builds are unreliable; with GH_TOKEN set the Chốt itself starts a build. If the site is not updated 10 min after a Chốt: `gh workflow run deploy.yml` or any push.
 - Work is split between agents by `PROCESS.md` (roles, task briefs in `tasks/`, `scripts/preflight.py`, `scripts/verify_live.py`). The PC folder is a git clone: sync it with `git pull --ff-only`, never by copying files.
 

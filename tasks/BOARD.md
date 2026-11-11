@@ -10,3 +10,4 @@ A file in the conflict zone (PROCESS.md §7) may be claimed by only one `doing`/
 | 261111-album-doi-1-2 | Gallery album with 4 team photos (Đội 1, Đội 2) | C | gallery/01-doi-1-va-doi-2/ | Claude (lead, solo) | done | v1.25.2 |
 | 261111-bracket-tabs-lines | Bracket: round tabs filter for real (+ Tất cả), lines end on the fed team row, skip-column line routed around cards, redraw while rosters open | B (owner asked) | web/site.js, web/site.css, web/body.html | Claude (lead, solo) | done | v1.25.3 |
 | 261111-close-t3-avg-rank | Close T3 (pair 5 absent) + T4; rank by per-pair averages | A (owner asked) | config/schedule.json, scripts/_lib/tournament.py, web/site.js, web/site.css, web/ref.js | Claude (lead, solo) | done | v1.26.0 |
+| 261111-reports-1111 | Day report 11/11 + GOAT (per-pair titles); reports read typed results and bracket labels | C (owner asked) | scripts/build_report.py, config/reports.json, downloads/ | Claude (lead, solo) | done | v1.26.1 |

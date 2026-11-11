@@ -173,6 +173,8 @@ def load(args):
     finals = raw_all.get("finals") or {}
     for m in sched["matches"]:
         f = finals.get(m["code"])
+        if m.get("result"):
+            m["_typed"] = True  # typed in config/schedule.json: the report treats it as closed
         if not m.get("result") and f and len(f.get("pairs") or []) == len(pairs):
             m["result"] = {"pairs": f["pairs"], "players": f.get("players") or {}}
     errs = validate(sched, teams_cfg)
@@ -184,6 +186,9 @@ def load(args):
 
 def match_model(m, teams, pairs, rows, final):
     ta, tb = teams[m["a"]], teams[m["b"]]
+    typed = (m.get("result") or {}).get("pairs") if not final and m.get("_typed") else None
+    if typed:  # result typed in config/schedule.json (no Chốt on the sheet): counts as closed, null pairs = absent
+        final = {"report": "BTC nhập", "typed": True}
     out = {"m": m, "A": ta, "B": tb, "pairs": [], "final": final}
     for k, (x, y) in enumerate(pairs):
         st = ((rows.get(str(k + 1)) or {}).get("state")) or {}
@@ -191,6 +196,8 @@ def match_model(m, teams, pairs, rows, final):
         r["seeds"] = (x, y)
         r["names"] = {"a": [ta["members"][x - 1], ta["members"][y - 1]], "b": [tb["members"][x - 1], tb["members"][y - 1]]}
         r["played"] = r["n"] > 0 and max(r["sc"].values()) >= TARGET or (st.get("manualEnd") and r["n"] > 0)
+        if typed and k < len(typed) and typed[k] is None:
+            r["absent"] = True
         out["pairs"].append(r)
     pl = [p for p in out["pairs"] if p["played"]]
     out["ta"], out["tb"] = sum(p["sc"]["a"] for p in pl), sum(p["sc"]["b"] for p in pl)
@@ -221,7 +228,7 @@ FOOTER = (f'<footer><div class="fl">SMASH · DROP · CLEAR</div><div class="fr">
 
 def status_line(mm):
     if mm["final"]:
-        return f'<span class="ok">Đã chốt · mã #{e(mm["final"].get("report", ""))}</span>'
+        return f'<span class="ok">Đã chốt · {"ban tổ chức nhập" if mm["final"].get("typed") else "mã #" + e(mm["final"].get("report", ""))}</span>'
     absent = [i + 1 for i, p in enumerate(mm["pairs"]) if p["absent"]]
     left = 5 - mm["played"]
     return f'<span class="wait">Chưa chốt · đã đấu {mm["played"]}/5 cặp' + (f' · vắng cặp {", ".join(map(str, absent))} (đánh sau)' if absent else (f' · còn {left} cặp' if left else '')) + '</span>'
@@ -342,6 +349,8 @@ def goat_main(args):
     data = {c: get(c, f"{c}.json") for c in codes}
     for m in sched["matches"]:  # standings (heat) exactly as on the site: last Chốt of each match
         f = finals.get(m["code"])
+        if m.get("result"):
+            m["_typed"] = True  # typed in config/schedule.json: the report treats it as closed
         if not m.get("result") and f and len(f.get("pairs") or []) == len(pairs):
             m["result"] = {"pairs": f["pairs"], "players": f.get("players") or {}}
     errs = validate(sched, teams_cfg)
@@ -350,7 +359,8 @@ def goat_main(args):
     st = stats(teams_cfg, resolve_matches(sched, teams_cfg, site["branches"]), site.get("placements", {}))
     heat = {p["id"]: p["heat"] for p in st["players"]}
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
-    ms = {m["code"]: m for m in sched["matches"]}
+    # sides as team ids ("Thắng T1" → the team that won T1), the same resolution the site uses
+    ms = {m["code"]: dict(m, a=r["a"]["team"] or m["a"], b=r["b"]["team"] or m["b"]) for m, r in zip(sched["matches"], resolve_matches(sched, teams_cfg, site["branches"]))}
     P = {f"{t}-{i + 1}": {"id": f"{t}-{i + 1}", "name": n, "team": t, "seed": i + 1, "matches": set(), "pairs": 0, "won": 0, "pf": 0, "pa": 0,
                           "atk": 0, "sup": 0, "run": 0, "log": []} for t, mem in teams_cfg["teams"].items() for i, n in enumerate(mem)}
     for c in codes:
@@ -374,9 +384,11 @@ def goat_main(args):
         q["eff"] = round(100 * q["atk"] / q["pf"]) if q["pf"] else None
     played = [q for q in P.values() if q["pairs"]]
     asof = max((ms[c]["date"] for c in codes), key=lambda d: d.split("/")[::-1])
-    cats = [("Hiệu số cao nhất", "diff", lambda q: q["diff"], lambda q: f'{q["diff"]:+d}', 1),
-            ("Tấn công tốt nhất", "atk", lambda q: q["atk"], lambda q: f'{q["atk"]} điểm', 1),
-            ("Hỗ trợ tốt nhất", "sup", lambda q: q["sup"], lambda q: f'{q["sup"]} điểm', 1),
+    # totals divided by pairs played (owner, 2026-11-11): absent pairs must not decide a title; at least 2 pairs
+    per = lambda q, k: q[k] / q["pairs"] if q["pairs"] else 0
+    cats = [("Hiệu số mỗi cặp", "diff", lambda q: (per(q, "diff"), q["diff"]), lambda q: f'{per(q, "diff"):+.1f}/cặp', 2),
+            ("Tấn công mỗi cặp", "atk", lambda q: (per(q, "atk"), q["atk"]), lambda q: f'{per(q, "atk"):.1f}/cặp', 2),
+            ("Hỗ trợ mỗi cặp", "sup", lambda q: (per(q, "sup"), q["sup"]), lambda q: f'{per(q, "sup"):.1f}/cặp', 2),
             ("Hiệu suất ghi điểm", "eff", lambda q: q["eff"] or 0, lambda q: f'{q["eff"]}%', 2),
             ("Tỉ lệ thắng cặp", "rate", lambda q: (q["rate"] or 0, q["diff"]), lambda q: f'{q["rate"]}%', 2),
             ("Thủng lưới ít nhất", "pa", lambda q: -q["pa"] / q["pairs"], lambda q: f'{q["pa"] / q["pairs"]:.1f}/cặp', 2),
@@ -398,7 +410,7 @@ def goat_main(args):
                   + "".join(f'<div class="g2"><span>{k + 2}</span><em>{e(q["name"])}</em><b>{fmt(q)}</b></div>' for k, q in enumerate(rest))
                   + (f'<div class="gmin">Tối thiểu {minp} cặp</div>' if minp > 1 else '') + '</div>')
     rows = ""
-    for k, q in enumerate(sorted(P.values(), key=lambda q: (q["pairs"] > 0, q["diff"], q["atk"]), reverse=True)):
+    for k, q in enumerate(sorted(P.values(), key=lambda q: (q["pairs"] > 0, per(q, "diff"), per(q, "atk")), reverse=True)):
         if not q["pairs"]:
             rows += (f'<tr class="off"><td>{k + 1}</td><td class="nm2">{e(q["name"])}</td><td>Đội {q["team"]}</td><td>{q["seed"]}</td>'
                      f'<td colspan="10">chưa ra sân</td><td>{q["heat"]:.1f}°</td></tr>')
@@ -411,7 +423,7 @@ def goat_main(args):
     p1 = (f'<section class="page rp">{header(f"BÁO CÁO GOAT · TOÀN GIẢI · TÍNH ĐẾN {e(asof)}", "GOAT các chỉ số", e(sub))}'
           f'<div class="goat">{cards}</div><p class="gnote">Hiệu số = điểm đội ghi − điểm đội thua khi VĐV ra sân · Tấn công = tự ghi điểm · Hỗ trợ = đồng đội ghi · '
           f'Hiệu suất = tấn công / điểm đội ghi · Nhiệt độ theo BXH (trận đã chốt).</p>{FOOTER}</section>')
-    p2 = (f'<section class="page rp">{header(f"BÁO CÁO GOAT · TOÀN GIẢI · TÍNH ĐẾN {e(asof)}", "Bảng chỉ số 30 VĐV", "Xếp theo hiệu số · VĐV chưa ra sân ở cuối")}'
+    p2 = (f'<section class="page rp">{header(f"BÁO CÁO GOAT · TOÀN GIẢI · TÍNH ĐẾN {e(asof)}", "Bảng chỉ số 30 VĐV", "Xếp theo hiệu số mỗi cặp (tổng chia số cặp đã đấu) · VĐV chưa ra sân ở cuối")}'
           f'<table class="gtab"><thead><tr><th>#</th><th>VĐV</th><th>Đội</th><th>Seed</th><th>Trận</th><th>Cặp</th><th>T–B</th><th>Ghi</th><th>Thua</th><th>Hiệu số</th>'
           f'<th>Tấn công</th><th>Hỗ trợ</th><th>Hiệu suất</th><th>Chuỗi</th><th>Nhiệt độ</th></tr></thead><tbody>{rows}</tbody></table>{FOOTER}</section>')
     stem = "Bao_cao_GOAT_" + asof.replace("/", "-")
@@ -453,9 +465,11 @@ def main():
     if args.kind == "goat":
         return goat_main(args)
     teams_cfg, sched, pairs, codes, date, store, data, raw_all, finals, st = load(args)
+    site = read(paths.SITE_JSON)
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
     st["teams_cfg"] = [{"id": t, "name": v["name"]} for t, v in teams.items()]
-    ms = {m["code"]: m for m in sched["matches"]}
+    # sides as team ids ("Thắng T1" → the team that won T1), the same resolution the site uses
+    ms = {m["code"]: dict(m, a=r["a"]["team"] or m["a"], b=r["b"]["team"] or m["b"]) for m, r in zip(sched["matches"], resolve_matches(sched, teams_cfg, site["branches"]))}
     day = ms[codes[0]]["day"]
     models = [match_model(ms[c], teams, pairs, data[c].get("pairs") or {}, finals.get(c)) for c in codes]
     stem = "Bao_cao_" + date.replace("/", "-")
