@@ -281,6 +281,7 @@
     VIEW = view;
     Object.keys(SCR).forEach(function (k) { $(SCR[k]).hidden = k !== view; });
     $('title').textContent = title;
+    $('title').classList.toggle('is-code', view === 'pairs');  // 5-pair screen: the match code as a pill in the bar
     $('back').hidden = !backTo; $('home').hidden = !!backTo; $('backTxt').textContent = backLbl || '';
     $('back').dataset.to = backTo || '';
     window.scrollTo(0, 0); syncClock(); syncLabel();
@@ -339,14 +340,24 @@
     }
   }
   $('mlist').addEventListener('click', function (e) { if (e.target.closest('#closedTgl')) { showClosed = !showClosed; renderList(); } });
+  /* 5-pair screen (v1.28.0, same pair row as the site): team A names | A score · seed · B score | team B names,
+     status line under it. Result colours on a finished pair: winner green, loser red (draw = default ink).
+     Header: team A left, total in the middle, team B right; the match code sits in the top bar. */
   function renderPairs() {
-    $('pairsTitle').textContent = M.code + ' · ' + teamName('a') + ' vs ' + teamName('b');
+    var ta = 0, tb = 0, pa = 0, pb = 0;
+    ST.pairs.forEach(function (pr) { if (pr.absent || !pr.log.length) return; var r = replay(pr), w = pr.done && winnerOf(pr); ta += r.sc.a; tb += r.sc.b; if (w === 'a') pa++; if (w === 'b') pb++; });
+    var hc = function (k) { return pa === pb ? '' : (pa > pb) === (k === 'a') ? ' rw' : ' rx'; };
+    $('pairsTitle').innerHTML = '<b class="t' + hc('a') + '">' + esc(teamName('a')) + '</b><span class="tot">' + ta + '–' + tb + '<small>cặp ' + pa + '–' + pb + '</small></span><b class="t r' + hc('b') + '">' + esc(teamName('b')) + '</b>';
+    $('pairsTitle').setAttribute('aria-label', M.code + ': ' + teamName('a') + ' ' + ta + ', ' + teamName('b') + ' ' + tb);
     $('plist').innerHTML = ST.pairs.map(function (pr, k) {
-      var A = players('a', k).map(first).join(' · '), B = players('b', k).map(first).join(' · '), fresh = !pr.done && !pr.log.length;
-      var head = '<span class="code">' + PAIRS[k].join('–') + '</span><span class="who"><b>' + esc(A) + '</b><small>vs ' + esc(B) + '</small></span>';
-      if (pr.absent) return '<div class="row absent">' + head + '<span class="right"><b class="st">Vắng</b></span><button type="button" class="abs on" data-abs="' + k + '" aria-label="Bỏ đánh dấu vắng ' + pairLabel(k) + '">Có mặt</button></div>';
-      return '<div class="row">' + head + '<span class="right">' + status(pr) + '</span>' +
-        (fresh ? '<button type="button" class="abs" data-abs="' + k + '" aria-label="Đánh dấu vắng ' + pairLabel(k) + '">Vắng</button>' : '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>') +
+      var fresh = !pr.done && !pr.log.length, r = pr.log.length ? replay(pr) : null, w = pr.done ? winnerOf(pr) : null;
+      var ca = w ? (w === 'a' ? ' rw' : ' rx') : '', cb = w ? (w === 'b' ? ' rw' : ' rx') : '';
+      var nm = function (t, c) { return '<span class="n' + c + '">' + players(t, k).map(function (n) { return '<i>' + esc(first(n)) + '</i>'; }).join('') + '</span>'; };
+      var mid = nm('a', ca) + '<b class="s l' + ca + '">' + (r ? r.sc.a : pr.absent ? '–' : '') + '</b><span class="code">' + PAIRS[k].join('–') + '</span><b class="s' + cb + '">' + (r ? r.sc.b : pr.absent ? '–' : '') + '</b>' + nm('b', ' r' + cb);
+      if (pr.absent) return '<div class="row pr absent">' + mid + '<span class="meta"><b class="st">Vắng · đánh sau</b><button type="button" class="abs on" data-abs="' + k + '" aria-label="Bỏ đánh dấu vắng ' + pairLabel(k) + '">Có mặt</button></span></div>';
+      var sent = !API ? '' : !needsSend(pr) && pr.sent ? ' · <em class="ok">✓ đã gửi</em>' : needsSend(pr) ? ' · <em class="no">chưa gửi</em>' : '';
+      var line = pr.done && w ? '<b class="st done">Xong</b> · ' + fmt(tMs(pr)) + sent : pr.log.length ? '<b class="st on">Đang đấu</b> · ' + fmt(tMs(pr)) + sent : '<b class="st">' + (pr.setup.ok ? 'Đã xếp vị trí' : 'Chưa đấu') + '</b>';
+      return '<div class="row pr">' + mid + '<span class="meta"><span>' + line + '</span>' + (fresh ? '<button type="button" class="abs" data-abs="' + k + '" aria-label="Đánh dấu vắng ' + pairLabel(k) + '">Vắng</button>' : '') + '</span>' +
         '<a class="rowlink" href="#' + M.code + '/' + (k + 1) + '/' + (pr.done ? 'ket' : pr.setup.ok ? 'diem' : 'vitri') + '" aria-label="Vào ' + pairLabel(k) + '"></a>' +
         (pr.log.length || pr.done ? bar(prog(pr), pr.done ? 'done' : '') : '') + '</div>';
     }).join('');

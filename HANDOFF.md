@@ -2,8 +2,8 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-11, v1.27.2)
-- Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.25.3 bracket round tabs filter for real, lines stay attached (BASEMENT §5 "Bracket view").
+## Current state (2026-11-12, v1.28.0)
+- Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.28.0 new bracket map (pipelines, pop-up, team chips) + result colours green/red + unified pair row on site and referee page (BASEMENT "Bracket map", "Pair row", "Result colours").
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — version 5 deployed 2026-11-06 per commit 0e9afd5 (cache, flower rate limit, Turnstile, optional REF_PIN, `triggerDeploy_()` runs the GitHub workflow after every Chốt when Script property `GH_TOKEN` is set).
 - Turnstile public site key is in `config/site.json` `protect`; the secret lives only in Script properties (owner).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs (flowers), referee, referee_log, referee_final, referee_draft.
@@ -29,7 +29,6 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 3. After deploy: `curl -s <site>/version.json` shows the new version.
 
 ## Open items (ask the owner, do not decide alone)
-- Bracket v2 review page (2026-11-11) awaits the owner: https://claude.ai/artifact/25FzYq2TSSo5g7aDvS4imY (source copy in output/review/261111-bracket-v2/, not in git). Green/red lanes override BASEMENT §4's blue/orange bracket colours if approved.
 - Not confirmed by the owner: is `REF_PIN` set, is `TURNSTILE_SECRET` set, is `GH_TOKEN` set (Chốt → auto build)? Check once and record here.
 - v1.24.0 (GOAT badges, heat arc, H2H bars) shipped without a BASEMENT line or HANDOFF note: the lead should add one line to BASEMENT §6 after looking at it.
 - Trust (deferred 2026-11-04): anyone could POST a fake Chốt; with REF_PIN set this is closed.

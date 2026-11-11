@@ -111,29 +111,17 @@
 
   <section id="so-do" class="section">
     <div class="wrap">
-      <div class="sec-head row rv">
-        <div><p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p><h2>Sơ đồ thi đấu</h2></div>
-        <div class="bk-tools" id="bkTools">
-          <div class="bk-scale-group" role="group" aria-label="Chế độ thu phóng">
-            <button type="button" class="bk-btn on" id="bkBtn100" data-scale="100" aria-pressed="true" title="Xem kích thước chuẩn, cuộn tự do">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-              <span>100% Cuộn</span>
-            </button>
-            <button type="button" class="bk-btn" id="bkBtnFit" data-scale="fit" aria-pressed="false" title="Thu nhỏ toàn cảnh vừa màn hình điện thoại">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M10 14L3 21M14 10l7-7"/></svg>
-              <span>Toàn cảnh</span>
-            </button>
-          </div>
-          <div class="bk-nav-tabs" id="bkNavTabs" role="tablist" aria-label="Lọc theo vòng đấu">
-            <button type="button" class="bk-tab on" data-focus="all" role="tab" aria-selected="true">Tất cả</button>
-            <button type="button" class="bk-tab" data-focus="r1" role="tab" aria-selected="false">Vòng 1</button>
-            <button type="button" class="bk-tab" data-focus="sf" role="tab" aria-selected="false">Bán kết</button>
-            <button type="button" class="bk-tab" data-focus="bf" role="tab" aria-selected="false" title="Chung kết nhánh thắng và nhánh thua">CK nhánh</button>
-            <button type="button" class="bk-tab" data-focus="f" role="tab" aria-selected="false" title="Chung kết tổng">Chung kết</button>
-          </div>
-        </div>
+      <div class="sec-head rv">
+        <p class="eyebrow">Loại kép · thua 2 trận mới bị loại</p>
+        <h2>Sơ đồ thi đấu</h2>
       </div>
-      <div class="bracket-scroll glass rv"><div class="bracket-scaler" id="bracketScaler"><div class="bracket" id="bracket"></div></div></div>
+      <div class="bk-chips rv" id="bkChips" role="group" aria-label="Xem đường đi của một đội"></div>
+      <div class="bk-legend rv"><span><i class="lw"></i>Thắng đi tiếp</span><span><i class="ll"></i>Thua xuống nhánh thua</span><span><i class="lo2"></i>Đội đã rời giải</span><span><i class="lf"></i>Chưa đấu</span></div>
+      <div class="bk-board rv" id="bkBoard">
+        <div class="bk-scroll" id="bkScroll"><div class="bk-stage" id="bkStage"><div class="bk-canvas" id="bkCanvas"></div></div></div>
+        <span class="bk-swipe" aria-hidden="true">Vuốt ngang để xem hết ⟷</span>
+      </div>
+      <p class="pick-hint rv">Chạm một trận để xem chi tiết; chạm một đường nối để làm sáng hai trận nó nối.</p>
     </div>
   </section>
 

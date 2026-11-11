@@ -745,25 +745,34 @@
     thumb.style.width = b.offsetWidth + 'px'; thumb.style.transform = 'translateX(' + b.offsetLeft + 'px)';
   }
   window.addEventListener('resize', moveThumb);
-  function pairsHtml(m) {
+  /* one pair row everywhere (schedule, bracket pop-up; the referee page has its own copy):
+     team A names | A score · seed · B score | team B names. Result colours: winner side green, loser red,
+     a draw keeps the default ink. Names stay tappable in the schedule (data-p highlights a player). */
+  function short(n) { return n.split(' ').slice(-2).join(' '); }
+  function pairsHtml(m, plain) {
     var A = m.a.team ? teamById[m.a.team].members : null, B = m.b.team ? teamById[m.b.team].members : null;
     if (!A && !B) return '<div class="pairs tbd">Tên VĐV hiện khi đã có kết quả ' + esc([m.a.label, m.b.label].join(', ').replace(/Thắng |Thua /g, '')) + '</div>';
-    var side = function (L, p, r) { return '<span class="pside' + (r ? ' r' : '') + '">' + (L ? pn(L[p[0] - 1]) + pn(L[p[1] - 1]) : '<span class="pn tbd">Chưa xác định</span>') + '</span>'; };
-    var lu = (m.result && m.result.lineup) || {};  // stand-ins typed by the organisers: {"3": {"a": [2, 5]}}
+    var r = m.result, lu = (r && r.lineup) || {};  // stand-ins typed by the organisers: {"3": {"a": [2, 5]}}
+    var nm = function (n, sub) { return (plain ? '<span class="pq">' + esc(short(n)) + '</span>' : '<button type="button" class="pn bare" data-p="' + esc(n) + '" title="' + esc(n) + '">' + esc(short(n)) + marks(n) + '</button>') + (sub ? '<span class="sub">thay</span>' : ''); };
+    var side = function (Lm, seeds, orig, c) { return '<span class="n' + c + '">' + (Lm ? seeds.map(function (x, j) { return '<i>' + nm(Lm[x - 1], x !== orig[j]) + '</i>'; }).join('') : '<i class="tbd">Chưa xác định</i>') + '</span>'; };
     return '<div class="pairs">' + S.pairs.map(function (p, i) {
-      var o = lu[i + 1] || {}, absent = m.result && m.result.pairs && !m.result.pairs[i];
-      return '<div class="pair' + (absent ? ' absent' : '') + '"><span class="no" title="Cặp ' + (i + 1) + (absent ? ' · vắng, không đấu' : '') + '">' + p[0] + '–' + p[1] + '</span>' + side(A, o.a || p) + side(B, o.b || p, true) + '</div>';
+      var o = lu[i + 1] || {}, sc = r && r.pairs ? r.pairs[i] : undefined, absent = r && r.pairs && !sc;
+      var ca = sc && sc[0] !== sc[1] ? (sc[0] > sc[1] ? ' rw' : ' rx') : '', cb = ca === ' rw' ? ' rx' : ca === ' rx' ? ' rw' : '';
+      return '<div class="pair' + (absent ? ' absent' : '') + '">' + side(A, o.a || p, p, ca) +
+        '<span class="s l' + ca + '">' + (sc ? sc[0] : absent ? '–' : '') + '</span><span class="no" title="Cặp ' + (i + 1) + (absent ? ' · vắng, không đấu' : '') + '">' + p[0] + '–' + p[1] + '</span><span class="s' + cb + '">' + (sc ? sc[1] : absent ? '–' : '') + '</span>' +
+        side(B, o.b || p, p, ' r' + cb) + (absent ? '<span class="meta">vắng · không đấu</span>' : '') + '</div>';
     }).join('') + '</div>';
   }
   /* absent pairs (null in result.pairs) were not played: shown as a note, they count for nobody */
   function absentTxt(r) { var n = (r && r.pairs || []).filter(function (p) { return !p; }).length; return n ? ' · ' + n + ' cặp vắng' : ''; }
   function matchCard(m, i) {
     var st = ST[status(m)];
+    var rc = function (k) { return !m.result || m.result.a === m.result.b ? '' : m.winner === k ? ' rw' : ' rx'; };
     var mid = m.result
-      ? '<div class="score"><span class="' + (m.winner === 'a' ? '' : 'lo') + '">' + esc(m.result.a) + '</span><span class="lo">:</span><span class="' + (m.winner === 'b' ? '' : 'lo') + '">' + esc(m.result.b) + '</span></div>'
+      ? '<div class="score"><span class="' + rc('a') + '">' + esc(m.result.a) + '</span><span class="lo">:</span><span class="' + rc('b') + '">' + esc(m.result.b) + '</span></div>'
       : '<span class="x">VS</span>';
     var sub = m.result ? 'Cặp thắng ' + m.result.pa + '–' + m.result.pb + absentTxt(m.result) : esc(m.round);
-    var sides = '<span class="vs-side"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side r"><b>' + esc(sideName(m.b)) + '</b></span>';
+    var sides = '<span class="vs-side' + rc('a') + '"><b>' + esc(sideName(m.a)) + '</b></span><span class="vs-mid">' + mid + '<span>' + sub + '</span></span><span class="vs-side r' + rc('b') + '"><b>' + esc(sideName(m.b)) + '</b></span>';
     var top = '<div class="m-top"><span class="' + tagCls(m) + '">' + esc(m.code) + ' · ' + esc(m.round) + '</span><span class="badge ' + st[1] + '" data-badge="' + esc(m.code) + '">' + st[0] + '</span></div>' +
       '<p class="ref-live" data-ref="' + esc(m.code) + '" hidden></p>';
     if (!(m.a.team || m.b.team)) return '<article class="match glass" style="--i:' + i + '">' + top + '<div class="vs-card">' + sides + '</div>' + pairsHtml(m) + '</article>';
@@ -785,266 +794,166 @@
   pickDay(nextDayIdx);
   $('busyNote').textContent = S.rules.busy_note;
 
-  /* ---------- bracket ---------- */
-  var COLS = ['Vòng 1', 'Bán kết', 'CK nhánh thắng', 'Chung kết tổng'], LCOLS = ['Thua vòng 1', 'Thua vòng 2', 'Thua vòng 3', 'CK nhánh thua'];
-  function bCard(code) {
-    var m = byCode[code]; if (!m) return '';
-    var team = function (k) { var s = m[k]; return '<span class="b-team' + (s.team ? '' : ' tbd') + (m.winner === k ? ' win' : '') + '"><span>' + esc(sideName(s)) + '</span><b>' + (m.result ? esc(m.result[k]) : '') + '</b></span>'; };
-    var foot = [];
-    if (m.winTo) foot.push('Thắng → ' + m.winTo);
-    if (m.loseTo) foot.push('Thua → ' + m.loseTo);
-    if (m.branch === 'lose') foot.push('Thua: dừng');
-    if (m.branch === 'final') foot.push('Thắng: vô địch');
-    var head = '<span class="b-head"><span class="' + tagCls(m) + '">' + esc(m.code) + '</span><span>' + esc(m.date.slice(0, 5)) + '</span></span>';
-    var cls = 'b-card' + (m.branch === 'final' ? ' final' : '');
-    if (!(m.a.team || m.b.team)) return '<div class="' + cls + '" data-bcode="' + esc(m.code) + '"><span class="b-pulse" aria-hidden="true"></span>' + head + team('a') + team('b') + '<div class="b-foot">' + foot.join(' · ') + '</div></div>';
-    var roster = function (k) {
-      var s = m[k]; if (!s.team) return '<div class="b-roster tbd"><b>' + esc(sideName(s)) + '</b><span>Chưa xác định</span></div>';
-      return '<div class="b-roster"><b>' + esc(sideName(s)) + '</b><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n) + '</li>'; }).join('') + '</ol></div>';
-    };
-    return '<div class="' + cls + '" data-bcode="' + esc(m.code) + '"><span class="b-pulse" aria-hidden="true"></span><button type="button" class="b-toggle" aria-expanded="false" aria-controls="bk-' + m.code + '" aria-label="' + esc(m.code) + ': xem thành viên">' + head + team('a') + team('b') +
-      '<span class="b-foot"><span>' + foot.join(' · ') + '</span>' + CHIP + '</span></button>' + box('bk-' + m.code, roster('a') + roster('b')) + '</div>';
-  }
-  var phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
-  function lane(key, title, cols, heads, open) {
-    var n = cols.reduce(function (t, c) { return t + c.length; }, 0);
-    return '<div class="b-sec ' + key + '"><button type="button" class="lane-toggle" aria-expanded="' + open + '" aria-controls="lane-' + key + '">' +
-      '<span class="lt">' + title + '<small>' + n + ' trận</small></span>' + CHIP + '</button>' +
-      box('lane-' + key, '<div class="b-grid" data-lane="' + key + '"><svg class="b-flow-svg" aria-hidden="true"></svg>' + cols.map(function (c, i) { return '<div class="b-col"><span class="b-colhead">' + heads[i] + '</span>' + c.map(bCard).join('') + '</div>'; }).join('') + '</div>', open) + '</div>';
-  }
-  $('bracket').innerHTML = lane('win', 'Nhánh thắng', S.bracket.win, COLS, true) + lane('lose', 'Nhánh thua', S.bracket.lose, LCOLS, !phone);
-
-  /* ---------- bracket path flow (chay mach anh sang tren so do) ----------
-     v1.25.3: each line ends on the row of the side it feeds (a = first team row, b = second), so two lines
-     into one match never share an end point (T4 -> T6 a, T3 -> T6 b); a line that skips a column runs
-     along a free lane past the cards in between, then turns in the last gutter; lines are redrawn on every
-     size change of a card (ResizeObserver), so opening a roster (0.45 s animation) keeps them attached. */
-  var bkFocus = null; // null = all; else { code: true } for the round tab picked
-  function teamRowY(card, idx, gr) {
-    var rows = card.querySelectorAll('.b-team');
-    var r = (rows[idx] || card).getBoundingClientRect();
-    return r.top + r.height / 2 - gr.top;
-  }
-  function sideOf(tm, code) { // which side of match tm is fed by match code: 0 (a), 1 (b) or -1
-    var re = new RegExp('(^|\\s)' + code + '$');
-    if (tm.a && re.test(tm.a.label || '')) return 0;
-    if (tm.b && re.test(tm.b.label || '')) return 1;
-    return -1;
-  }
-  function bkCurve(xa, ya, xb, yb) {
-    var dx = Math.max(14, Math.round((xb - xa) * 0.5));
-    return ' C ' + (xa + dx) + ' ' + ya + ', ' + (xb - dx) + ' ' + yb + ', ' + xb + ' ' + yb;
-  }
-  function drawBracketFlow() {
-    document.querySelectorAll('.b-grid[data-lane]').forEach(function (grid) {
-      var svg = grid.querySelector('.b-flow-svg');
-      if (!svg) return;
-      var gr = grid.getBoundingClientRect();
-      if (!gr.width || !gr.height) return;
-      var k = grid.offsetWidth ? gr.width / grid.offsetWidth : 1; // "Toàn cảnh" scales the grid; draw in layout px
-      var R = function (el) { var r = el.getBoundingClientRect(); return { l: (r.left - gr.left) / k, r: (r.right - gr.left) / k, t: (r.top - gr.top) / k, b: (r.bottom - gr.top) / k }; };
-      svg.setAttribute('viewBox', '0 0 ' + grid.offsetWidth + ' ' + grid.offsetHeight);
-      var cols = Array.prototype.slice.call(grid.querySelectorAll('.b-col')).map(function (c) {
-        return { r: R(c), cards: Array.prototype.slice.call(c.querySelectorAll('.b-card')).map(R) };
-      });
-      var colOf = function (box) { for (var i = 0; i < cols.length; i++) if (box.l >= cols[i].r.l - 1 && box.r <= cols[i].r.r + 1) return i; return -1; };
-      var paths = [];
-
-      S.matches.forEach(function (m) {
-        if (!m.winTo) return;
-        var src = grid.querySelector('[data-bcode="' + m.code + '"]');
-        var tgt = grid.querySelector('[data-bcode="' + m.winTo + '"]');
-        if (!src || !tgt) return;
-        var sb = R(src), tb = R(tgt);
-        if (sb.r >= tb.l) return;
-        var tm = byCode[m.winTo];
-        // start: the winner's row once known, else between the two team rows; end: the row this match feeds
-        var y1 = m.winner ? teamRowY(src, m.winner === 'a' ? 0 : 1, gr) / k : (teamRowY(src, 0, gr) + teamRowY(src, 1, gr)) / 2 / k;
-        var side = tm ? sideOf(tm, m.code) : -1;
-        var y2 = side >= 0 ? teamRowY(tgt, side, gr) / k : (tb.t + tb.b) / 2;
-        var x1 = Math.round(sb.r), x2 = Math.round(tb.l);
-        y1 = Math.round(y1); y2 = Math.round(y2);
-        var d = 'M ' + x1 + ' ' + y1, ci = colOf(sb), cj = colOf(tb);
-        if (ci >= 0 && cj > ci + 1) {
-          // skips a column: keep a lane clear of the cards in between, turn in the gutter before the target
-          var lane = y1, i, hit = true, guard = 0;
-          while (hit && guard++ < 8) {
-            hit = false;
-            for (i = ci + 1; i < cj; i++) cols[i].cards.forEach(function (c) { if (lane > c.t - 10 && lane < c.b + 10) { lane = c.b + 16; hit = true; } });
-          }
-          var xs = Math.round(cols[ci + 1].r.l - 12), xe = Math.round(cols[cj - 1].r.r + 12);
-          if (lane !== y1) d += bkCurve(x1, y1, xs, lane); else d += ' L ' + xs + ' ' + lane;
-          d += ' L ' + xe + ' ' + lane + bkCurve(xe, lane, x2, y2);
-        } else {
-          d += bkCurve(x1, y1, x2, y2);
-        }
-        var dim = bkFocus && !(bkFocus[m.code] || bkFocus[m.winTo]) ? ' dim' : '';
-        paths.push('<path d="' + d + '" class="b-path-bg' + dim + '" />');
-        if (m.winner) {
-          var isFin = (m.winTo === S.bracket.final);
-          paths.push('<path d="' + d + '" class="b-path-flow' + (isFin ? ' final' : '') + dim + '" />');
-          paths.push('<circle cx="' + x1 + '" cy="' + y1 + '" r="3.5" class="b-node-dot' + (isFin ? ' final' : '') + dim + '" />');
-          paths.push('<circle cx="' + x2 + '" cy="' + y2 + '" r="3" class="b-node-dot end' + (isFin ? ' final' : '') + dim + '" />');
-        } else {
-          paths.push('<path d="' + d + '" class="b-path-pending' + dim + '" />');
-        }
-      });
-      svg.innerHTML = paths.join('');
-    });
-  }
-  var bfRaf = 0;
-  function scheduleFlow() {
-    if (bfRaf) return;
-    bfRaf = requestAnimationFrame(function () { bfRaf = 0; drawBracketFlow(); });
-  }
-  if (window.ResizeObserver) {
-    var bfRO = new ResizeObserver(scheduleFlow);
-    document.querySelectorAll('#bracket .b-grid, #bracket .b-card, #bracket .b-sec').forEach(function (el) { bfRO.observe(el); });
-  } else {
-    document.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('.lane-toggle, .b-toggle')) { setTimeout(drawBracketFlow, 120); setTimeout(drawBracketFlow, 520); }
-    });
-  }
-  document.addEventListener('transitionend', function (e) { if (e.target.closest && e.target.closest('#bracket')) scheduleFlow(); });
-  window.addEventListener('resize', scheduleFlow);
-  setTimeout(drawBracketFlow, 100);
-
-  /* ---------- drag-to-scroll (keo tha chuot de cuon so do thi dau) ---------- */
-  (function () {
-    var scrollers = document.querySelectorAll('.bracket-scroll');
-    scrollers.forEach(function (scroller) {
-      var isDown = false, startX, startY, sLeft, sTop;
-      scroller.addEventListener('mousedown', function (e) {
-        if (e.target.closest('button, a, input, select, .pn, summary')) return;
-        isDown = true;
-        scroller.classList.add('is-dragging');
-        startX = e.pageX - scroller.offsetLeft;
-        startY = e.pageY - scroller.offsetTop;
-        sLeft = scroller.scrollLeft;
-        sTop = scroller.scrollTop;
-      });
-      document.addEventListener('mouseup', function () {
-        if (isDown) {
-          isDown = false;
-          scroller.classList.remove('is-dragging');
-        }
-      });
-      scroller.addEventListener('mouseleave', function () {
-        if (isDown) {
-          isDown = false;
-          scroller.classList.remove('is-dragging');
-        }
-      });
-      scroller.addEventListener('mousemove', function (e) {
-        if (!isDown) return;
-        e.preventDefault();
-        var x = e.pageX - scroller.offsetLeft;
-        var y = e.pageY - scroller.offsetTop;
-        scroller.scrollLeft = sLeft - (x - startX) * 1.25;
-        scroller.scrollTop = sTop - (y - startY) * 1.25;
-      });
-    });
-  })();
-
-  /* ---------- bracket scale controls & round tabs (thu phong toan canh & tab vong dau) ---------- */
-  (function () {
-    var scroller = document.querySelector('.bracket-scroll');
-    var scaler = document.getElementById('bracketScaler');
-    var bracket = document.getElementById('bracket');
-    var btn100 = document.getElementById('bkBtn100');
-    var btnFit = document.getElementById('bkBtnFit');
-    var tabs = document.querySelectorAll('.bk-tab');
-    if (!scroller || !scaler || !bracket) return;
-
-    var currentMode = '100';
-
-    function updateScale() {
-      if (currentMode !== 'fit') {
-        scroller.classList.remove('is-fit');
-        scaler.style.removeProperty('--bk-scale');
-        scaler.style.removeProperty('transform');
-        scaler.style.removeProperty('width');
-        scroller.style.removeProperty('height');
-        setTimeout(drawBracketFlow, 100);
-        return;
+  /* ---------- bracket (v1.28.0, owner review 261111-bracket-v2) ----------
+     One map, two lanes: nhánh thắng above, nhánh thua below, CK tổng on the right. Every connection is a
+     "pipeline" from the row of the team that travels it to the row it feeds: green = that team won the match
+     (winner's path), red = it lost (drop to nhánh thua), grey = the team has since left the season. Pipes have
+     their own track in each gutter, so none runs over text or over another (crossings are drawn as bridges).
+     Tap a pipe: it and its two matches light up; tap outside / Esc: normal. Tap a match: pop-up (result and the
+     5 pairs, or the two rosters when not played). Team chips light one team's whole path. Phones scroll the
+     same map sideways, opened at the match being played next. */
+  var BK = (function () {
+    var CW = 168, CH = 92, W = 1412, H = 590, X = [40, 276, 512, 748, 984, 1220];
+    var POS = { T1: [X[0], 44], T2: [X[0], 154], T3: [X[0], 264], T4: [X[1], 99], T6: [X[2], 200],
+                T5: [X[1], 452], T7: [X[2], 452], T8: [X[3], 452], T9: [X[4], 452], T10: [X[5], 326] };
+    var st = { team: null, focus: null }, loss = {}, champ = finalM && finalM.winner ? finalM[finalM.winner].team : null;
+    S.teams.forEach(function (t) { loss[t.id] = 0; });
+    S.matches.forEach(function (m) { if (m.winner) { var l = m[m.winner === 'a' ? 'b' : 'a'].team; if (l) loss[l]++; } });
+    function state(id) { return champ === id ? 'champ' : loss[id] >= 2 ? 'out' : loss[id] === 1 ? 'lose' : 'win'; }
+    function stTxt(s) { return { win: 'Chưa thua', lose: 'Đã thua 1 trận', out: 'Đã rời giải', champ: 'Vô địch' }[s]; }
+    var EDGES = [];
+    // drops first, then the losers' lane, then winners (later pipes bridge over earlier ones)
+    S.matches.forEach(function (m) { if (m.loseTo && POS[m.code] && POS[m.loseTo]) EDGES.push({ from: m.code, to: m.loseTo, who: 'L' }); });
+    S.matches.forEach(function (m) { if (m.winTo && m.branch === 'lose' && POS[m.code] && POS[m.winTo]) EDGES.push({ from: m.code, to: m.winTo, who: 'W' }); });
+    S.matches.forEach(function (m) { if (m.winTo && m.branch !== 'lose' && POS[m.code] && POS[m.winTo]) EDGES.push({ from: m.code, to: m.winTo, who: 'W' }); });
+    function rowY(c, side) { return POS[c][1] + 28 + (side === 'a' ? 16 : 48); }
+    function L(c) { return POS[c][0]; } function R(c) { return POS[c][0] + CW; }
+    function entry(e) { var t = byCode[e.to], lab = (e.who === 'W' ? 'Thắng ' : 'Thua ') + e.from; return t.a.label === lab ? 'a' : 'b'; }
+    function traveller(e) { var m = byCode[e.from]; if (!m.winner) return null; return m[e.who === 'W' ? m.winner : (m.winner === 'a' ? 'b' : 'a')].team; }
+    function route(e) {
+      var m = byCode[e.from], ws = m.winner, ls = ws === 'a' ? 'b' : 'a';
+      var y0 = ws ? rowY(e.from, e.who === 'W' ? ws : ls) : POS[e.from][1] + 60, y1 = rowY(e.to, entry(e)), x1 = L(e.to);
+      switch (e.from + e.to) {
+        case 'T1T5': return [[L('T1'), y0], [26, y0], [26, 412], [254, 412], [254, y1], [x1, y1]];
+        case 'T2T5': return [[L('T2'), y0], [12, y0], [12, 426], [238, 426], [238, y1], [x1, y1]];
+        case 'T1T4': case 'T2T4': return [[R(e.from), y0], [244, y0], [244, y1], [x1, y1]];
+        case 'T3T6': return [[R('T3'), y0], [484, y0], [484, y1], [x1, y1]];
+        case 'T3T7': return [[R('T3'), y0], [496, y0], [496, y1], [x1, y1]];
+        case 'T4T6': return [[R('T4'), y0], [466, y0], [466, y1], [x1, y1]];
+        case 'T4T8': var xt = R('T4') - 26; return [[xt, POS.T4[1]], [xt, 70], [726, 70], [726, y1], [x1, y1]];
+        case 'T6T9': return [[R('T6'), y0], [700, y0], [700, 360], [960, 360], [960, y1], [x1, y1]];
+        case 'T6T10': return [[R('T6'), y0], [1196, y0], [1196, y1], [x1, y1]];
+        case 'T5T7': return [[R('T5'), y0], [472, y0], [472, y1], [x1, y1]];
+        case 'T7T8': return [[R('T7'), y0], [712, y0], [712, y1], [x1, y1]];
+        case 'T8T9': return [[R('T8'), y0], [946, y0], [946, y1], [x1, y1]];
+        case 'T9T10': return [[R('T9'), y0], [1204, y0], [1204, y1], [x1, y1]];
       }
-      var pad = (window.innerWidth <= 560 ? 24 : 40);
-      var containerW = scroller.clientWidth - pad;
-      var origW = bracket.scrollWidth || 1200;
-      var scale = Math.min(1, Math.max(0.26, containerW / origW));
-      scroller.classList.add('is-fit');
-      scaler.style.setProperty('--bk-scale', scale.toFixed(4));
-      scaler.style.transform = 'scale(' + scale.toFixed(4) + ')';
-      scaler.style.width = origW + 'px';
-      var origH = bracket.offsetHeight;
-      scroller.style.height = Math.round(origH * scale + 48) + 'px';
-      scroller.scrollLeft = 0;
-      setTimeout(drawBracketFlow, 120);
+      var xm = Math.round((R(e.from) + x1) / 2); return [[R(e.from), y0], [xm, y0], [xm, y1], [x1, y1]];
     }
-
-    if (btn100) {
-      btn100.addEventListener('click', function () {
-        currentMode = '100';
-        btn100.classList.add('on'); btn100.setAttribute('aria-pressed', 'true');
-        if (btnFit) { btnFit.classList.remove('on'); btnFit.setAttribute('aria-pressed', 'false'); }
-        updateScale();
-      });
+    function path(p) {
+      var d = 'M' + p[0][0] + ' ' + p[0][1];
+      for (var i = 1; i < p.length; i++) {
+        var a = p[i], b = p[i - 1], c = p[i + 1];
+        if (!c) { d += ' L' + a[0] + ' ' + a[1]; break; }
+        var l1 = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]), l2 = Math.abs(c[0] - a[0]) + Math.abs(c[1] - a[1]), r = Math.min(10, l1 / 2, l2 / 2);
+        d += ' L' + (a[0] - Math.sign(a[0] - b[0]) * r) + ' ' + (a[1] - Math.sign(a[1] - b[1]) * r) + ' Q' + a[0] + ' ' + a[1] + ' ' + (a[0] + Math.sign(c[0] - a[0]) * r) + ' ' + (a[1] + Math.sign(c[1] - a[1]) * r);
+      }
+      return d;
     }
-
-    if (btnFit) {
-      btnFit.addEventListener('click', function () {
-        currentMode = 'fit';
-        btnFit.classList.add('on'); btnFit.setAttribute('aria-pressed', 'true');
-        if (btn100) { btn100.classList.remove('on'); btn100.setAttribute('aria-pressed', 'false'); }
-        updateScale();
+    function plen(p) { var s = 0; for (var i = 1; i < p.length; i++) s += Math.abs(p[i][0] - p[i - 1][0]) + Math.abs(p[i][1] - p[i - 1][1]); return s; }
+    function dot(team) { return '<span class="bk-dot ' + (team ? state(team) : 'none') + '"></span>'; }
+    function involved(m, t) { return !!t && (m.a.team === t || m.b.team === t); }
+    function card(m) {
+      var r = m.result, h = '<span class="bk-ch"><span class="' + tagCls(m) + '">' + m.code + '</span><span>' + esc(m.round) + '</span><span class="when">' + esc(m.date.slice(0, 5)) + '</span></span>';
+      ['a', 'b'].forEach(function (k) {
+        var s = m[k], cls = r && r.a !== r.b ? (m.winner === k ? ' won' : ' lost') : '';
+        h += '<span class="bk-row' + cls + '">' + dot(s.team) + '<span class="nm' + (s.team ? '' : ' tbd') + '">' + esc(sideName(s)) + '</span>' + (r ? '<b class="sc">' + r[k] + '</b>' : '') + '</span>';
       });
+      return h;
     }
-
-    /* round tabs = a real filter (v1.25.3): the picked round's matches stay lit in both lanes, the rest and
-       their lines fade; then the first of them is scrolled into view when the bracket can scroll. Before this
-       the tabs only scrolled, so on a wide screen (nothing to scroll) every tab showed the same view. */
-    var B = S.bracket, FOCUS = {
-      all: null,
-      r1: B.win[0],
-      sf: B.win[1],
-      bf: [].concat(B.win[2] || [], B.lose[B.lose.length - 1] || []),
-      f: [B.final]
-    };
-    function setFocus(key) {
-      var list = FOCUS[key] || null;
-      bkFocus = null;
-      if (list) { bkFocus = {}; list.forEach(function (c) { bkFocus[c] = true; }); }
-      bracket.classList.toggle('has-focus', !!bkFocus);
-      bracket.querySelectorAll('.b-card').forEach(function (c) {
-        var on = !bkFocus || !!bkFocus[c.dataset.bcode];
-        c.classList.toggle('is-focus', !!bkFocus && on);
-        c.classList.toggle('is-dim', !on);
+    function render() {
+      $('bkChips').innerHTML = '<button type="button" class="bk-chip" data-t="" aria-pressed="true"><span class="bk-st all">✓</span>Tất cả</button>' +
+        S.teams.map(function (t) {
+          var s = state(t.id);
+          return '<button type="button" class="bk-chip" data-t="' + t.id + '" aria-pressed="false" title="' + stTxt(s) + '"><span class="bk-st ' + s + '">' + (s === 'out' ? '✕' : s === 'champ' ? '★' : loss[t.id]) + '</span>' + esc(t.name) + '<small>' + stTxt(s) + '</small></button>';
+        }).join('');
+      var lw = X[5] - 22, html = '<div class="bk-lane lw" style="width:' + lw + 'px;height:398px"></div><div class="bk-lane ll" style="top:398px;width:' + lw + 'px;height:' + (H - 398) + 'px"></div>' +
+        '<div class="bk-lane-h lw" style="left:' + X[0] + 'px;top:16px">Nhánh thắng</div><div class="bk-lane-h ll" style="left:' + X[0] + 'px;top:' + POS.T5[1] + 'px">Nhánh thua</div>', svg = '';
+      EDGES.forEach(function (e, i) {
+        var p = route(e), d = path(p), who = traveller(e), len = plen(p);
+        // colour = what happened on this pipe: winner's path green, drop red; grey once the team has left
+        var cls = !who ? 'todo' : state(who) === 'out' ? 'out' : e.who === 'W' ? 'win' : 'lose';
+        var anim = reduce ? '' : ' grow" style="--len:' + len + ';stroke-dasharray:' + len + ';animation-delay:' + (0.15 + i * 0.05) + 's';
+        svg += '<g class="bk-pipe ' + cls + '" data-e="' + i + '" role="button" tabindex="0" aria-label="' + e.from + ' đến ' + e.to + (who ? ': ' + esc(teamById[who].name) : '') + '"><path class="gap" d="' + d + '"/>' +
+          (who ? '<path class="rim' + anim + '" d="' + d + '"/><path class="core' + anim + '" d="' + d + '"/><path class="flow" d="' + d + '"/>' : '<path class="core" d="' + d + '"/>') + '<path class="hit" d="' + d + '"/></g>';
       });
-      bracket.querySelectorAll('.b-col').forEach(function (col) {
-        col.classList.toggle('is-dim', !!bkFocus && !col.querySelector('.b-card.is-focus'));
+      html += '<svg class="bk-wires" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="false">' + svg + '</svg>';
+      Object.keys(POS).forEach(function (c, i) {
+        var m = byCode[c]; if (!m) return;
+        html += '<button type="button" class="bk-card' + (m.branch === 'final' ? ' final' : '') + '" data-m="' + c + '" style="left:' + POS[c][0] + 'px;top:' + POS[c][1] + 'px;width:' + CW + 'px;height:' + CH + 'px;--d:' + (i * 0.04) + 's" aria-label="' + c + ': ' + esc(sideName(m.a)) + ' gặp ' + esc(sideName(m.b)) + '">' + card(m) + '</button>';
       });
-      tabs.forEach(function (t) {
-        var on = t.dataset.focus === key;
-        t.classList.toggle('on', on);
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      drawBracketFlow();
-      if (!bkFocus || currentMode === 'fit') return;
-      var first = bracket.querySelector('.b-card.is-focus');
-      if (!first || scroller.scrollWidth <= scroller.clientWidth + 2) return;
-      var sr = scroller.getBoundingClientRect(), fr = first.getBoundingClientRect();
-      var left = scroller.scrollLeft + (fr.left - sr.left) - 24;
-      scroller.scrollTo({ left: Math.max(0, left), behavior: reduce ? 'auto' : 'smooth' });
+      $('bkCanvas').innerHTML = html;
+      fit(); mark();
     }
-    tabs.forEach(function (tab) {
-      tab.addEventListener('click', function () { setFocus(tab.dataset.focus); });
+    function mark() {
+      document.querySelectorAll('#bkChips .bk-chip').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.t ? +b.dataset.t : null) === st.team)); });
+      document.querySelectorAll('#bkCanvas .bk-pipe').forEach(function (g) { var i = +g.dataset.e; g.classList.toggle('on', st.focus === i || (!!st.team && traveller(EDGES[i]) === st.team)); });
+      document.querySelectorAll('#bkCanvas .bk-card').forEach(function (b) { var c = b.dataset.m; b.classList.toggle('on', (st.focus != null && (EDGES[st.focus].from === c || EDGES[st.focus].to === c)) || involved(byCode[c], st.team)); });
+      $('bkBoard').classList.toggle('focus', st.focus != null || !!st.team);
+    }
+    var opened = false;
+    function fit() {
+      var sc = $('bkScroll'), w = sc.clientWidth; if (!w) return;
+      var k = w >= 900 ? Math.min(1, w / W) : Math.max(.72, Math.min(1, w / 560));
+      $('bkCanvas').style.transform = 'scale(' + k + ')';
+      $('bkStage').style.width = Math.round(W * k) + 'px'; $('bkStage').style.height = Math.round(H * k) + 'px';
+      $('bkBoard').classList.toggle('scrolls', W * k > w + 2);
+      if (!opened && W * k > w + 2) {
+        opened = true;
+        var nx = S.matches.filter(function (m) { return !m.result && POS[m.code]; })[0];
+        if (nx && (POS[nx.code][0] + CW) * k > w) sc.scrollLeft = Math.max(0, (POS[nx.code][0] - 60) * k - w / 3);
+      }
+    }
+    /* pop-up: a played match shows the score, the 5 pairs (unified pair row) and where each team goes next;
+       a match not played yet shows the two rosters */
+    var box = document.createElement('div'); box.className = 'pm'; box.hidden = true;
+    box.innerHTML = '<div class="pm-card glass bm" role="dialog" aria-modal="true" aria-labelledby="bmT"><button type="button" class="pm-x" aria-label="Đóng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="bm-in"></div></div>';
+    document.body.appendChild(box);
+    var back = null;
+    function close() { if (box.hidden) return; box.hidden = true; document.documentElement.classList.remove('pm-open'); if (back && back.focus) back.focus(); }
+    box.addEventListener('click', function (e) { if (e.target === box || e.target.closest('.pm-x')) close(); });
+    function open(code) {
+      var m = byCode[code], r = m.result, h = '', side = function (k) { var s = m[k]; return s.team ? dot(s.team) + stTxt(state(s.team)) : dot(null) + 'chờ kết quả ' + esc((s.label || '').replace(/^(Thắng|Thua) /, '')); };
+      var hc = function (k) { return !r || r.a === r.b ? '' : m.winner === k ? ' rw' : ' rx'; };
+      h += '<div class="bm-eb"><span class="' + tagCls(m) + '">' + m.code + '</span>' + esc(m.round) + ' · ' + esc(m.date) + '</div>';
+      h += '<div class="bm-h"><div class="t' + hc('a') + '" id="bmT">' + esc(sideName(m.a)) + '<small>' + side('a') + '</small></div>' +
+        (r ? '<div class="vs">' + r.a + '–' + r.b + '</div>' : '<div class="vs no">chưa đấu</div>') +
+        '<div class="t r' + hc('b') + '">' + esc(sideName(m.b)) + '<small>' + side('b') + '</small></div></div>';
+      if (r) {
+        var Wn = m[m.winner], Ls = m[m.winner === 'a' ? 'b' : 'a'];
+        h += '<p class="bm-sub"><b>' + esc(sideName(Wn)) + '</b> thắng · cặp ' + r.pa + '–' + r.pb + absentTxt(r) + '</p>';
+        if (r.pairs) h += pairsHtml(m, true);
+        if (r.players) {
+          var best = null; for (var id in r.players) { var v = r.players[id]; if (!best || v[0] > best[1]) best = [id, v[0]]; }
+          if (best) { var tp = best[0].split('-'); h += '<p class="bm-star">Ghi điểm nhiều nhất: <b>' + esc(teamById[tp[0]].members[tp[1] - 1]) + '</b> (' + esc(teamById[tp[0]].name) + ') · ' + best[1] + ' điểm tấn công</p>'; }
+        }
+        h += '<div class="bm-next">' + (m.winTo ? '<span class="gw">' + esc(sideName(Wn)) + ' → ' + m.winTo + '</span>' : '<span class="gc">★ ' + esc(sideName(Wn)) + ' vô địch</span>') +
+          (m.loseTo ? '<span class="gl">' + esc(sideName(Ls)) + ' ↓ ' + m.loseTo + ' (nhánh thua)</span>' : m.branch === 'final' ? '<span class="go">' + esc(sideName(Ls)) + ' á quân</span>' : '<span class="go">✕ ' + esc(sideName(Ls)) + ' rời giải</span>') + '</div>';
+      } else {
+        h += '<p class="bm-sub">Chưa thi đấu · thành viên hai đội</p><div class="bm-mem">' + ['a', 'b'].map(function (k) {
+          var s = m[k];
+          if (!s.team) return '<div class="side"><h4>' + dot(null) + esc(s.label) + '</h4><p class="tbd">Chờ kết quả ' + esc((s.label || '').replace(/^(Thắng|Thua) /, '')) + ' để biết đội.</p></div>';
+          return '<div class="side"><h4>' + dot(s.team) + esc(teamById[s.team].name) + '</h4><ol>' + teamById[s.team].members.map(function (n, i) { return '<li>' + seedTag(i + 1) + pnPlain(n) + '</li>'; }).join('') + '</ol></div>';
+        }).join('') + '</div>';
+        h += '<div class="bm-next">' + (m.winTo ? '<span class="gw">Thắng → ' + m.winTo + '</span>' : '<span class="gc">Thắng là vô địch</span>') + (m.loseTo ? '<span class="gl">Thua ↓ ' + m.loseTo + '</span>' : m.branch === 'final' ? '<span class="go">Thua là á quân</span>' : '<span class="go">Thua ✕ rời giải</span>') + '</div>';
+      }
+      back = document.activeElement; box.querySelector('.bm-in').innerHTML = h; box.hidden = false; document.documentElement.classList.add('pm-open'); box.querySelector('.pm-x').focus();
+    }
+    $('bkBoard').addEventListener('click', function (e) {
+      var p = e.target.closest('.bk-pipe'), c = e.target.closest('[data-m]');
+      if (p) { var i = +p.dataset.e; st.focus = st.focus === i ? null : i; st.team = null; return mark(); }
+      if (c) return open(c.dataset.m);
+      if (st.focus != null || st.team) { st.focus = null; st.team = null; mark(); }
     });
-
-    window.addEventListener('resize', function () {
-      if (currentMode === 'fit') updateScale();
-    });
+    $('bkBoard').addEventListener('keydown', function (e) { var p = e.target.closest('.bk-pipe'); if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); p.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+    document.addEventListener('click', function (e) { if (st.focus != null && !e.target.closest('#bkBoard') && !e.target.closest('.pm')) { st.focus = null; mark(); } });
+    document.addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if (!box.hidden) return close(); if (st.focus != null) { st.focus = null; mark(); } });
+    $('bkChips').addEventListener('click', function (e) { var c = e.target.closest('[data-t]'); if (!c) return; st.team = c.dataset.t ? +c.dataset.t : null; st.focus = null; mark(); });
+    $('bkScroll').addEventListener('scroll', function () { $('bkBoard').classList.add('swiped'); }, { passive: true });
+    window.addEventListener('resize', fit);
+    render();
+    return { open: open };
   })();
-
 
   /* ---------- teams: seed tags + female label ---------- */
   $('teams').innerHTML = S.teams.map(function (t) {
