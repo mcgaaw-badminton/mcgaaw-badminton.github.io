@@ -2,8 +2,8 @@
 
 Keep this file short: current state, live endpoints, how to verify, open items. Rules live in `BASEMENT.md`; history lives in git.
 
-## Current state (2026-11-12, v1.28.0)
-- Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.28.0 new bracket map (pipelines, pop-up, team chips) + result colours green/red + unified pair row on site and referee page (BASEMENT "Bracket map", "Pair row", "Result colours").
+## Current state (2026-11-12, v1.28.1)
+- Live site: https://mcgaaw-badminton.github.io · referee page `/trong-tai.html` · repo `mcgaaw-badminton/mcgaaw-badminton.github.io` (push to `main` deploys). Last releases: v1.23.0 T2 closed · v1.23.1 Turnstile on + Apps Script v5 + deploy on Chốt · v1.24.0 GOAT top-1 badges, heat arc gauge, H2H compare bars (no BASEMENT line yet — see open items) · v1.28.0 new bracket map (pipelines, pop-up, team chips) + result colours green/red + unified pair row on site and referee page (BASEMENT "Bracket map", "Pair row", "Result colours") · v1.28.1 team chips on the map work (team ids in data.js are strings).
 - Apps Script web app (same URL for every version): `https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec` — version 5 deployed 2026-11-06 per commit 0e9afd5 (cache, flower rate limit, Turnstile, optional REF_PIN, `triggerDeploy_()` runs the GitHub workflow after every Chốt when Script property `GH_TOKEN` is set).
 - Turnstile public site key is in `config/site.json` `protect`; the secret lives only in Script properties (owner).
 - Sheet "MCGAAW Cup — Trứng thối" id `1ZCP48Eg-2kJ7nFiIXaM3zs3qEJOx4fX7cwtOf35e1mI`, tabs: eggs (flowers), referee, referee_log, referee_final, referee_draft.

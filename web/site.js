@@ -886,7 +886,7 @@
       fit(); mark();
     }
     function mark() {
-      document.querySelectorAll('#bkChips .bk-chip').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.t ? +b.dataset.t : null) === st.team)); });
+      document.querySelectorAll('#bkChips .bk-chip').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.t || null) === st.team)); });
       document.querySelectorAll('#bkCanvas .bk-pipe').forEach(function (g) { var i = +g.dataset.e; g.classList.toggle('on', st.focus === i || (!!st.team && traveller(EDGES[i]) === st.team)); });
       document.querySelectorAll('#bkCanvas .bk-card').forEach(function (b) { var c = b.dataset.m; b.classList.toggle('on', (st.focus != null && (EDGES[st.focus].from === c || EDGES[st.focus].to === c)) || involved(byCode[c], st.team)); });
       $('bkBoard').classList.toggle('focus', st.focus != null || !!st.team);
@@ -948,7 +948,7 @@
     $('bkBoard').addEventListener('keydown', function (e) { var p = e.target.closest('.bk-pipe'); if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); p.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
     document.addEventListener('click', function (e) { if (st.focus != null && !e.target.closest('#bkBoard') && !e.target.closest('.pm')) { st.focus = null; mark(); } });
     document.addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; if (!box.hidden) return close(); if (st.focus != null) { st.focus = null; mark(); } });
-    $('bkChips').addEventListener('click', function (e) { var c = e.target.closest('[data-t]'); if (!c) return; st.team = c.dataset.t ? +c.dataset.t : null; st.focus = null; mark(); });
+    $('bkChips').addEventListener('click', function (e) { var c = e.target.closest('[data-t]'); if (!c) return; st.team = c.dataset.t || null; /* team ids are strings in data.js */ st.focus = null; mark(); });
     $('bkScroll').addEventListener('scroll', function () { $('bkBoard').classList.add('swiped'); }, { passive: true });
     window.addEventListener('resize', fit);
     render();
