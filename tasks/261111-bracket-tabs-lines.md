@@ -21,4 +21,4 @@
 - **Not done / known issues:** none.
 
 ## Lead review
-- **Result:** accepted in v1.25.3 · 2026-11-11 (applied by the owner from the patch: cloud session has no push rights)
+- **Result:** accepted in v1.25.3 · 2026-11-11 · patch applied by the lead on top of v1.25.2 (3-way, no conflict), preflight --release [OK], pushed.
