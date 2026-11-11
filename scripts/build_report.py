@@ -392,14 +392,15 @@ def goat_main(args):
         q["wstreak"] = best
     played = [q for q in P.values() if q["pairs"]]
     asof = max((ms[c]["date"] for c in codes), key=lambda d: d.split("/")[::-1])
-    # totals divided by pairs played (owner, 2026-11-11): absent pairs must not decide a title; at least 2 pairs
+    # totals divided by pairs played (owner, 2026-11-11): absent pairs must not decide a title. Minimum 1 pair (owner, 2026-11-11):
+    # averages and rates already divide by what was played, so a player with fewer pairs (often through an absent partner) still competes
     per = lambda q, k: q[k] / q["pairs"] if q["pairs"] else 0
-    cats = [("Hiệu số mỗi cặp", "diff", lambda q: (per(q, "diff"), q["diff"]), lambda q: f'{per(q, "diff"):+.1f}/cặp', 2),
-            ("Tấn công mỗi cặp", "atk", lambda q: (per(q, "atk"), q["atk"]), lambda q: f'{per(q, "atk"):.1f}/cặp', 2),
-            ("Hỗ trợ mỗi cặp", "sup", lambda q: (per(q, "sup"), q["sup"]), lambda q: f'{per(q, "sup"):.1f}/cặp', 2),
-            ("Hiệu suất ghi điểm", "eff", lambda q: q["eff"] or 0, lambda q: f'{q["eff"]}%', 2),
-            ("Chuỗi thắng cặp", "wstreak", lambda q: (q["wstreak"], per(q, "diff")), lambda q: f'{q["wstreak"]} cặp liền', 2),
-            ("Thủng lưới ít nhất", "pa", lambda q: -q["pa"] / q["pairs"], lambda q: f'{q["pa"] / q["pairs"]:.1f}/cặp', 2),
+    cats = [("Hiệu số mỗi cặp", "diff", lambda q: (per(q, "diff"), q["diff"]), lambda q: f'{per(q, "diff"):+.1f}/cặp', 1),
+            ("Tấn công mỗi cặp", "atk", lambda q: (per(q, "atk"), q["atk"]), lambda q: f'{per(q, "atk"):.1f}/cặp', 1),
+            ("Hỗ trợ mỗi cặp", "sup", lambda q: (per(q, "sup"), q["sup"]), lambda q: f'{per(q, "sup"):.1f}/cặp', 1),
+            ("Hiệu suất ghi điểm", "eff", lambda q: q["eff"] or 0, lambda q: f'{q["eff"]}%', 1),
+            ("Chuỗi thắng cặp", "wstreak", lambda q: (q["wstreak"], per(q, "diff")), lambda q: f'{q["wstreak"]} cặp liền', 1),
+            ("Thủng lưới ít nhất", "pa", lambda q: -q["pa"] / q["pairs"], lambda q: f'{q["pa"] / q["pairs"]:.1f}/cặp', 1),
             ("Chuỗi điểm dài nhất", "run", lambda q: q["run"], lambda q: f'{q["run"]} điểm', 1),
             ("Nóng nhất (nhiệt độ)", "heat", lambda q: q["heat"], lambda q: f'{q["heat"]:.1f}°', 1)]
     tag = lambda q: f'Đội {q["team"]} · seed {q["seed"]} · {q["n"]} trận · {q["pairs"]} cặp'  # noqa: E731

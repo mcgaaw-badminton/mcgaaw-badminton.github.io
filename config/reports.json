@@ -82,29 +82,29 @@
       "5-1"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Tấn công mỗi cặp",
-    "value": "19.5/cặp",
-    "id": "2-1",
-    "name": "Đoàn Anh Kiệt",
-    "tag": "Đội 2 · seed 1 · 2 trận · 4 cặp",
+    "value": "23.0/cặp",
+    "id": "3-1",
+    "name": "Nguyễn Chí Toàn",
+    "tag": "Đội 3 · seed 1 · 1 trận · 1 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
+      "Đoàn Anh Kiệt",
+      "19.5/cặp",
+      "2-1"
+     ],
+     [
       "Trương Lam",
       "16.5/cặp",
       "5-1"
-     ],
-     [
-      "Nguyễn Duy Hiệu",
-      "16.0/cặp",
-      "1-2"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Hỗ trợ mỗi cặp",
@@ -126,29 +126,29 @@
       "4-5"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Hiệu suất ghi điểm",
-    "value": "67%",
-    "id": "1-2",
-    "name": "Nguyễn Duy Hiệu",
-    "tag": "Đội 1 · seed 2 · 1 trận · 2 cặp",
+    "value": "74%",
+    "id": "3-1",
+    "name": "Nguyễn Chí Toàn",
+    "tag": "Đội 3 · seed 1 · 1 trận · 1 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
+      "Nguyễn Duy Hiệu",
+      "67%",
+      "1-2"
+     ],
+     [
       "Đoàn Anh Kiệt",
       "63%",
       "2-1"
-     ],
-     [
-      "Huỳnh Lê Anh Vũ",
-      "61%",
-      "6-2"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Chuỗi thắng cặp",
@@ -170,7 +170,7 @@
       "4-4"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Thủng lưới ít nhất",
@@ -192,7 +192,7 @@
       "5-1"
      ]
     ],
-    "min": 2
+    "min": 1
    },
    {
     "title": "Chuỗi điểm dài nhất",
