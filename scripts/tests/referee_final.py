@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import json, threading, http.server, functools
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 API='https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec'
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8798),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
@@ -37,7 +38,7 @@ def play_pair(pg,k,win_lt=True):
         pg.wait_for_timeout(355); n+=1
     pg.wait_for_timeout(1300)
 with sync_playwright() as p:
-    b=p.chromium.launch(); ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); ctx.route(API+'*',h); ctx.route('https://challenges.cloudflare.com/**', lambda r: r.fulfill(status=200, content_type='application/javascript', body=TS_STUB)); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
+    b=freeze(p.chromium.launch()); ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2); ctx.route(API+'*',h); ctx.route('https://challenges.cloudflare.com/**', lambda r: r.fulfill(status=200, content_type='application/javascript', body=TS_STUB)); pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
     for k in range(1,5): play_pair(pg,k)
     pg.goto(B+'#T1'); pg.wait_for_timeout(400); print('4/5 done, final box:', repr(pg.inner_text('#pairFinal')))
     pg.click('#plist .abs[data-abs="4"]'); pg.wait_for_timeout(300); print('pair5 absent, final box:', repr(pg.inner_text('#pairFinal')))

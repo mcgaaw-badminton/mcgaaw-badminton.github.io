@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import json, threading, http.server, functools
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 API='https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec'
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8790),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
@@ -25,7 +26,7 @@ def zone_of(pg,k):  # tap the box where player k stands, but away from the token
     z=pg.locator('#playCourt .zone.'+q); bb=z.bounding_box(); pg.mouse.click(bb['x']+bb['width']*(0.85 if q[0]=='l' else 0.15)*0+bb['width']*0.5, bb['y']+(bb['height']*0.12 if q[1]=='t' else bb['height']*0.88)); pg.wait_for_timeout(370)
     return q
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=freeze(p.chromium.launch())
     for W,H in [(360,780),(375,667),(390,844)]:
         ctx=b.new_context(viewport={'width':W,'height':H}); ctx.route(API+'*',h); pg=ctx.new_page()
         pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); pg.click('#pickServe [data-serve="a"]'); pg.click('#startBtn'); pg.wait_for_timeout(400)

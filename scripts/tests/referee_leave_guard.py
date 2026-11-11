@@ -6,6 +6,7 @@ SITE = os.path.join(ROOT, 'output', 'site')
 SHOTS = os.path.join(ROOT, 'output', 'test-shots'); os.makedirs(SHOTS, exist_ok=True)
 import json, threading, http.server, functools
 from playwright.sync_api import sync_playwright
+from _clock import freeze
 SP=SHOTS
 API='https://script.google.com/macros/s/AKfycbwokvj0XppGWxny8F3NBjy1rVPTXSQ6P0_QC2vYjY4YovIuHJRSpcXRPenYioFKU0ANhA/exec'
 srv=http.server.ThreadingHTTPServer(('127.0.0.1',8791),functools.partial(type('H',(http.server.SimpleHTTPRequestHandler,),{'log_message':lambda *a:None}),directory=SITE))
@@ -22,7 +23,7 @@ B='http://127.0.0.1:8791/trong-tai.html'
 def pair(pg): return pg.evaluate("JSON.parse(localStorage.getItem('gcl-ref-T1')).pairs[0]")
 def c(pg,s,w=250): pg.click(s); pg.wait_for_timeout(w)
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=freeze(p.chromium.launch())
     for (W,H) in [(390,844),(360,780),(375,667)]:
         ctx=b.new_context(viewport={'width':W,'height':H}); ctx.route(API+'*',lambda r:r.fulfill(status=200,content_type='application/json',headers={'access-control-allow-origin':'*'},body='{"pairs":{}}'))
         pg=ctx.new_page(); pg.goto(B+'#T1/1/vitri'); pg.wait_for_timeout(300); c(pg,'#pickServe [data-serve="a"]')
