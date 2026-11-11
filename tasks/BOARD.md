@@ -7,3 +7,4 @@ A file in the conflict zone (PROCESS.md §7) may be claimed by only one `doing`/
 |---|---|---|---|---|---|---|
 | 261107-process | Process rules for lead + agents: PROCESS.md, tasks/, preflight, verify_live | C | PROCESS.md, tasks/, scripts/preflight.py, scripts/verify_live.py, CLAUDE.md, AGENTS.md, HANDOFF.md, BASEMENT.md (header + layout only) | Claude (lead) | done | docs: no version bump |
 | 261111-ref-closed | Referee page: every phone sees closed matches (server Chốt list), past closed matches hidden behind "Đã chốt" | B (owner asked) | web/ref.js, web/ref.css | Claude (lead, solo) | done | v1.25.1 |
+| 261111-album-doi-1-2 | Gallery album with 4 team photos (Đội 1, Đội 2) | C | gallery/01-doi-1-va-doi-2/ | Claude (lead, solo) | done | v1.25.2 |
