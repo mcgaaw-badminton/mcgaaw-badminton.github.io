@@ -254,6 +254,10 @@ def stats(teams_cfg, matches, placements):
             if placements[m["code"]] == 2:
                 T[m[m["winner"]]["team"]]["place"] = 1
     for row in T.values():
+        # per pair played: absent pairs (not played) must not cost or earn a team anything (owner, 2026-11-11)
+        row["pp"] = row["pw"] + row["pl"]
+        row["prate"] = round(100 * row["pw"] / row["pp"], 1) if row["pp"] else None
+        row["dpp"] = round((row["pf"] - row["pa"]) / row["pp"], 1) if row["pp"] else None
         row["status"] = ("champ" if row["place"] == 1 else "runner" if row["place"] == 2 else
                          "out" if row["place"] else "lose" if row["l"] else "win")
         row["form"] = row["form"][-5:]
@@ -263,7 +267,8 @@ def stats(teams_cfg, matches, placements):
             return (0, r["place"], 0, 0, 0, 0, int(r["team"]))
         if r["place"]:
             return (2, r["place"], 0, 0, 0, 0, int(r["team"]))
-        return (1, 0, -r["w"], r["l"], -(r["pw"] - r["pl"]), -(r["pf"] - r["pa"]), int(r["team"]))
+        # wins, losses, then rates per pair played (pair win rate, point diff per pair) so absent pairs do not skew it
+        return (1, 0, -r["w"], r["l"], -(r["prate"] or 0), -(r["dpp"] or 0), int(r["team"]))
     table = sorted(T.values(), key=key)
     for i, r in enumerate(table, 1):
         r["pos"] = i

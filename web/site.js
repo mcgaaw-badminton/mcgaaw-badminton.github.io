@@ -1257,14 +1257,17 @@
     var bar = $('bxhBar'), body = $('bxhBody'), note = $('bxhNote');
     var state = { tab: 'player', teamFilter: 'all', matchFilter: 'all', matchTeam: '', metric: 'eggs', pTeam: '', pSeed: '', pFem: false, showAll: false };
     var STATUS = { champ: ['Vô địch', 'champ'], runner: ['Á quân', 'win'], win: ['Nhánh thắng', 'win'], lose: ['Nhánh thua', 'lose'], out: ['Đã dừng', 'out'] };
+    function avg(k) { return function (p) { return p.played ? (p[k] || 0) / p.played : -1e9; }; }
+    function avgTxt(k, signed) { return function (p) { if (!p.played) return '–'; var v = (p[k] || 0) / p.played, t = (Math.round(v * 10) / 10).toFixed(1).replace('.0', ''); return (signed && v > 0 ? '+' : '') + t + '<small class="per">/cặp</small>'; }; }
     var METRICS = [
       ['heat', 'Nhiệt độ', function (p) { return p.heat; }, function (p) { return p.heat.toFixed(1) + '°'; }],
       ['eggs', 'Hoa', function (p) { return EGG.get(p.id); }, function (p) { return EGG.get(p.id); }],
       ['won', 'Cặp thắng', function (p) { return p.won; }, function (p) { return p.won; }],
-      ['pf', 'Điểm ghi', function (p) { return p.pf; }, function (p) { return p.pf; }],
-      ['atk', 'Tấn công', function (p) { return p.atk || 0; }, function (p) { return p.atk || 0; }],
-      ['sup', 'Hỗ trợ', function (p) { return p.sup || 0; }, function (p) { return p.sup || 0; }],
-      ['diff', 'Hiệu số', function (p) { return p.diff; }, function (p) { return (p.diff > 0 ? '+' : '') + p.diff; }],
+      /* point metrics rank by the average per pair played (owner, 2026-11-11): a player who missed a pair is not behind for it */
+      ['pf', 'Điểm ghi', avg('pf'), avgTxt('pf'), 'pf'],
+      ['atk', 'Tấn công', avg('atk'), avgTxt('atk'), 'atk'],
+      ['sup', 'Hỗ trợ', avg('sup'), avgTxt('sup'), 'sup'],
+      ['diff', 'Hiệu số', avg('diff'), avgTxt('diff', true), 'diff'],
       ['rate', 'Tỉ lệ thắng', function (p) { return p.rate == null ? -1 : p.rate; }, function (p) { return p.rate == null ? '–' : p.rate + '%'; }]
     ];
     function sign(n) { return (n > 0 ? '+' : '') + n; }
@@ -1288,14 +1291,14 @@
         return r.status === state.teamFilter;
       });
       if (!rows.length) { body.innerHTML = '<p class="board-empty">Không có đội nào ở nhóm này.</p>'; return; }
-      body.innerHTML = '<div class="tbl-scroll"><table class="tbl"><caption class="sr">Bảng xếp hạng đội</caption><thead><tr><th class="l">#</th><th class="l">Đội</th><th>Trận</th><th>Thắng</th><th>Thua</th><th class="opt">Cặp</th><th class="opt">Điểm</th><th>Hiệu số</th><th class="opt">Phong độ</th><th>Trạng thái</th></tr></thead><tbody>' +
+      body.innerHTML = '<div class="tbl-scroll"><table class="tbl"><caption class="sr">Bảng xếp hạng đội</caption><thead><tr><th class="l">#</th><th class="l">Đội</th><th>Trận</th><th>Thắng</th><th>Thua</th><th class="opt">Cặp</th><th class="opt">Điểm</th><th>Hiệu số</th><th>HS/cặp</th><th class="opt">Phong độ</th><th>Trạng thái</th></tr></thead><tbody>' +
         rows.map(function (r) {
           var st = STATUS[r.status], hd = r.pf - r.pa;
           var form = r.form.length ? r.form.map(function (f) { return '<i class="' + (f.win ? 'fw' : 'fl') + '" title="' + f.code + '">' + (f.win ? 'T' : 'B') + '</i>'; }).join('') : '<span class="none">–</span>';
           return '<tr class="' + (r.pos === 1 && ST.played ? 'top' : '') + '"><td class="pos">' + r.pos + '</td><td class="l tm">' + esc(teamById[r.team].name) + '</td><td>' + r.played + '</td><td class="strong">' + r.w + '</td><td>' + r.l + '</td>' +
-            '<td class="opt">' + r.pw + '–' + r.pl + '</td><td class="opt">' + r.pf + '–' + r.pa + '</td><td class="strong ' + dcls(hd) + '">' + sign(hd) + '</td><td class="opt"><span class="form">' + form + '</span></td><td><span class="badge ' + st[1] + '">' + st[0] + '</span></td></tr>';
+            '<td class="opt">' + r.pw + '–' + r.pl + '</td><td class="opt">' + r.pf + '–' + r.pa + '</td><td class="' + dcls(hd) + '">' + sign(hd) + '</td><td class="strong ' + dcls(r.dpp || 0) + '">' + (r.dpp == null ? '–' : sign(r.dpp)) + '</td><td class="opt"><span class="form">' + form + '</span></td><td><span class="badge ' + st[1] + '">' + st[0] + '</span></td></tr>';
         }).join('') + '</tbody></table></div>';
-      note.textContent = 'Xếp theo: vô địch / á quân, rồi số trận thắng, ít trận thua, hiệu số cặp, hiệu số điểm. Đội bị loại xếp theo vòng bị loại.';
+      note.textContent = 'Xếp theo: vô địch / á quân, rồi số trận thắng, ít trận thua, tỉ lệ thắng cặp, hiệu số điểm mỗi cặp (HS/cặp = tổng hiệu số chia số cặp đã đấu, cặp vắng không tính). Đội bị loại xếp theo vòng bị loại.';
     }
 
     function renderMatch() {
@@ -1360,6 +1363,9 @@
           var w = Math.max(4, Math.min(100, (p.heat - 20) / 25 * 100));
           sub = '<span class="thermo" aria-hidden="true"><i style="width:' + w.toFixed(0) + '%"></i></span>' +
             (p.played ? '<small class="trend ' + (p.trend > 0 ? 'up' : p.trend < 0 ? 'down' : '') + '">' + (p.trend > 0 ? '▲ +' + p.trend : p.trend < 0 ? '▼ ' + p.trend : 'giữ nguyên') + '</small>' : '<small>theo seed</small>');
+        } else if (M[4]) {
+          var tot = p[M[4]] || 0;
+          sub = '<small>tổng ' + (M[4] === 'diff' && tot > 0 ? '+' : '') + tot + ' · ' + p.played + ' cặp</small>';
         } else {
           sub = '<small>' + p.played + ' cặp · ' + p.won + 'T ' + p.lost + 'B</small>';
         }
@@ -1374,7 +1380,7 @@
         ? 'Bấm nút bông hoa ở mỗi dòng để tặng hoa, mỗi lần ra một bông khác nhau. 10 bông mới gói thành 1 bó. Bấm liền 3 lần để vào chuỗi hoa. ' + (EGG.state() === 'local' ? 'Hiện đang đếm trên máy của bạn, chưa nối bảng chung.' : 'Đếm chung cho mọi người, cập nhật trực tiếp.')
         : state.metric === 'heat'
         ? 'Nhiệt độ 20°–45°: lúc đầu tính theo seed; sau mỗi trận, tỉ lệ thắng cặp và hiệu số điểm của chính VĐV dần thay thế điểm khởi đầu. Mũi tên so với trước trận gần nhất.'
-        : 'Chỉ số tính từ điểm từng cặp đã nhập. ' + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
+        : (/^(pf|atk|sup|diff)$/.test(state.metric) ? 'Xếp theo trung bình mỗi cặp đã đấu (tổng chia số cặp), nên VĐV vắng cặp không bị thiệt. ' : 'Chỉ số tính từ điểm từng cặp đã nhập. ') + (ST.played ? '' : 'Chưa có trận nào, tạm xếp theo seed.');
     }
 
     function render() {

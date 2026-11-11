@@ -304,7 +304,12 @@
       if (!M) renderList(); else if (!$('scrPairs').hidden) renderPairs();
     }).catch(function () {});
   }
-  function closedOf(code) { return MODE === 'live' && FIN[code] ? FIN[code] : null; }
+  function closedOf(code) {
+    if (MODE !== 'live') return null;
+    if (FIN[code]) return FIN[code];
+    var m = S.matches.filter(function (x) { return x.code === code && x.result; })[0];  // result typed in config (e.g. a match with an absent pair)
+    return m ? { report: '', a: m.result.a, b: m.result.b, typed: true } : null;
+  }
   function renderList() {
     pullFinals();
     $('modePick').innerHTML = [['live', 'Chính thức', 'Tính vào bảng xếp hạng'], ['demo', 'Demo', 'Tập thử, không tính']].map(function (o) {
@@ -457,7 +462,7 @@
   function canFinal() { return API && MODE === 'live' && ST.pairs.every(function (p) { return p.done && !p.absent; }); }
   function finalBox() {
     var cf = closedOf(M.code), mine = ST.final && ST.final.state === 'ok' && ST.final.report === (cf && cf.report);
-    var srv = cf && !mine ? '<p class="submit ok"><b>✓ ' + M.code + ' đã chốt · mã #' + esc(cf.report) + ' · ' + cf.a + '–' + cf.b + '</b><span>Lúc ' + clockTime(Date.parse(cf.at)) + '. Lịch và bảng xếp hạng đang dùng bản chốt này. Chỉ sửa khi trọng tài thống nhất, rồi phải chốt lại.</span></p>' : '';
+    var srv = cf && !mine ? '<p class="submit ok"><b>✓ ' + M.code + ' đã chốt · ' + (cf.typed ? 'ban tổ chức nhập' : 'mã #' + esc(cf.report)) + ' · ' + cf.a + '–' + cf.b + '</b><span>' + (cf.typed ? '' : 'Lúc ' + clockTime(Date.parse(cf.at)) + '. ') + 'Lịch và bảng xếp hạng đang dùng bản chốt này. Chỉ sửa khi trọng tài thống nhất, rồi phải chốt lại.</span></p>' : '';
     return srv + finalBoxInner();
   }
   function finalBoxInner() {
