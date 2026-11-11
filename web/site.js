@@ -1163,11 +1163,10 @@
     }
     var ROWS = [  // label, value, text, higher is better (null = not ranked)
       ['Nhiệt độ', function (q) { return q.heat; }, function (q) { return q.heat.toFixed(1) + '°'; }, true],
-      ['Trận đã đấu', function (q) { return q.n; }, function (q) { return q.n; }, null],
-      ['Cặp đã đấu', function (q) { return q.pairs; }, function (q) { return q.pairs; }, null],
+      ['Trận · cặp', function (q) { return q.pairs; }, function (q) { return q.n + ' · ' + q.pairs; }, null],  // 9 tiles = 3 full rows
       ['Cặp thắng–thua', function (q) { return q.won; }, function (q) { return q.won + '–' + (q.pairs - q.won); }, true],
       ['Hiệu số / cặp', function (q) { return q.pairs ? q.diff / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.diff > 0 ? '+' : '') + (q.diff / q.pairs).toFixed(1) : '–'; }, true],
-      ['Thua / cặp', function (q) { return q.pairs ? -q.pa / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.pa / q.pairs).toFixed(1) : '–'; }, true],
+      ['Thủng lưới / cặp', function (q) { return q.pairs ? -q.pa / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.pa / q.pairs).toFixed(1) : '–'; }, true],
       ['Tấn công / cặp', function (q) { return q.pairs ? q.atk / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.atk / q.pairs).toFixed(1) : '–'; }, true],
       ['Hỗ trợ / cặp', function (q) { return q.pairs ? q.sup / q.pairs : -1e9; }, function (q) { return q.pairs ? (q.sup / q.pairs).toFixed(1) : '–'; }, true],
       ['Hiệu suất', function (q) { return q.eff == null ? -1 : q.eff; }, function (q) { return q.eff == null ? '–' : q.eff + '%'; }, true],
@@ -1196,14 +1195,14 @@
       var isHot = q.rank === 1 || q.heat >= 40;
       var auraCls = isHot ? ' heat-aura' : '';
 
-      var gaugeHtml = '<div class="pm-gauge-box' + auraCls + '">' +
+      var gaugeHtml = '<div class="pm-gauge-box' + auraCls + '"><div class="pm-gauge-arc">' +
         '<svg viewBox="0 0 100 56" class="pm-gauge-svg" aria-hidden="true">' +
           '<path d="M 12 48 A 38 38 0 0 1 88 48" class="pm-gauge-bg" stroke-width="7" stroke-linecap="round" fill="none"/>' +
           '<path d="M 12 48 A 38 38 0 0 1 88 48" class="pm-gauge-val" stroke-width="7" stroke-linecap="round" fill="none" stroke-dasharray="126" stroke-dashoffset="' + dashoffset + '"/>' +
-        '</svg>' +
-        '<div class="pm-gauge-text">' +
-          '<b>' + q.heat.toFixed(1) + '°</b>' +
-          '<small><span class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</span> · #' + q.rank + '/30</small>' +
+        '</svg><b>' + q.heat.toFixed(1) + '°</b></div>' +
+        '<div class="pm-gauge-text"><small>Nhiệt độ</small>' +
+          '<span class="trend ' + (q.trend > 0 ? 'up' : q.trend < 0 ? 'down' : '') + '">' + tr + '</span>' +
+          '<span class="pm-rank">Hạng ' + q.rank + '/30</span>' +
         '</div>' +
       '</div>';
 

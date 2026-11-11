@@ -151,8 +151,8 @@
     "min": 2
    },
    {
-    "title": "Tỉ lệ thắng cặp",
-    "value": "100%",
+    "title": "Chuỗi thắng cặp",
+    "value": "4 cặp liền",
     "id": "2-3",
     "name": "Lữ Thị Trang",
     "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
@@ -161,12 +161,12 @@
     "rest": [
      [
       "Đoàn Anh Kiệt",
-      "100%",
+      "4 cặp liền",
       "2-1"
      ],
      [
       "Nguyễn Văn Hùng",
-      "100%",
+      "3 cặp liền",
       "4-4"
      ]
     ],

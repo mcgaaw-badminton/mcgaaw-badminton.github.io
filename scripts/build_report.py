@@ -385,6 +385,11 @@ def goat_main(args):
         q["n"], q["diff"], q["heat"] = len(q["matches"]), q["pf"] - q["pa"], heat.get(q["id"], 0)
         q["rate"] = round(100 * q["won"] / q["pairs"]) if q["pairs"] else None
         q["eff"] = round(100 * q["atk"] / q["pf"]) if q["pf"] else None
+        best = cur = 0  # longest run of pairs won in a row, in match then pair order (replaced "Tỉ lệ thắng cặp", owner 2026-11-11)
+        for g in sorted(q["log"], key=lambda g: (int(g["c"][1:]), g["k"])):
+            cur = cur + 1 if g["s"][0] > g["s"][1] else 0
+            best = max(best, cur)
+        q["wstreak"] = best
     played = [q for q in P.values() if q["pairs"]]
     asof = max((ms[c]["date"] for c in codes), key=lambda d: d.split("/")[::-1])
     # totals divided by pairs played (owner, 2026-11-11): absent pairs must not decide a title; at least 2 pairs
@@ -393,7 +398,7 @@ def goat_main(args):
             ("Tấn công mỗi cặp", "atk", lambda q: (per(q, "atk"), q["atk"]), lambda q: f'{per(q, "atk"):.1f}/cặp', 2),
             ("Hỗ trợ mỗi cặp", "sup", lambda q: (per(q, "sup"), q["sup"]), lambda q: f'{per(q, "sup"):.1f}/cặp', 2),
             ("Hiệu suất ghi điểm", "eff", lambda q: q["eff"] or 0, lambda q: f'{q["eff"]}%', 2),
-            ("Tỉ lệ thắng cặp", "rate", lambda q: (q["rate"] or 0, q["diff"]), lambda q: f'{q["rate"]}%', 2),
+            ("Chuỗi thắng cặp", "wstreak", lambda q: (q["wstreak"], per(q, "diff")), lambda q: f'{q["wstreak"]} cặp liền', 2),
             ("Thủng lưới ít nhất", "pa", lambda q: -q["pa"] / q["pairs"], lambda q: f'{q["pa"] / q["pairs"]:.1f}/cặp', 2),
             ("Chuỗi điểm dài nhất", "run", lambda q: q["run"], lambda q: f'{q["run"]} điểm', 1),
             ("Nóng nhất (nhiệt độ)", "heat", lambda q: q["heat"], lambda q: f'{q["heat"]:.1f}°', 1)]
