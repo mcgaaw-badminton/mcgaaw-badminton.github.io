@@ -804,7 +804,8 @@
      same map sideways, opened at the match being played next. */
   var BK = (function () {
     var CW = 168, CH = 92, W = 1412, H = 590, X = [40, 276, 512, 748, 984, 1220];
-    var POS = { T1: [X[0], 44], T2: [X[0], 154], T3: [X[0], 264], T4: [X[1], 99], T6: [X[2], 200],
+    // Đội 5–6 had a bye: T3 stands in the semi-final column with T4 (owner 2026-11-12); T7 = losers of T4 and T3
+    var POS = { T1: [X[0], 44], T2: [X[0], 154], T4: [X[1], 99], T3: [X[1], 264], T6: [X[2], 182],
                 T5: [X[1], 452], T7: [X[2], 452], T8: [X[3], 452], T9: [X[4], 452], T10: [X[5], 326] };
     var st = { team: null, focus: null }, loss = {}, champ = finalM && finalM.winner ? finalM[finalM.winner].team : null;
     S.teams.forEach(function (t) { loss[t.id] = 0; });
@@ -827,13 +828,13 @@
         case 'T1T5': return [[L('T1'), y0], [26, y0], [26, 412], [254, 412], [254, y1], [x1, y1]];
         case 'T2T5': return [[L('T2'), y0], [12, y0], [12, 426], [238, 426], [238, y1], [x1, y1]];
         case 'T1T4': case 'T2T4': return [[R(e.from), y0], [244, y0], [244, y1], [x1, y1]];
-        case 'T3T6': return [[R('T3'), y0], [484, y0], [484, y1], [x1, y1]];
-        case 'T3T7': return [[R('T3'), y0], [496, y0], [496, y1], [x1, y1]];
-        case 'T4T6': return [[R('T4'), y0], [466, y0], [466, y1], [x1, y1]];
-        case 'T4T8': var xt = R('T4') - 26; return [[xt, POS.T4[1]], [xt, 70], [726, 70], [726, y1], [x1, y1]];
+        case 'T4T6': return [[R('T4'), y0], [462, y0], [462, y1], [x1, y1]];
+        case 'T3T6': return [[R('T3'), y0], [478, y0], [478, y1], [x1, y1]];
+        case 'T4T7': return [[R('T4'), y0], [498, y0], [498, y1], [x1, y1]];
+        case 'T3T7': return [[R('T3'), y0], [476, y0], [476, y1], [x1, y1]];
+        case 'T5T8': return [[R('T5'), y0], [456, y0], [456, 568], [730, 568], [730, y1], [x1, y1]];
         case 'T6T9': return [[R('T6'), y0], [700, y0], [700, 360], [960, 360], [960, y1], [x1, y1]];
         case 'T6T10': return [[R('T6'), y0], [1196, y0], [1196, y1], [x1, y1]];
-        case 'T5T7': return [[R('T5'), y0], [472, y0], [472, y1], [x1, y1]];
         case 'T7T8': return [[R('T7'), y0], [712, y0], [712, y1], [x1, y1]];
         case 'T8T9': return [[R('T8'), y0], [946, y0], [946, y1], [x1, y1]];
         case 'T9T10': return [[R('T9'), y0], [1204, y0], [1204, y1], [x1, y1]];
