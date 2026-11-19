@@ -13,6 +13,7 @@ Keep this file short: current state, live endpoints, how to verify, open items. 
 - Next: 25/11 T7 Đội 4–Đội 6 (losers R1) · 02/12 T8 winner T7 vs Đội 1 · 09/12 T9 Đội 5 vs winner T8 · 16/12 T10 Đội 2 vs winner T9 (structure changed by the owner 2026-11-12, v1.29.0; T3 relabelled "Bán kết"). The printed schedule/bracket posters and the 11/11 reports still show the old T7/T8 pairing until they are redone.
 - v1.25.1 (2026-11-11): the referee page reads the server Chốt list, so T1/T2 show as closed on every phone and leave "Ngày trước".
 - Gallery: album `01-doi-1-va-doi-2` (4 team photos from the owner, 2026-11-11; Đội 1 pink shirts, Đội 2 red KAIZEN shirts) after the champions album.
+- Bulletin for chat groups: `python scripts/build_site.py` then `python scripts/build_report.py poster` (after the day + goat reports are in config/reports.json) → output/Ban_tin_<date>.pdf + .png.
 - Reports published for 18/11 (day: T5, T6) and GOAT to 18/11 — v1.29.1. Earlier: 11/11 (day: T3, T4) and GOAT to 11/11 (per-pair titles) — v1.26.1. Earlier: reports for 04/11 (day + GOAT) in `downloads/` and `config/reports.json`.
 - GitHub cron builds are unreliable; with GH_TOKEN set the Chốt itself starts a build. If the site is not updated 10 min after a Chốt: `gh workflow run deploy.yml` or any push.
 - Work is split between agents by `PROCESS.md` (roles, task briefs in `tasks/`, `scripts/preflight.py`, `scripts/verify_live.py`). The PC folder is a git clone: sync it with `git pull --ff-only`, never by copying files.

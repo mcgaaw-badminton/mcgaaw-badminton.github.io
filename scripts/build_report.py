@@ -461,10 +461,66 @@ def goat_main(args):
         print(f"[PUBLISH] {paths.DOWNLOADS_IN / pdf.name} · summary {store / 'summary.json'} (copy it into config/reports.json \"goat\")")
     print(f"[OUTPUT] {pdf}")
 
+def poster_main(args):
+    """One A4-landscape bulletin to send around: latest match day (results, pair scores, highlights), GOAT titles,
+    team table and the next match. Reads config/reports.json (run the day + goat reports first) and the built
+    site data (run build_site.py first) so it shows exactly what the site shows."""
+    rep = read(paths.CONFIG / "reports.json")
+    day, goat = rep["reports"][0], rep["goat"]
+    dj = paths.SITE_OUT / "data.js"
+    if not dj.exists():
+        sys.exit("[ERROR] output/site/data.js missing: run python scripts/build_site.py first")
+    raw = dj.read_text(encoding="utf-8")
+    S = json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
+    TM = {t["id"]: t for t in S["teams"]}
+    ms = [m for m in S["matches"] if m["date"] == day["date"] and m.get("result")]
+    nxt = [m for m in S["matches"] if not m.get("result")][:2]
+    nm = lambda side: TM[side["team"]]["name"] if side.get("team") else side.get("label", "")
+    stem = "Ban_tin_" + day["date"].replace("/", "-")
+    pdf, png, page_html = paths.OUTPUT / f"{stem}.pdf", paths.OUTPUT / f"{stem}.png", paths.BUILD / f"{stem}.html"
+    print(f"[POSTER] {day['label']} · {len(ms)} matches · GOAT to {goat['asof']} · next {', '.join(m['code'] for m in nxt)}")
+    if args.dry_run:
+        print(f"[DRY-RUN] would write {page_html}, {pdf} and {png}")
+        print(f"[OUTPUT] {pdf}")
+        return
+    cards = ""
+    for m in ms:
+        r = m["result"]; wa = r["a"] > r["b"]
+        cls = lambda k: "w" if (k == "a") == wa else "l"
+        pairs = "".join(
+            (f'<span class="pp"><i>{p[0]}–{p[1]}</i><span><b class="{"w" if sc[0] > sc[1] else "l"}">{sc[0]}</b><em>:</em><b class="{"w" if sc[1] > sc[0] else "l"}">{sc[1]}</b></span></span>'
+             if sc else f'<span class="pp off"><i>{p[0]}–{p[1]}</i><span><b>vắng</b></span></span>')
+            for p, sc in zip(S["pairs"], r.get("pairs") or [None] * 5))
+        cards += (f'<div class="pm"><div class="ph"><span class="code">{e(m["code"])}</span><b>{e(m["round"])}</b><span>cặp {r["pa"]}–{r["pb"]}</span></div>'
+                  f'<div class="ps"><span class="t {cls("a")}">{e(nm(m["a"]))}</span><span class="sc"><b class="{cls("a")}">{r["a"]}</b><i>–</i><b class="{cls("b")}">{r["b"]}</b></span>'
+                  f'<span class="t r {cls("b")}">{e(nm(m["b"]))}</span></div><div class="pps">{pairs}</div></div>')
+    hl = "".join(f'<div class="hlt"><b>{e(t["v"])}</b><small>{e(t["k"])}</small></div>' for t in day["stats"][2:])
+    gl = "".join(
+        f'<div class="gr"><span class="gk">{e(c["title"])}</span><span class="gw"><b>{e(c["name"])}</b><small>{e(c["tag"].split(" · ")[0])}'
+        + (f' · đồng hạng {e(", ".join(n.split()[-1] for n in c["tie"]))}' if c.get("tie") else "") + f'</small></span><span class="gv">{e(c["value"])}</span></div>'
+        for c in goat["cats"])
+    stt = {"win": ("Chưa thua", "s-w"), "lose": ("Thua 1", "s-l"), "out": ("Rời giải", "s-o"), "champ": ("Vô địch", "s-c")}
+    bx = "".join(
+        f'<div class="br"><span class="bp">{t["pos"]}</span><b>{e(TM[t["team"]]["name"])}</b><span>{t["w"]}–{t["l"]}</span><span>{t["prate"]:.0f}%</span>'
+        f'<span class="st {stt.get(t["status"], ("", ""))[1]}">{stt.get(t["status"], ("", ""))[0]}</span></div>' for t in S["stats"]["teams"])
+    nx = "".join(f'<div class="nx"><span class="code">{e(m["code"])}</span><b>{e(m["date"][:5])}</b><span>{e(nm(m["a"]))} – {e(nm(m["b"]))}</span><small>{e(m["round"])}</small></div>' for m in nxt)
+    body = (header(e(day["eyebrow"].replace("Báo cáo", "Bản tin")).upper(), "Kết quả &amp; GOAT", e(day["sub"].rstrip(".")))
+            + f'<div class="bt-grid"><div class="col"><div class="bt">KẾT QUẢ NGÀY {e(day["date"][:5])}</div>{cards}<div class="hls">{hl}</div>'
+            f'<div class="bt">BXH ĐỘI</div><div class="bxt"><div class="bh"><span>#</span><span>Đội</span><span>Thắng–thua</span><span>Cặp thắng</span><span></span></div>{bx}</div></div>'
+            f'<div class="col"><div class="bt">GOAT · TÍNH ĐẾN {e(goat["asof"][:5])}</div><div class="gl">{gl}</div>'
+            f'<div class="bt">TRẬN TIẾP THEO</div><div class="nxs">{nx}</div><div class="web">Kết quả từng cặp, BXH vận động viên, sơ đồ thi đấu<b>mcgaaw-badminton.github.io</b></div></div></div>')
+    css = [(paths.ASSETS / f).as_uri() for f in ("sheet.css", "report.css", "poster.css")]
+    paths.BUILD.mkdir(parents=True, exist_ok=True)
+    page_html.write_text(f'<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>{stem}</title>'
+                         + "".join(f'<link rel="stylesheet" href="{c}">' for c in css) + f'</head><body><div class="page bt-page">{body}{FOOTER}</div></body></html>', encoding="utf-8")
+    subprocess.run(["node", str(paths.SCRIPTS / "render_pdf.mjs"), str(page_html), str(pdf), str(png)], check=True)
+    print(f"[OUTPUT] {png}")
+    print(f"[OUTPUT] {pdf}")
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("kind", nargs="?", choices=["day", "goat"], default="day", help="day = one match day (default) · goat = whole tournament")
+    ap.add_argument("kind", nargs="?", choices=["day", "goat", "poster"], default="day", help="day = one match day (default) · goat = whole tournament · poster = one-page bulletin (latest day + GOAT)")
     ap.add_argument("--closed-only", action="store_true", help="goat: only closed (Chốt) matches")
     ap.add_argument("--matches", nargs="*", default=[])
     ap.add_argument("--offline", action="store_true", help="use cached JSON in output/report/<date>/")
@@ -473,6 +529,8 @@ def main():
     args = ap.parse_args()
     if args.kind == "goat":
         return goat_main(args)
+    if args.kind == "poster":
+        return poster_main(args)
     teams_cfg, sched, pairs, codes, date, store, data, raw_all, finals, st = load(args)
     site = read(paths.SITE_JSON)
     teams = {t: {"name": f"Đội {t}", "members": mem} for t, mem in teams_cfg["teams"].items()}
