@@ -2,6 +2,33 @@
  "_note": "Match-day reports shown on the site: the newest one becomes the first hero slide; its PDF must be in downloads/. Generate with: python scripts/build_report.py --publish, then copy output/report/<date>/summary.json here. \"goat\": the latest GOAT summary (python scripts/build_report.py goat --publish, then copy output/report/goat/summary.json here).",
  "reports": [
   {
+   "date": "18/11/2026",
+   "day": 3,
+   "file": "Bao_cao_18-11-2026.pdf",
+   "label": "Báo cáo ngày 3 · 18/11/2026",
+   "eyebrow": "Báo cáo ngày 3 · Thứ 4 · 18/11/2026",
+   "title": "Đội 1 thắng trắng 5–0",
+   "sub": "T5: Đội 1 thắng Đội 3 155–116 · T6: Đội 2 thắng Đội 5 149–124.",
+   "stats": [
+    {
+     "v": "155–116",
+     "k": "T5 · Đội 1 thắng 5–0 cặp"
+    },
+    {
+     "v": "149–124",
+     "k": "T6 · Đội 2 thắng 4–1 cặp"
+    },
+    {
+     "v": "9 điểm",
+     "k": "Chuỗi dài nhất · Đội 1"
+    },
+    {
+     "v": "31–28",
+     "k": "Sát nút nhất · T5 · cặp 3"
+    }
+   ]
+  },
+  {
    "date": "11/11/2026",
    "day": 2,
    "file": "Bao_cao_11-11-2026.pdf",
@@ -57,111 +84,115 @@
   }
  ],
  "goat": {
-  "asof": "11/11/2026",
-  "file": "Bao_cao_GOAT_11-11-2026.pdf",
-  "label": "Báo cáo GOAT · tính đến 11/11/2026",
-  "scope": "4 lượt trận (T1, T2, T3, T4) · 17 cặp · 28/30 VĐV đã ra sân · tính mọi cặp đã đấu xong (gồm cả trận chưa chốt)",
+  "asof": "18/11/2026",
+  "file": "Bao_cao_GOAT_18-11-2026.pdf",
+  "label": "Báo cáo GOAT · tính đến 18/11/2026",
+  "scope": "6 lượt trận (T1, T2, T3, T4, T5, T6) · 27 cặp · 30/30 VĐV đã ra sân · tính mọi cặp đã đấu xong (gồm cả trận chưa chốt)",
   "cats": [
    {
     "title": "Hiệu số mỗi cặp",
-    "value": "+18.8/cặp",
+    "value": "+16.3/cặp",
     "id": "2-3",
     "name": "Lữ Thị Trang",
-    "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
+    "tag": "Đội 2 · seed 3 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
       "Đoàn Anh Kiệt",
-      "+16.8/cặp",
+      "+14.7/cặp",
       "2-1"
      ],
      [
-      "Trương Lam",
-      "+14.5/cặp",
-      "5-1"
+      "Nguyễn Văn Hùng",
+      "+11.3/cặp",
+      "4-4"
      ]
     ],
     "min": 1
    },
    {
     "title": "Tấn công mỗi cặp",
-    "value": "23.0/cặp",
-    "id": "3-1",
-    "name": "Nguyễn Chí Toàn",
-    "tag": "Đội 3 · seed 1 · 1 trận · 1 cặp",
+    "value": "20.2/cặp",
+    "id": "2-1",
+    "name": "Đoàn Anh Kiệt",
+    "tag": "Đội 2 · seed 1 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
-      "Đoàn Anh Kiệt",
-      "19.5/cặp",
-      "2-1"
+      "Nguyễn Chí Toàn",
+      "17.3/cặp",
+      "3-1"
      ],
      [
-      "Trương Lam",
-      "16.5/cặp",
-      "5-1"
+      "Nguyễn Duy Hiệu",
+      "17.0/cặp",
+      "1-2"
      ]
     ],
     "min": 1
    },
    {
     "title": "Hỗ trợ mỗi cặp",
-    "value": "18.2/cặp",
-    "id": "2-3",
-    "name": "Lữ Thị Trang",
-    "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
+    "value": "16.8/cặp",
+    "id": "2-2",
+    "name": "Trần Võ Toàn Phát",
+    "tag": "Đội 2 · seed 2 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
-      "Trần Võ Toàn Phát",
-      "17.0/cặp",
-      "2-2"
-     ],
-     [
       "Đỗ Sơn Tây",
       "16.8/cặp",
       "4-5"
+     ],
+     [
+      "Lữ Thị Trang",
+      "16.7/cặp",
+      "2-3"
      ]
     ],
     "min": 1
    },
    {
     "title": "Hiệu suất ghi điểm",
-    "value": "74%",
-    "id": "3-1",
-    "name": "Nguyễn Chí Toàn",
-    "tag": "Đội 3 · seed 1 · 1 trận · 1 cặp",
-    "tie": [],
-    "tie_ids": [],
+    "value": "65%",
+    "id": "2-1",
+    "name": "Đoàn Anh Kiệt",
+    "tag": "Đội 2 · seed 1 · 3 trận · 6 cặp",
+    "tie": [
+     "Nguyễn Chí Toàn"
+    ],
+    "tie_ids": [
+     "3-1"
+    ],
     "rest": [
      [
-      "Nguyễn Duy Hiệu",
-      "67%",
-      "1-2"
+      "Nguyễn Chí Toàn",
+      "65%",
+      "3-1"
      ],
      [
-      "Đoàn Anh Kiệt",
-      "63%",
-      "2-1"
+      "Nguyễn Duy Hiệu",
+      "62%",
+      "1-2"
      ]
     ],
     "min": 1
    },
    {
     "title": "Chuỗi thắng cặp",
-    "value": "4 cặp liền",
+    "value": "6 cặp liền",
     "id": "2-3",
     "name": "Lữ Thị Trang",
-    "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
+    "tag": "Đội 2 · seed 3 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
       "Đoàn Anh Kiệt",
-      "4 cặp liền",
+      "6 cặp liền",
       "2-1"
      ],
      [
@@ -174,22 +205,22 @@
    },
    {
     "title": "Thủng lưới ít nhất",
-    "value": "12.2/cặp",
+    "value": "14.7/cặp",
     "id": "2-3",
     "name": "Lữ Thị Trang",
-    "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
+    "tag": "Đội 2 · seed 3 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
       "Đoàn Anh Kiệt",
-      "14.2/cặp",
+      "16.3/cặp",
       "2-1"
      ],
      [
-      "Trương Lam",
-      "16.5/cặp",
-      "5-1"
+      "Nguyễn Văn Hùng",
+      "19.7/cặp",
+      "4-4"
      ]
     ],
     "min": 1
@@ -199,7 +230,7 @@
     "value": "10 điểm",
     "id": "2-3",
     "name": "Lữ Thị Trang",
-    "tag": "Đội 2 · seed 3 · 2 trận · 4 cặp",
+    "tag": "Đội 2 · seed 3 · 3 trận · 6 cặp",
     "tie": [
      "Nguyễn Thị Diệp Sương",
      "Trương Lam",
@@ -226,22 +257,22 @@
    },
    {
     "title": "Nóng nhất (nhiệt độ)",
-    "value": "44.7°",
+    "value": "44.8°",
     "id": "2-1",
     "name": "Đoàn Anh Kiệt",
-    "tag": "Đội 2 · seed 1 · 2 trận · 4 cặp",
+    "tag": "Đội 2 · seed 1 · 3 trận · 6 cặp",
     "tie": [],
     "tie_ids": [],
     "rest": [
      [
-      "Trương Lam",
-      "42.8°",
-      "5-1"
+      "Lữ Thị Trang",
+      "42.4°",
+      "2-3"
      ],
      [
-      "Nguyễn Chí Toàn",
-      "42.5°",
-      "3-1"
+      "Nguyễn Thái Thịnh",
+      "39.8°",
+      "5-2"
      ]
     ],
     "min": 1
@@ -249,17 +280,17 @@
   ],
   "players": {
    "1-1": {
-    "n": 1,
-    "pairs": 2,
-    "won": 0,
-    "pf": 26,
-    "pa": 62,
-    "diff": -36,
-    "atk": 9,
-    "sup": 17,
-    "eff": 35,
-    "rate": 0,
-    "run": 4,
+    "n": 2,
+    "pairs": 4,
+    "won": 2,
+    "pf": 88,
+    "pa": 111,
+    "diff": -23,
+    "atk": 38,
+    "sup": 50,
+    "eff": 43,
+    "rate": 50,
+    "run": 7,
     "log": [
      {
       "c": "T1",
@@ -288,21 +319,49 @@
       "sup": 4,
       "run": 1,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 1,
+      "mate": "Hiệu",
+      "opp": "Toàn · Nhuận",
+      "s": [
+       31,
+       24
+      ],
+      "atk": 12,
+      "sup": 19,
+      "run": 7,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 4,
+      "mate": "Minh",
+      "opp": "Toàn · Tín",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 17,
+      "sup": 14,
+      "run": 4,
+      "closed": true
      }
     ]
    },
    "1-2": {
-    "n": 1,
-    "pairs": 2,
-    "won": 0,
-    "pf": 48,
-    "pa": 62,
-    "diff": -14,
-    "atk": 32,
-    "sup": 16,
-    "eff": 67,
-    "rate": 0,
-    "run": 5,
+    "n": 2,
+    "pairs": 4,
+    "won": 2,
+    "pf": 110,
+    "pa": 114,
+    "diff": -4,
+    "atk": 68,
+    "sup": 42,
+    "eff": 62,
+    "rate": 50,
+    "run": 7,
     "log": [
      {
       "c": "T1",
@@ -331,21 +390,49 @@
       "sup": 9,
       "run": 5,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 1,
+      "mate": "Tri",
+      "opp": "Toàn · Nhuận",
+      "s": [
+       31,
+       24
+      ],
+      "atk": 19,
+      "sup": 12,
+      "run": 7,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 3,
+      "mate": "Tiễn",
+      "opp": "Nhuận · Sáng",
+      "s": [
+       31,
+       28
+      ],
+      "atk": 17,
+      "sup": 14,
+      "run": 6,
+      "closed": true
      }
     ]
    },
    "1-3": {
-    "n": 1,
-    "pairs": 2,
-    "won": 0,
-    "pf": 20,
-    "pa": 62,
-    "diff": -42,
-    "atk": 11,
-    "sup": 9,
-    "eff": 55,
-    "rate": 0,
-    "run": 2,
+    "n": 2,
+    "pairs": 4,
+    "won": 2,
+    "pf": 82,
+    "pa": 109,
+    "diff": -27,
+    "atk": 40,
+    "sup": 42,
+    "eff": 49,
+    "rate": 50,
+    "run": 9,
     "log": [
      {
       "c": "T1",
@@ -374,21 +461,49 @@
       "sup": 2,
       "run": 1,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 2,
+      "mate": "Vấn",
+      "opp": "Tín · Quân",
+      "s": [
+       31,
+       22
+      ],
+      "atk": 15,
+      "sup": 16,
+      "run": 9,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 4,
+      "mate": "Tri",
+      "opp": "Toàn · Tín",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 14,
+      "sup": 17,
+      "run": 4,
+      "closed": true
      }
     ]
    },
    "1-4": {
-    "n": 1,
-    "pairs": 2,
-    "won": 0,
-    "pf": 48,
-    "pa": 62,
-    "diff": -14,
-    "atk": 21,
-    "sup": 27,
-    "eff": 44,
-    "rate": 0,
-    "run": 5,
+    "n": 2,
+    "pairs": 4,
+    "won": 2,
+    "pf": 110,
+    "pa": 107,
+    "diff": 3,
+    "atk": 47,
+    "sup": 63,
+    "eff": 43,
+    "rate": 50,
+    "run": 6,
     "log": [
      {
       "c": "T1",
@@ -417,21 +532,49 @@
       "sup": 8,
       "run": 3,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 3,
+      "mate": "Hiệu",
+      "opp": "Nhuận · Sáng",
+      "s": [
+       31,
+       28
+      ],
+      "atk": 14,
+      "sup": 17,
+      "run": 6,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 5,
+      "mate": "Vấn",
+      "opp": "Sáng · Quân",
+      "s": [
+       31,
+       17
+      ],
+      "atk": 12,
+      "sup": 19,
+      "run": 6,
+      "closed": true
      }
     ]
    },
    "1-5": {
-    "n": 1,
-    "pairs": 2,
-    "won": 0,
-    "pf": 34,
-    "pa": 62,
-    "diff": -28,
-    "atk": 15,
-    "sup": 19,
-    "eff": 44,
-    "rate": 0,
-    "run": 3,
+    "n": 2,
+    "pairs": 4,
+    "won": 2,
+    "pf": 96,
+    "pa": 101,
+    "diff": -5,
+    "atk": 50,
+    "sup": 46,
+    "eff": 52,
+    "rate": 50,
+    "run": 9,
     "log": [
      {
       "c": "T1",
@@ -460,19 +603,47 @@
       "sup": 12,
       "run": 3,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 2,
+      "mate": "Minh",
+      "opp": "Tín · Quân",
+      "s": [
+       31,
+       22
+      ],
+      "atk": 16,
+      "sup": 15,
+      "run": 9,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 5,
+      "mate": "Tiễn",
+      "opp": "Sáng · Quân",
+      "s": [
+       31,
+       17
+      ],
+      "atk": 19,
+      "sup": 12,
+      "run": 6,
+      "closed": true
      }
     ]
    },
    "2-1": {
-    "n": 2,
-    "pairs": 4,
-    "won": 4,
-    "pf": 124,
-    "pa": 57,
-    "diff": 67,
-    "atk": 78,
-    "sup": 46,
-    "eff": 63,
+    "n": 3,
+    "pairs": 6,
+    "won": 6,
+    "pf": 186,
+    "pa": 98,
+    "diff": 88,
+    "atk": 121,
+    "sup": 65,
+    "eff": 65,
     "rate": 100,
     "run": 9,
     "log": [
@@ -531,20 +702,48 @@
       "sup": 9,
       "run": 7,
       "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 1,
+      "mate": "Phát",
+      "opp": "Lam · Thịnh",
+      "s": [
+       31,
+       27
+      ],
+      "atk": 21,
+      "sup": 10,
+      "run": 5,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 4,
+      "mate": "Trang",
+      "opp": "Lam · Khang",
+      "s": [
+       31,
+       14
+      ],
+      "atk": 22,
+      "sup": 9,
+      "run": 8,
+      "closed": true
      }
     ]
    },
    "2-2": {
-    "n": 2,
-    "pairs": 4,
-    "won": 3,
-    "pf": 116,
-    "pa": 97,
-    "diff": 19,
-    "atk": 48,
-    "sup": 68,
+    "n": 3,
+    "pairs": 6,
+    "won": 4,
+    "pf": 172,
+    "pa": 155,
+    "diff": 17,
+    "atk": 71,
+    "sup": 101,
     "eff": 41,
-    "rate": 75,
+    "rate": 67,
     "run": 7,
     "log": [
      {
@@ -602,19 +801,47 @@
       "sup": 14,
       "run": 4,
       "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 1,
+      "mate": "Kiệt",
+      "opp": "Lam · Thịnh",
+      "s": [
+       31,
+       27
+      ],
+      "atk": 10,
+      "sup": 21,
+      "run": 5,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 3,
+      "mate": "Kha",
+      "opp": "Thịnh · Phi",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 13,
+      "sup": 12,
+      "run": 4,
+      "closed": true
      }
     ]
    },
    "2-3": {
-    "n": 2,
-    "pairs": 4,
-    "won": 4,
-    "pf": 124,
-    "pa": 49,
-    "diff": 75,
-    "atk": 51,
-    "sup": 73,
-    "eff": 41,
+    "n": 3,
+    "pairs": 6,
+    "won": 6,
+    "pf": 186,
+    "pa": 88,
+    "diff": 98,
+    "atk": 86,
+    "sup": 100,
+    "eff": 46,
     "rate": 100,
     "run": 10,
     "log": [
@@ -673,19 +900,47 @@
       "sup": 22,
       "run": 7,
       "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 2,
+      "mate": "Sương",
+      "opp": "Khang · Chi",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 26,
+      "sup": 5,
+      "run": 7,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 4,
+      "mate": "Kiệt",
+      "opp": "Lam · Khang",
+      "s": [
+       31,
+       14
+      ],
+      "atk": 9,
+      "sup": 22,
+      "run": 8,
+      "closed": true
      }
     ]
    },
    "2-4": {
-    "n": 2,
-    "pairs": 4,
-    "won": 2,
-    "pf": 104,
-    "pa": 110,
-    "diff": -6,
-    "atk": 51,
-    "sup": 53,
-    "eff": 49,
+    "n": 3,
+    "pairs": 6,
+    "won": 3,
+    "pf": 160,
+    "pa": 168,
+    "diff": -8,
+    "atk": 86,
+    "sup": 74,
+    "eff": 54,
     "rate": 50,
     "run": 8,
     "log": [
@@ -744,20 +999,48 @@
       "sup": 11,
       "run": 3,
       "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 3,
+      "mate": "Phát",
+      "opp": "Thịnh · Phi",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 12,
+      "sup": 13,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 5,
+      "mate": "Sương",
+      "opp": "Phi · Chi",
+      "s": [
+       31,
+       27
+      ],
+      "atk": 23,
+      "sup": 8,
+      "run": 5,
+      "closed": true
      }
     ]
    },
    "2-5": {
-    "n": 2,
-    "pairs": 4,
-    "won": 3,
-    "pf": 112,
-    "pa": 81,
-    "diff": 31,
-    "atk": 62,
-    "sup": 50,
-    "eff": 55,
-    "rate": 75,
+    "n": 3,
+    "pairs": 6,
+    "won": 5,
+    "pf": 174,
+    "pa": 133,
+    "diff": 41,
+    "atk": 75,
+    "sup": 99,
+    "eff": 43,
+    "rate": 83,
     "run": 10,
     "log": [
      {
@@ -815,20 +1098,48 @@
       "sup": 8,
       "run": 3,
       "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 2,
+      "mate": "Trang",
+      "opp": "Khang · Chi",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 5,
+      "sup": 26,
+      "run": 7,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 5,
+      "mate": "Kha",
+      "opp": "Phi · Chi",
+      "s": [
+       31,
+       27
+      ],
+      "atk": 8,
+      "sup": 23,
+      "run": 5,
+      "closed": true
      }
     ]
    },
    "3-1": {
-    "n": 1,
-    "pairs": 1,
+    "n": 2,
+    "pairs": 3,
     "won": 1,
-    "pf": 31,
-    "pa": 29,
-    "diff": 2,
-    "atk": 23,
-    "sup": 8,
-    "eff": 74,
-    "rate": 100,
+    "pf": 80,
+    "pa": 91,
+    "diff": -11,
+    "atk": 52,
+    "sup": 28,
+    "eff": 65,
+    "rate": 33,
     "run": 4,
     "log": [
      {
@@ -844,34 +1155,91 @@
       "sup": 8,
       "run": 4,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 1,
+      "mate": "Nhuận",
+      "opp": "Tri · Hiệu",
+      "s": [
+       24,
+       31
+      ],
+      "atk": 13,
+      "sup": 11,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 4,
+      "mate": "Tín",
+      "opp": "Tri · Minh",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 16,
+      "sup": 9,
+      "run": 4,
+      "closed": true
      }
     ]
    },
    "3-2": {
-    "n": 0,
-    "pairs": 0,
-    "won": 0,
-    "pf": 0,
-    "pa": 0,
-    "diff": 0,
-    "atk": 0,
-    "sup": 0,
-    "eff": null,
-    "rate": null,
-    "run": 0,
-    "log": []
-   },
-   "3-3": {
     "n": 1,
     "pairs": 2,
+    "won": 0,
+    "pf": 52,
+    "pa": 62,
+    "diff": -10,
+    "atk": 23,
+    "sup": 29,
+    "eff": 44,
+    "rate": 0,
+    "run": 5,
+    "log": [
+     {
+      "c": "T5",
+      "k": 1,
+      "mate": "Toàn",
+      "opp": "Tri · Hiệu",
+      "s": [
+       24,
+       31
+      ],
+      "atk": 11,
+      "sup": 13,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 3,
+      "mate": "Sáng",
+      "opp": "Hiệu · Tiễn",
+      "s": [
+       28,
+       31
+      ],
+      "atk": 12,
+      "sup": 16,
+      "run": 5,
+      "closed": true
+     }
+    ]
+   },
+   "3-3": {
+    "n": 2,
+    "pairs": 4,
     "won": 1,
-    "pf": 56,
-    "pa": 60,
-    "diff": -4,
-    "atk": 25,
-    "sup": 31,
-    "eff": 45,
-    "rate": 50,
+    "pf": 103,
+    "pa": 122,
+    "diff": -19,
+    "atk": 44,
+    "sup": 59,
+    "eff": 43,
+    "rate": 25,
     "run": 7,
     "log": [
      {
@@ -901,21 +1269,49 @@
       "sup": 23,
       "run": 4,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 2,
+      "mate": "Quân",
+      "opp": "Minh · Vấn",
+      "s": [
+       22,
+       31
+      ],
+      "atk": 10,
+      "sup": 12,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 4,
+      "mate": "Toàn",
+      "opp": "Tri · Minh",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 9,
+      "sup": 16,
+      "run": 4,
+      "closed": true
      }
     ]
    },
    "3-4": {
-    "n": 1,
-    "pairs": 1,
+    "n": 2,
+    "pairs": 3,
     "won": 0,
-    "pf": 17,
-    "pa": 31,
-    "diff": -14,
-    "atk": 9,
-    "sup": 8,
+    "pf": 62,
+    "pa": 93,
+    "diff": -31,
+    "atk": 33,
+    "sup": 29,
     "eff": 53,
     "rate": 0,
-    "run": 3,
+    "run": 5,
     "log": [
      {
       "c": "T2",
@@ -930,19 +1326,47 @@
       "sup": 8,
       "run": 3,
       "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 3,
+      "mate": "Nhuận",
+      "opp": "Hiệu · Tiễn",
+      "s": [
+       28,
+       31
+      ],
+      "atk": 16,
+      "sup": 12,
+      "run": 5,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 5,
+      "mate": "Quân",
+      "opp": "Tiễn · Vấn",
+      "s": [
+       17,
+       31
+      ],
+      "atk": 8,
+      "sup": 9,
+      "run": 3,
+      "closed": true
      }
     ]
    },
    "3-5": {
-    "n": 1,
-    "pairs": 2,
+    "n": 2,
+    "pairs": 4,
     "won": 0,
-    "pf": 42,
-    "pa": 62,
-    "diff": -20,
-    "atk": 16,
-    "sup": 26,
-    "eff": 38,
+    "pf": 81,
+    "pa": 124,
+    "diff": -43,
+    "atk": 37,
+    "sup": 44,
+    "eff": 46,
     "rate": 0,
     "run": 7,
     "log": [
@@ -971,6 +1395,34 @@
       ],
       "atk": 8,
       "sup": 9,
+      "run": 3,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 2,
+      "mate": "Tín",
+      "opp": "Minh · Vấn",
+      "s": [
+       22,
+       31
+      ],
+      "atk": 12,
+      "sup": 10,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T5",
+      "k": 5,
+      "mate": "Sáng",
+      "opp": "Tiễn · Vấn",
+      "s": [
+       17,
+       31
+      ],
+      "atk": 9,
+      "sup": 8,
       "run": 3,
       "closed": true
      }
@@ -1276,16 +1728,16 @@
     ]
    },
    "5-1": {
-    "n": 1,
-    "pairs": 2,
+    "n": 2,
+    "pairs": 4,
     "won": 2,
-    "pf": 62,
-    "pa": 33,
-    "diff": 29,
-    "atk": 33,
-    "sup": 29,
-    "eff": 53,
-    "rate": 100,
+    "pf": 103,
+    "pa": 95,
+    "diff": 8,
+    "atk": 54,
+    "sup": 49,
+    "eff": 52,
+    "rate": 50,
     "run": 10,
     "log": [
      {
@@ -1315,20 +1767,48 @@
       "sup": 17,
       "run": 7,
       "closed": false
+     },
+     {
+      "c": "T6",
+      "k": 1,
+      "mate": "Thịnh",
+      "opp": "Kiệt · Phát",
+      "s": [
+       27,
+       31
+      ],
+      "atk": 13,
+      "sup": 14,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 4,
+      "mate": "Khang",
+      "opp": "Kiệt · Trang",
+      "s": [
+       14,
+       31
+      ],
+      "atk": 8,
+      "sup": 6,
+      "run": 3,
+      "closed": true
      }
     ]
    },
    "5-2": {
-    "n": 1,
-    "pairs": 2,
-    "won": 2,
-    "pf": 62,
-    "pa": 36,
-    "diff": 26,
-    "atk": 29,
-    "sup": 33,
-    "eff": 47,
-    "rate": 100,
+    "n": 2,
+    "pairs": 4,
+    "won": 3,
+    "pf": 120,
+    "pa": 92,
+    "diff": 28,
+    "atk": 62,
+    "sup": 58,
+    "eff": 52,
+    "rate": 75,
     "run": 10,
     "log": [
      {
@@ -1358,20 +1838,48 @@
       "sup": 14,
       "run": 5,
       "closed": false
+     },
+     {
+      "c": "T6",
+      "k": 1,
+      "mate": "Lam",
+      "opp": "Kiệt · Phát",
+      "s": [
+       27,
+       31
+      ],
+      "atk": 14,
+      "sup": 13,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 3,
+      "mate": "Phi",
+      "opp": "Phát · Kha",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 19,
+      "sup": 12,
+      "run": 5,
+      "closed": true
      }
     ]
    },
    "5-3": {
-    "n": 1,
-    "pairs": 2,
+    "n": 2,
+    "pairs": 4,
     "won": 2,
-    "pf": 62,
-    "pa": 43,
-    "diff": 19,
-    "atk": 30,
-    "sup": 32,
-    "eff": 48,
-    "rate": 100,
+    "pf": 101,
+    "pa": 105,
+    "diff": -4,
+    "atk": 53,
+    "sup": 48,
+    "eff": 52,
+    "rate": 50,
     "run": 7,
     "log": [
      {
@@ -1401,34 +1909,91 @@
       "sup": 14,
       "run": 7,
       "closed": false
+     },
+     {
+      "c": "T6",
+      "k": 2,
+      "mate": "Chi",
+      "opp": "Trang · Sương",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 17,
+      "sup": 8,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 4,
+      "mate": "Lam",
+      "opp": "Kiệt · Trang",
+      "s": [
+       14,
+       31
+      ],
+      "atk": 6,
+      "sup": 8,
+      "run": 3,
+      "closed": true
      }
     ]
    },
    "5-4": {
-    "n": 0,
-    "pairs": 0,
-    "won": 0,
-    "pf": 0,
-    "pa": 0,
-    "diff": 0,
-    "atk": 0,
-    "sup": 0,
-    "eff": null,
-    "rate": null,
-    "run": 0,
-    "log": []
-   },
-   "5-5": {
     "n": 1,
     "pairs": 2,
+    "won": 1,
+    "pf": 58,
+    "pa": 56,
+    "diff": 2,
+    "atk": 29,
+    "sup": 29,
+    "eff": 50,
+    "rate": 50,
+    "run": 5,
+    "log": [
+     {
+      "c": "T6",
+      "k": 3,
+      "mate": "Thịnh",
+      "opp": "Phát · Kha",
+      "s": [
+       31,
+       25
+      ],
+      "atk": 12,
+      "sup": 19,
+      "run": 5,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 5,
+      "mate": "Chi",
+      "opp": "Kha · Sương",
+      "s": [
+       27,
+       31
+      ],
+      "atk": 17,
+      "sup": 10,
+      "run": 4,
+      "closed": true
+     }
+    ]
+   },
+   "5-5": {
+    "n": 2,
+    "pairs": 4,
     "won": 2,
-    "pf": 62,
-    "pa": 46,
-    "diff": 16,
-    "atk": 32,
-    "sup": 30,
-    "eff": 52,
-    "rate": 100,
+    "pf": 114,
+    "pa": 108,
+    "diff": 6,
+    "atk": 50,
+    "sup": 64,
+    "eff": 44,
+    "rate": 50,
     "run": 7,
     "log": [
      {
@@ -1458,6 +2023,34 @@
       "sup": 17,
       "run": 5,
       "closed": false
+     },
+     {
+      "c": "T6",
+      "k": 2,
+      "mate": "Khang",
+      "opp": "Trang · Sương",
+      "s": [
+       25,
+       31
+      ],
+      "atk": 8,
+      "sup": 17,
+      "run": 4,
+      "closed": true
+     },
+     {
+      "c": "T6",
+      "k": 5,
+      "mate": "Phi",
+      "opp": "Kha · Sương",
+      "s": [
+       27,
+       31
+      ],
+      "atk": 10,
+      "sup": 17,
+      "run": 4,
+      "closed": true
      }
     ]
    },
