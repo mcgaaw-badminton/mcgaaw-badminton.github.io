@@ -3,6 +3,7 @@
 .bt-page { gap: 12px }
 .bt-page h1 { font-size: 36px }
 .bt-grid { position: relative; flex: 1; display: grid; grid-template-columns: 500px 1fr; gap: 22px; min-height: 0 }
+.bt-grid > .col:first-child .bxt { max-height: 330px }
 .col { display: flex; flex-direction: column; gap: 7px; min-width: 0 }
 .w { color: #157A4A } .l { color: #C2362B }
 .pm { background: #fff; border: 1.5px solid #CDD1E6; border-radius: 14px; padding: 8px 14px 10px; display: flex; flex-direction: column; gap: 4px }
@@ -23,7 +24,7 @@
 .gk { white-space: nowrap; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: #1D2BD9; text-transform: uppercase }
 .gw { min-width: 0; line-height: 1.25 } .gw b { display: block; font-size: 14px; font-weight: 800 } .gw small { font-size: 10.5px; color: #3B4266 }
 .gv { font-size: 17px; font-weight: 800; white-space: nowrap; background: #FDF3D6; color: #0E1430; padding: 2px 10px; border-radius: 8px; border: 1px solid #F2C14E }
-.bxt { background: #fff; border: 1.5px solid #CDD1E6; border-radius: 14px; padding: 4px 14px }
+.bxt { flex: 1; display: flex; flex-direction: column; justify-content: space-around; background: #fff; border: 1.5px solid #CDD1E6; border-radius: 14px; padding: 4px 14px; margin-bottom: 52px }
 .bh, .br { display: grid; grid-template-columns: 18px 1fr 80px 70px 76px; align-items: center; gap: 6px; font-size: 12px }
 .bh { font-size: 10px; font-weight: 800; color: #7D84A3; letter-spacing: .06em }
 .br { padding: 1px 0; border-top: 1px solid #EEF0F8 } .br b { font-weight: 800 } .br span { font-variant-numeric: tabular-nums }

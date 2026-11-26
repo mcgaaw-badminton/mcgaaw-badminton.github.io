@@ -494,7 +494,7 @@ def poster_main(args):
         cards += (f'<div class="pm"><div class="ph"><span class="code">{e(m["code"])}</span><b>{e(m["round"])}</b><span>cặp {r["pa"]}–{r["pb"]}</span></div>'
                   f'<div class="ps"><span class="t {cls("a")}">{e(nm(m["a"]))}</span><span class="sc"><b class="{cls("a")}">{r["a"]}</b><i>–</i><b class="{cls("b")}">{r["b"]}</b></span>'
                   f'<span class="t r {cls("b")}">{e(nm(m["b"]))}</span></div><div class="pps">{pairs}</div></div>')
-    hl = "".join(f'<div class="hlt"><b>{e(t["v"])}</b><small>{e(t["k"])}</small></div>' for t in day["stats"][2:])
+    hl = "".join(f'<div class="hlt"><b>{e(t["v"])}</b><small>{e(t["k"])}</small></div>' for t in day["stats"][len(ms):])  # tiles after the per-match results
     gl = "".join(
         f'<div class="gr"><span class="gk">{e(c["title"])}</span><span class="gw"><b>{e(c["name"])}</b><small>{e(c["tag"].split(" · ")[0])}'
         + (f' · đồng hạng {e(", ".join(n.split()[-1] for n in c["tie"]))}' if c.get("tie") else "") + f'</small></span><span class="gv">{e(c["value"])}</span></div>'
